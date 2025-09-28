@@ -225,7 +225,7 @@ except ImportError:  # Windows
 def run(cmd: str, check: bool = True) -> subprocess.CompletedProcess:
     logger.debug("Komut çalıştırılıyor: %s", cmd)
     try:
-        result = subprocess.run(cmd, shell=True, check=check, text=True)
+        result = subprocess.run(cmd, shell=True, check=check, text=True, capture_output=True)
         if result.stdout:
             logger.debug("stdout: %s", result.stdout.strip())
         if result.stderr:
