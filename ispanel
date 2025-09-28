@@ -70,10 +70,8 @@ def install_openlitespeed_and_php():
 
     # Paketler
     run("DEBIAN_FRONTEND=noninteractive apt-get -y install openlitespeed", check=True)
-    run(
-        "DEBIAN_FRONTEND=noninteractive apt-get -y install lsphp82 lsphp82-common lsphp82-mysql",
-        check=True,
-    )
+    # Tüm lsphp82 paketlerini kur
+    run("DEBIAN_FRONTEND=noninteractive apt-get -y install lsphp82*", check=True)
 
     # Hizmetleri başlat/enable
     # openlitespeed service name is usually 'lsws'
@@ -130,6 +128,9 @@ def cmd_install(args: argparse.Namespace):
     install_ssl_support()
     secure_mariadb()
     optimize_openlitespeed()
+    
+    # PHP OPcache konfigürasyonu
+    configure_php_opcache()
     
     # Yedek dizinleri oluştur
     Path("/www/backup/domains").mkdir(parents=True, exist_ok=True)
@@ -512,6 +513,122 @@ def optimize_openlitespeed():
     print("OpenLiteSpeed performans optimizasyonu tamamlandı.")
 
 
+def repair_mariadb():
+    """MariaDB onarım işlemleri"""
+    print("MariaDB onarım işlemleri yapılıyor...")
+    
+    # MySQL servisini durdur
+    run("systemctl stop mariadb", check=False)
+    
+    # Repair işlemleri
+    try:
+        # MySQL'i güvenli modda başlat
+        run("mysqld_safe --skip-grant-tables --skip-networking &", check=False)
+        time.sleep(3)
+        
+        # Repair komutları
+        repair_commands = [
+            "REPAIR TABLE mysql.user;",
+            "REPAIR TABLE mysql.db;",
+            "REPAIR TABLE mysql.tables_priv;",
+            "REPAIR TABLE mysql.columns_priv;",
+            "FLUSH PRIVILEGES;"
+        ]
+        
+        for cmd in repair_commands:
+            try:
+                run(f"mysql -u root -e \"{cmd}\"", check=True)
+            except:
+                pass
+        
+        # MySQL'i normal modda yeniden başlat
+        run("pkill mysqld", check=False)
+        time.sleep(2)
+        run("systemctl start mariadb", check=True)
+        
+        print("MariaDB onarım işlemleri tamamlandı.")
+    except Exception as e:
+        print(f"MariaDB onarım hatası: {e}")
+        run("systemctl start mariadb", check=False)
+
+
+def repair_openlitespeed():
+    """OpenLiteSpeed onarım işlemleri"""
+    print("OpenLiteSpeed onarım işlemleri yapılıyor...")
+    
+    try:
+        # Konfigürasyon dosyalarını kontrol et
+        config_files = [
+            "/usr/local/lsws/conf/httpd_config.conf",
+            "/usr/local/lsws/conf/vhosts"
+        ]
+        
+        for config_file in config_files:
+            if Path(config_file).exists():
+                # Dosya izinlerini düzelt
+                run(f"chown -R lsadm:lsadm {config_file}", check=False)
+                run(f"chmod -R 755 {config_file}", check=False)
+        
+        # OpenLiteSpeed'i yeniden başlat
+        run("systemctl restart lsws", check=False)
+        
+        # Alternatif restart
+        try:
+            run("/usr/local/lsws/bin/lswsctrl restart", check=True)
+        except:
+            pass
+            
+        print("OpenLiteSpeed onarım işlemleri tamamlandı.")
+    except Exception as e:
+        print(f"OpenLiteSpeed onarım hatası: {e}")
+
+
+def install_redis():
+    """Redis kurulumu"""
+    print("Redis kuruluyor...")
+    wait_for_apt()
+    run("DEBIAN_FRONTEND=noninteractive apt-get install -y redis-server", check=True)
+    run("systemctl enable redis-server", check=False)
+    run("systemctl start redis-server", check=True)
+    print("Redis kuruldu ve başlatıldı.")
+
+
+def install_memcached():
+    """Memcached kurulumu"""
+    print("Memcached kuruluyor...")
+    wait_for_apt()
+    run("DEBIAN_FRONTEND=noninteractive apt-get install -y memcached", check=True)
+    run("systemctl enable memcached", check=False)
+    run("systemctl start memcached", check=True)
+    print("Memcached kuruldu ve başlatıldı.")
+
+
+def configure_php_opcache():
+    """PHP OPcache konfigürasyonu"""
+    print("PHP OPcache konfigürasyonu yapılıyor...")
+    
+    # OPcache ayarları
+    opcache_config = """
+[opcache]
+opcache.enable=1
+opcache.memory_consumption=128
+opcache.interned_strings_buffer=8
+opcache.max_accelerated_files=4000
+opcache.revalidate_freq=2
+opcache.fast_shutdown=1
+opcache.enable_cli=1
+"""
+    
+    # PHP ini dosyasına ekle
+    php_ini_path = "/usr/local/lsws/lsphp82/etc/php/8.2/litespeed/php.ini"
+    if Path(php_ini_path).exists():
+        with open(php_ini_path, "a", encoding="utf-8") as f:
+            f.write(opcache_config)
+        print("OPcache konfigürasyonu eklendi.")
+    else:
+        print("PHP ini dosyası bulunamadı, OPcache manuel olarak yapılandırılmalı.")
+
+
 def backup_domain(domain):
     """Domain yedeği alma"""
     backup_dir = Path("/www/backup/domains")
@@ -645,6 +762,8 @@ def interactive_menu():
         print("13) Veritabanı yedekleme menüsü")
         print("14) Yedekleri listele")
         print("17) Cron backup ayarları")
+        print("18) Onarım araçları")
+        print("19) Cache sistemleri (Redis/Memcached)")
         print("15) MySQL root şifre sıfırla")
         print("16) OpenLiteSpeed admin şifre sıfırla")
         print("0) Çıkış")
@@ -722,11 +841,60 @@ def interactive_menu():
             list_backups()
         elif choice == "17":
             cron_backup_menu()
+        elif choice == "18":
+            repair_menu()
+        elif choice == "19":
+            cache_menu()
         elif choice == "15":
             reset_mysql_root_password()
         elif choice == "16":
             reset_openlitespeed_admin_password()
         elif choice == "0":
+            break
+        else:
+            print("Geçersiz seçim")
+
+
+def repair_menu():
+    """Onarım araçları menüsü"""
+    while True:
+        print("\n--- Onarım Araçları ---")
+        print("1) MariaDB onar")
+        print("2) OpenLiteSpeed onar")
+        print("3) PHP OPcache konfigürasyonu")
+        print("0) Geri")
+        sub = input("Seçim: ").strip()
+        if sub == "1":
+            repair_mariadb()
+        elif sub == "2":
+            repair_openlitespeed()
+        elif sub == "3":
+            configure_php_opcache()
+        elif sub == "0":
+            break
+        else:
+            print("Geçersiz seçim")
+
+
+def cache_menu():
+    """Cache sistemleri menüsü"""
+    while True:
+        print("\n--- Cache Sistemleri ---")
+        print("1) Redis kur")
+        print("2) Memcached kur")
+        print("3) Redis durumu")
+        print("4) Memcached durumu")
+        print("0) Geri")
+        sub = input("Seçim: ").strip()
+        if sub == "1":
+            install_redis()
+        elif sub == "2":
+            install_memcached()
+        elif sub == "3":
+            run("systemctl status redis-server", check=False)
+        elif sub == "4":
+            run("systemctl status memcached", check=False)
+        elif sub == "0":
             break
         else:
             print("Geçersiz seçim")
