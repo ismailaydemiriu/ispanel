@@ -3456,6 +3456,11 @@ def update_ispanel():
                 print("❌ İşlem iptal edildi.")
                 return
 
+        # Git repository varlığını tekrar kontrol et (düzeltme sonrası)
+        if not (script_dir / ".git").exists():
+            print("❌ Git repository hala eksik. Manuel düzeltme gerekli.")
+            return
+
         # Mevcut branch'i kontrol et
         result = run("git branch --show-current", check=False)
         current_branch = result.stdout.strip() if result.stdout else "unknown"
