@@ -87,29 +87,31 @@ sudo ispanel
 === isPanel - Web Hosting Management Panel ===
 1) Installation (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)
 2) Add Domain
-3) Change Domain PHP Version
-4) Domain List
-5) Remove Domain
-6) Create Database
-7) Database List
-8) Delete Database
-9) Fix Virtual Host Root
-10) Fix Vhost Configuration
-11) Reset MySQL Root Password
-12) Reset OpenLiteSpeed Admin Password
-13) Port Control and Firewall Management
-14) Install SSL/HTTPS Support
-15) MariaDB Security Settings
-16) OpenLiteSpeed Performance Optimization
-17) File Backup Menu
-18) Database Backup Menu
-19) List Backups
-20) Cron Backup Settings
-21) Repair Tools
-22) Cache Systems (Redis/Memcached)
-23) System Management
-24) OLS/PHP Settings
-25) Update isPanel
+3) Install OpenLiteSpeed Only
+4) Install MariaDB Only
+5) Change Domain PHP Version
+6) Domain List
+7) Remove Domain
+8) Create Database
+9) Database List
+10) Delete Database
+11) Fix Virtual Host Root
+12) Fix Vhost Configuration
+13) Reset MySQL Root Password
+14) Reset OpenLiteSpeed Admin Password
+15) Port Control and Firewall Management
+16) Install SSL/HTTPS Support
+17) MariaDB Security Settings
+18) OpenLiteSpeed Performance Optimization
+19) File Backup Menu
+20) Database Backup Menu
+21) List Backups
+22) Cron Backup Settings
+23) Repair Tools
+24) Cache Systems (Redis/Memcached)
+25) System Management
+26) OLS/PHP Settings
+27) Update isPanel
 0) Exit
 ```
 
@@ -130,6 +132,13 @@ sudo ispanel
 - ✅ MySQL root şifre sıfırlama
 - ✅ OpenLiteSpeed admin şifre sıfırlama
 - ✅ Etkileşimli menü arayüzü
+
+### 🎯 Flexible Installation Options
+- ✅ **Full Installation:** OpenLiteSpeed + PHP + MariaDB (Option 1)
+- ✅ **OpenLiteSpeed Only:** Web server + PHP installation (Option 3)
+- ✅ **MariaDB Only:** Database server installation (Option 4)
+- ✅ Compatible with existing systems
+- ✅ Modular structure for custom needs
 
 ### Güvenlik ve Performans
 - ✅ Firewall yönetimi (UFW/iptables)
@@ -250,29 +259,31 @@ sudo ispanel
 === isPanel - Web Hosting Yönetim Paneli ===
 1) Kurulum (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)
 2) Domain Ekle
-3) Domain PHP Sürümü Değiştir
-4) Domain Listesi
-5) Domain Sil
-6) Veritabanı Oluştur
-7) Veritabanı Listesi
-8) Veritabanı Sil
-9) Virtual Host Root Düzelt
-10) Vhost Konfigürasyon Düzelt
-11) MySQL Root Şifre Sıfırla
-12) OpenLiteSpeed Admin Şifre Sıfırla
-13) Port Kontrolü ve Firewall Yönetimi
-14) SSL/HTTPS Desteği Kur
-15) MariaDB Güvenlik Ayarları
-16) OpenLiteSpeed Performans Optimizasyonu
-17) Dosya Yedekleme Menüsü
-18) Veritabanı Yedekleme Menüsü
-19) Yedekleri Listele
-20) Cron Backup Ayarları
-21) Onarım Araçları
-22) Cache Sistemleri (Redis/Memcached)
-23) Sistem Yönetimi
-24) OLS/PHP Ayarları
-25) isPanel Güncelle
+3) Sadece OpenLiteSpeed Kur
+4) Sadece MariaDB Kur
+5) Domain PHP Sürümü Değiştir
+6) Domain Listesi
+7) Domain Sil
+8) Veritabanı Oluştur
+9) Veritabanı Listesi
+10) Veritabanı Sil
+11) Virtual Host Root Düzelt
+12) Vhost Konfigürasyon Düzelt
+13) MySQL Root Şifre Sıfırla
+14) OpenLiteSpeed Admin Şifre Sıfırla
+15) Port Kontrolü ve Firewall Yönetimi
+16) SSL/HTTPS Desteği Kur
+17) MariaDB Güvenlik Ayarları
+18) OpenLiteSpeed Performans Optimizasyonu
+19) Dosya Yedekleme Menüsü
+20) Veritabanı Yedekleme Menüsü
+21) Yedekleri Listele
+22) Cron Backup Ayarları
+23) Onarım Araçları
+24) Cache Sistemleri (Redis/Memcached)
+25) Sistem Yönetimi
+26) OLS/PHP Ayarları
+27) isPanel Güncelle
 0) Çıkış
 ```
 
@@ -291,6 +302,13 @@ sudo ispanel
 - ✅ HTTP/3 QUIC desteği
 - ✅ Gzip sıkıştırma
 - ✅ Cache optimizasyonu
+
+### 🎯 Esnek Kurulum Seçenekleri
+- ✅ **Tam Kurulum:** OpenLiteSpeed + PHP + MariaDB (Seçenek 1)
+- ✅ **Sadece OpenLiteSpeed:** Web sunucusu + PHP kurulumu (Seçenek 3)
+- ✅ **Sadece MariaDB:** Veritabanı sunucusu kurulumu (Seçenek 4)
+- ✅ Mevcut sistemlere uyumlu kurulum
+- ✅ Modüler yapı ile ihtiyaca göre seçim
 
 ### 🔧 Yönetim Özellikleri
 - ✅ SSH tabanlı komut satırı arayüzü
