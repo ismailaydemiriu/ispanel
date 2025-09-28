@@ -147,8 +147,8 @@ def cmd_install(args: argparse.Namespace):
     configure_php_opcache()
     
     # Yedek dizinleri oluştur
-    Path("/www/backup/domains").mkdir(parents=True, exist_ok=True)
-    Path("/www/backup/databases").mkdir(parents=True, exist_ok=True)
+    Path("/home/backup/domains").mkdir(parents=True, exist_ok=True)
+    Path("/home/backup/databases").mkdir(parents=True, exist_ok=True)
     
     # Symlink oluştur
     install_symlink()
@@ -188,8 +188,17 @@ def ensure_http_listener_mapping(domain: str):
     listener_pattern = r"listener\s+Default\\s*\{[\s\S]*?\}"
     m = re.search(listener_pattern, content)
     if not m:
-        print("httpd_config.conf içinde 'listener Default' bulunamadı. Lütfen OLS varsayılan konfigürasyonunu kullanın.", file=sys.stderr)
-        sys.exit(1)
+        # Eksikse, Default HTTP listener'ı oluştur
+        default_listener = (
+            "\nlistener Default {\n"
+            "    address                 *:80\n"
+            "    secure                  0\n"
+            f"    {map_block}\n"
+            "}\n"
+        )
+        content = content.rstrip() + "\n" + default_listener
+        HTTPD_CONF.write_text(content, encoding="utf-8")
+        return
     block = m.group(0)
     if map_block in block:
         return
@@ -235,28 +244,29 @@ listener SSL {{
     else:
         # Mevcut HTTPS listener'a domain ekle
         map_block = f"map                     {domain}:443 {domain}"
-        if map_block not in content:
-            # HTTPS listener içine domain mapping ekle
-            pass
+        m = re.search(https_listener_pattern, content)
+        if not m:
+            return
+        block = m.group(0)
+        if map_block in block:
+            return
+        new_block = block.rstrip("}\n") + f"\n    {map_block}\n}}"
+        new_content = content.replace(block, new_block)
+        HTTPD_CONF.write_text(new_content, encoding="utf-8")
 
 
 def write_vhost_conf(domain: str, docroot: Path):
     vdir = VHOSTS_DIR / domain
     vdir.mkdir(parents=True, exist_ok=True)
-    vconf = vdir / f"{domain}.conf"
+    vconf = vdir / "vhost.conf"
     accesslog = Path("/usr/local/lsws/logs") / f"{domain}.access.log"
     errorlog = Path("/usr/local/lsws/logs") / f"{domain}.error.log"
+    # Not: Bu dosya yalnızca vhost içeriğini barındırır. httpd_config.conf içine
+    # ayrı bir 'virtualHost {domain} { configFile ... }' referansı eklenecektir.
     conf = f"""
-virtualHost {domain} {{
-    vhRoot                  {docroot}
-    configFile              conf/vhosts/{domain}/{domain}.conf
-    allowSymbolLink         1
-    enableScript            1
-    restrained              1
-}}
 vhDomain                  {domain}
 docRoot                   {docroot}
-index  {"index.php,index.html"}
+index                     index.php,index.html
 
 errorlog {errorlog} {{
     useServer              0
@@ -269,18 +279,36 @@ accesslog {accesslog} {{
 }}
 
 context / {{
-    location              {docroot}
-    allowBrowse           1
+    location               {docroot}
+    allowBrowse            1
 }}
 
 scriptHandler {{
-    add                   lsapi:lsphp82 php
+    add                    lsapi:lsphp82 php
 }}
 
 phpIniOverride  {{
 }}
 """.strip()
     vconf.write_text(conf, encoding="utf-8")
+
+
+def ensure_virtual_host_reference(domain: str):
+    """httpd_config.conf içine virtualHost referansı ekle."""
+    if not HTTPD_CONF.exists():
+        print(f"Bulunamadı: {HTTPD_CONF}", file=sys.stderr)
+        sys.exit(1)
+    content = HTTPD_CONF.read_text(encoding="utf-8")
+    vhost_ref = (
+        f"virtualHost {domain} {{\n"
+        f"    configFile              conf/vhosts/{domain}/vhost.conf\n"
+        f"}}\n"
+    )
+    # Zaten var mı kontrol et (virtualHost domain satırı baz alınır)
+    if re.search(rf"virtualHost\s+{re.escape(domain)}\b", content):
+        return
+    content = content.rstrip() + "\n\n" + vhost_ref
+    HTTPD_CONF.write_text(content, encoding="utf-8")
 
 
 def ensure_docroot(domain: str) -> Path:
@@ -303,6 +331,7 @@ def domain_add(domain: str):
     
     docroot = ensure_docroot(domain)
     write_vhost_conf(domain, docroot)
+    ensure_virtual_host_reference(domain)
     ensure_http_listener_mapping(domain)
     
     # SSL sertifikası oluştur (Let's Encrypt)
@@ -330,7 +359,7 @@ def domain_add(domain: str):
 
 def set_domain_php_version(domain: str, version: str):
     """Domain için PHP sürümünü (lsphp81/82/83) ayarla"""
-    vconf = VHOSTS_DIR / domain / f"{domain}.conf"
+    vconf = VHOSTS_DIR / domain / "vhost.conf"
     if not vconf.exists():
         print("Vhost config bulunamadı.", file=sys.stderr)
         return
@@ -714,7 +743,7 @@ opcache.enable_cli=1
 
 def backup_domain(domain):
     """Domain yedeği alma"""
-    backup_dir = Path("/www/backup/domains")
+    backup_dir = Path("/home/backup/domains")
     backup_dir.mkdir(parents=True, exist_ok=True)
     
     timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -732,7 +761,7 @@ def backup_domain(domain):
 
 def backup_database(db_name):
     """Veritabanı yedeği alma"""
-    backup_dir = Path("/www/backup/databases")
+    backup_dir = Path("/home/backup/databases")
     backup_dir.mkdir(parents=True, exist_ok=True)
     
     timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -771,8 +800,8 @@ def restore_database(backup_file, db_name):
 
 def list_backups():
     """Yedekleri listele"""
-    domain_backups = list(Path("/www/backup/domains").glob("*.tar.gz"))
-    db_backups = list(Path("/www/backup/databases").glob("*.sql"))
+    domain_backups = list(Path("/home/backup/domains").glob("*.tar.gz"))
+    db_backups = list(Path("/home/backup/databases").glob("*.sql"))
     
     print("\n=== Domain Yedekleri ===")
     for backup in domain_backups:
@@ -813,12 +842,12 @@ def cron_backup_menu():
         sub = input("Seçim: ").strip()
         if sub == "1":
             db = input("Yedeklenecek DB adı: ").strip()
-            backup_dir = "/www/backup/databases"
+            backup_dir = "/home/backup/databases"
             line = f"30 2 * * * mysqldump -uroot {db} > {backup_dir}/{db}_$(date +\\%Y\\%m\\%d).sql"
             cron_add(line)
         elif sub == "2":
             domain = input("Yedeklenecek domain: ").strip()
-            backup_dir = "/www/backup/domains"
+            backup_dir = "/home/backup/domains"
             line = f"0 3 * * * tar -czf {backup_dir}/{domain}_$(date +\\%Y\\%m\\%d).tar.gz -C {DOCROOT_BASE} {domain}"
             cron_add(line)
         elif sub == "3":
@@ -1010,9 +1039,9 @@ def setup_backup_rotation():
     # Yedek rotasyon scripti
     rotation_script = """#!/bin/bash
 # 30 günden eski domain yedeklerini sil
-find /www/backup/domains -name "*.tar.gz" -mtime +30 -delete
+find /home/backup/domains -name "*.tar.gz" -mtime +30 -delete
 # 30 günden eski DB yedeklerini sil  
-find /www/backup/databases -name "*.sql" -mtime +30 -delete
+find /home/backup/databases -name "*.sql" -mtime +30 -delete
 echo "$(date): Backup rotation completed" >> /var/log/backup_rotation.log
 """
     
