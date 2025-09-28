@@ -86,9 +86,9 @@ sudo ispanel
 ```
 === isPanel - Web Hosting Management Panel ===
 1) Installation (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)
-2) Add Domain
-3) Install OpenLiteSpeed Only
-4) Install MariaDB Only
+2) Install OpenLiteSpeed Only
+3) Install MariaDB Only
+4) Add Domain
 5) Change Domain PHP Version
 6) Domain List
 7) Remove Domain
@@ -258,9 +258,9 @@ sudo ispanel
 ```
 === isPanel - Web Hosting Yönetim Paneli ===
 1) Kurulum (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)
-2) Domain Ekle
-3) Sadece OpenLiteSpeed Kur
-4) Sadece MariaDB Kur
+2) Sadece OpenLiteSpeed Kur
+3) Sadece MariaDB Kur
+4) Domain Ekle
 5) Domain PHP Sürümü Değiştir
 6) Domain Listesi
 7) Domain Sil

@@ -20,10 +20,10 @@ TEXTS = {
         "main_menu_title": "isPanel - Web Hosting Management Panel",
         "main_menu_options": [
             "Installation (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)",
-            "Add Domain",
-            "Change Domain PHP Version",
             "Install OpenLiteSpeed Only",
             "Install MariaDB Only",
+            "Add Domain",
+            "Change Domain PHP Version",
             "Domain List",
             "Remove Domain",
             "Create Database",
@@ -81,10 +81,10 @@ TEXTS = {
         "main_menu_title": "isPanel - Web Hosting Yönetim Paneli",
         "main_menu_options": [
             "Kurulum (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)",
-            "Domain Ekle",
-            "Domain PHP Sürümü Değiştir",
             "Sadece OpenLiteSpeed Kur",
             "Sadece MariaDB Kur",
+            "Domain Ekle",
+            "Domain PHP Sürümü Değiştir",
             "Domain Listesi",
             "Domain Sil",
             "Veritabanı Oluştur",
@@ -2683,12 +2683,12 @@ def interactive_menu():
             # Her iki PHP sürümü de kurulacak
             cmd_install(argparse.Namespace(php_version="83"))
         elif choice == "2":
+            install_openlitespeed_only()
+        elif choice == "3":
+            install_mariadb_only()
+        elif choice == "4":
             domain = input(f"{get_text('domain_prompt')}: ").strip()
             domain_add(domain)
-        elif choice == "3":
-            install_openlitespeed_only()
-        elif choice == "4":
-            install_mariadb_only()
         elif choice == "5":
             domain_php_version_menu()
         elif choice == "6":
