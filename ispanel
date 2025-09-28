@@ -2017,14 +2017,62 @@ def optimize_openlitespeed():
     """OpenLiteSpeed performans optimizasyonu"""
     print("OpenLiteSpeed performans optimizasyonu yapılıyor...")
     
+    # Sistem kaynaklarını analiz et
+    print("🔍 Sistem kaynakları analiz ediliyor...")
+    
+    # RAM miktarını al (GB cinsinden)
+    try:
+        with open("/proc/meminfo", "r") as f:
+            meminfo = f.read()
+        total_mem_kb = int(re.search(r"MemTotal:\s+(\d+)", meminfo).group(1))
+        total_mem_gb = total_mem_kb / 1024 / 1024
+    except:
+        total_mem_gb = 4  # Varsayılan 4GB
+    
+    # CPU çekirdek sayısını al
+    try:
+        cpu_cores = os.cpu_count() or 4
+    except:
+        cpu_cores = 4  # Varsayılan 4 çekirdek
+    
+    print(f"💾 RAM: {total_mem_gb:.1f}GB")
+    print(f"🖥️  CPU Çekirdek: {cpu_cores}")
+    
+    # PHP_LSAPI_CHILDREN hesapla (CPU çekirdek sayısına göre)
+    php_children = min(max(cpu_cores * 2, 4), 32)  # 4-32 arası
+    
+    # LSAPI_AVOID_FORK hesapla (RAM miktarına göre)
+    if total_mem_gb >= 16:
+        avoid_fork = "512M"
+    elif total_mem_gb >= 8:
+        avoid_fork = "256M"
+    elif total_mem_gb >= 4:
+        avoid_fork = "128M"
+    else:
+        avoid_fork = "64M"
+    
+    # maxConnections hesapla (RAM ve CPU'ya göre)
+    if total_mem_gb >= 16 and cpu_cores >= 8:
+        max_conn = "20000"
+    elif total_mem_gb >= 8 and cpu_cores >= 4:
+        max_conn = "15000"
+    elif total_mem_gb >= 4 and cpu_cores >= 2:
+        max_conn = "10000"
+    else:
+        max_conn = "5000"
+    
+    print(f"⚙️  PHP_LSAPI_CHILDREN: {php_children}")
+    print(f"⚙️  LSAPI_AVOID_FORK: {avoid_fork}")
+    print(f"⚙️  maxConnections: {max_conn}")
+    
     # Konfigürasyon dosyası optimizasyonları
     if HTTPD_CONF.exists():
         content = HTTPD_CONF.read_text(encoding="utf-8")
         
         # Performans ayarları
         optimizations = {
-            "maxConnections": "10000",
-            "maxSSLConnections": "10000",
+            "maxConnections": max_conn,
+            "maxSSLConnections": max_conn,
             "connTimeout": "300",
             "maxKeepAliveReq": "10000",
             "keepAliveTimeout": "5",
@@ -2040,10 +2088,94 @@ def optimize_openlitespeed():
 
         HTTPD_CONF.write_text(content, encoding="utf-8")
 
-    # PHP handler'ları kontrol et
+    # PHP handler'ları kontrol et ve optimize et
     ensure_php_handlers()
     
-    print("OpenLiteSpeed performans optimizasyonu tamamlandı.")
+    # PHP konfigürasyonunu optimize et
+    optimize_php_lsapi(php_children, avoid_fork)
+    
+    print("✅ OpenLiteSpeed performans optimizasyonu tamamlandı.")
+    print(f"📊 Optimizasyon özeti:")
+    print(f"   - PHP Children: {php_children}")
+    print(f"   - Avoid Fork: {avoid_fork}")
+    print(f"   - Max Connections: {max_conn}")
+
+
+def optimize_php_lsapi(php_children: int, avoid_fork: str):
+    """PHP LSAPI konfigürasyonunu optimize et"""
+    print("🔧 PHP LSAPI konfigürasyonu optimize ediliyor...")
+    
+    # PHP konfigürasyon dosyalarını bul
+    php_config_files = [
+        "/usr/local/lsws/conf/php.ini",
+        "/usr/local/lsws/lsphp82/etc/php/8.2/litespeed/php.ini",
+        "/usr/local/lsws/lsphp83/etc/php/8.3/litespeed/php.ini",
+    ]
+    
+    for config_file in php_config_files:
+        if Path(config_file).exists():
+            try:
+                content = Path(config_file).read_text(encoding="utf-8")
+                
+                # PHP_LSAPI_CHILDREN ayarını ekle/güncelle
+                if "PHP_LSAPI_CHILDREN" not in content:
+                    content += f"\n; isPanel Performance Optimization\nPHP_LSAPI_CHILDREN={php_children}\n"
+                else:
+                    content = re.sub(
+                        r"PHP_LSAPI_CHILDREN\s*=\s*\d+",
+                        f"PHP_LSAPI_CHILDREN={php_children}",
+                        content
+                    )
+                
+                # LSAPI_AVOID_FORK ayarını ekle/güncelle
+                if "LSAPI_AVOID_FORK" not in content:
+                    content += f"LSAPI_AVOID_FORK={avoid_fork}\n"
+                else:
+                    content = re.sub(
+                        r"LSAPI_AVOID_FORK\s*=\s*[\dM]+",
+                        f"LSAPI_AVOID_FORK={avoid_fork}",
+                        content
+                    )
+                
+                Path(config_file).write_text(content, encoding="utf-8")
+                print(f"✅ {config_file} güncellendi")
+                
+            except Exception as e:
+                print(f"⚠️  {config_file} güncellenemedi: {e}")
+    
+    # Environment variables olarak da ayarla
+    env_file = Path("/etc/environment")
+    if env_file.exists():
+        try:
+            content = env_file.read_text(encoding="utf-8")
+            
+            # PHP_LSAPI_CHILDREN ekle/güncelle
+            if "PHP_LSAPI_CHILDREN" not in content:
+                content += f"\nPHP_LSAPI_CHILDREN={php_children}\n"
+            else:
+                content = re.sub(
+                    r"PHP_LSAPI_CHILDREN\s*=\s*\d+",
+                    f"PHP_LSAPI_CHILDREN={php_children}",
+                    content
+                )
+            
+            # LSAPI_AVOID_FORK ekle/güncelle
+            if "LSAPI_AVOID_FORK" not in content:
+                content += f"LSAPI_AVOID_FORK={avoid_fork}\n"
+            else:
+                content = re.sub(
+                    r"LSAPI_AVOID_FORK\s*=\s*[\dM]+",
+                    f"LSAPI_AVOID_FORK={avoid_fork}",
+                    content
+                )
+            
+            env_file.write_text(content, encoding="utf-8")
+            print("✅ /etc/environment güncellendi")
+            
+        except Exception as e:
+            print(f"⚠️  /etc/environment güncellenemedi: {e}")
+    
+    print("✅ PHP LSAPI optimizasyonu tamamlandı")
 
 
 def repair_mariadb():
