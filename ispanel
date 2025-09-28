@@ -1098,6 +1098,7 @@ def system_management_menu():
         print("4) Kernel parametrelerini optimize et")
         print("5) Sistem durumu")
         print("6) Disk kullanımı")
+        print("7) ispanel komutunu onar (/usr/local/bin/ispanel)")
         print("0) Geri")
         sub = input("Seçim: ").strip()
         if sub == "1":
@@ -1112,6 +1113,8 @@ def system_management_menu():
             run("systemctl status lsws mariadb redis-server memcached", check=False)
         elif sub == "6":
             run("df -h", check=False)
+        elif sub == "7":
+            install_symlink()
         elif sub == "0":
             break
         else:

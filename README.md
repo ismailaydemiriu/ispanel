@@ -30,6 +30,26 @@ sudo python3 ispanel install
 
 Kurulum sonunda `/usr/local/bin/ispanel` komutu oluşturulur.
 
+### Komut bulunamazsa / kurulum yarıda kalırsa
+
+Eğer `sudo ispanel` komutu çalışmazsa veya kurulum sırasında symlink oluşumu yarıda kalırsa:
+
+```bash
+# 1) Symlink'i yeniden oluştur
+sudo rm -f /usr/local/bin/ispanel
+sudo ln -s $(pwd)/ispanel /usr/local/bin/ispanel
+
+# 2) Menüden de onarabilirsiniz
+sudo ispanel  # açılırsa
+# 20) Sistem yönetimi → 7) ispanel komutunu onar
+```
+
+Not: Python komutu `python3` olmalıdır. `python` yoksa şu şekilde çalıştırın:
+
+```bash
+sudo python3 ispanel install
+```
+
 ## Menülü kullanım
 
 ```bash
