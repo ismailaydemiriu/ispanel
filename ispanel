@@ -444,10 +444,18 @@ def write_vhost_conf(domain: str, docroot: Path):
 
     vconf.write_text(conf, encoding="utf-8")
 
+    # Vhost dizini izinleri
     run(f"chown -R lsadm:nogroup {vdir}", check=True)
     run(f"chmod -R 755 {vdir}", check=True)
+    
+    # Domain root ve public_html izinleri
     run(f"chown -R lsadm:nogroup {vh_root}", check=False)
-    run(f"chmod -R 755 {vh_root}", check=False)
+    run(f"chmod 755 {vh_root}", check=False)
+    run(f"chmod 755 {docroot}", check=False)
+    
+    # Dosya ve dizin izinlerini düzelt
+    run(f"find {docroot} -type f -exec chmod 644 {{}} +", check=False)
+    run(f"find {docroot} -type d -exec chmod 755 {{}} +", check=False)
 
 
 def ensure_virtual_host_reference(domain: str):
@@ -650,7 +658,15 @@ def ensure_docroot(domain: str) -> Path:
 </body>
 </html>'''
         index_file.write_text(default_content, encoding="utf-8")
-    run(f"chown -R lsadm:nogroup {DOCROOT_BASE / domain}", check=False)
+    
+    # İzinleri düzelt
+    domain_root = DOCROOT_BASE / domain
+    run(f"chown -R lsadm:nogroup {domain_root}", check=False)
+    run(f"chmod 755 {domain_root}", check=False)
+    run(f"chmod 755 {docroot}", check=False)
+    run(f"find {docroot} -type f -exec chmod 644 {{}} +", check=False)
+    run(f"find {docroot} -type d -exec chmod 755 {{}} +", check=False)
+    
     return docroot
 
 
