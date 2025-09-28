@@ -58,8 +58,8 @@ def check_disk_space(min_gb: int = 1):
         sys.exit(1)
 
 
-def install_openlitespeed_and_php():
-    print("OpenLiteSpeed ve PHP 8.3 kuruluyor...")
+def install_openlitespeed_and_php(lsphp_version: str = "83"):
+    print(f"OpenLiteSpeed ve PHP {lsphp_version[0]}.{lsphp_version[1]} kuruluyor...")
     wait_for_apt()
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
     ensure_cmd("curl", "curl")
@@ -135,7 +135,7 @@ def cmd_install(args: argparse.Namespace):
     print("=== ispanel Kurulum Başlıyor ===")
     
     # Temel kurulum
-    install_openlitespeed_and_php()
+    install_openlitespeed_and_php(DEFAULT_LSPHP_VERSION)
     install_mariadb()
     
     # Güvenlik ve performans ayarları
@@ -156,7 +156,7 @@ def cmd_install(args: argparse.Namespace):
     install_symlink()
     
     print("\n=== Kurulum Tamamlandı ===")
-    print("✅ OpenLiteSpeed + PHP 8.3 + MariaDB kuruldu")
+    print(f"✅ OpenLiteSpeed + PHP {DEFAULT_LSPHP_VERSION[0]}.{DEFAULT_LSPHP_VERSION[1]} + MariaDB kuruldu")
     print("✅ Firewall ayarları yapıldı")
     print("✅ SSL/HTTPS desteği eklendi")
     print("✅ MariaDB güvenlik ayarları yapıldı")
@@ -171,6 +171,7 @@ LSWS_CONF_DIR = Path("/usr/local/lsws/conf")
 VHOSTS_DIR = LSWS_CONF_DIR / "vhosts"
 HTTPD_CONF = LSWS_CONF_DIR / "httpd_config.conf"
 DOCROOT_BASE = Path("/home")
+DEFAULT_LSPHP_VERSION = "83"  # Varsayılan lsphp sürümü (menu kurulum seçimine göre güncellenir)
 
 
 def reload_lsws():
@@ -286,7 +287,7 @@ context / {{
 }}
 
 scriptHandler {{
-    add                    lsapi:lsphp82 php
+    add                    lsapi:lsphp{DEFAULT_LSPHP_VERSION} php
 }}
 
 phpIniOverride  {{
@@ -1049,20 +1050,21 @@ def cron_backup_menu():
 def interactive_menu():
     while True:
         print("\n=== ispanel (Ubuntu 22+) ===")
-        print("1) Domain ekle")
+        print("1) Kurulum (OpenLiteSpeed + PHP 8.2 + MariaDB)")
         print("2) Kurulum (OpenLiteSpeed + PHP 8.3 + MariaDB)")
-        print("3) Domain sil")
-        print("4) DB oluştur")
-        print("5) DB sil")
-        print("6) MySQL root şifre sıfırla")
-        print("7) OpenLiteSpeed admin şifre sıfırla")
-        print("8) Port kontrolü ve Firewall yönetimi")
-        print("9) SSL/HTTPS desteği kur")
-        print("10) MariaDB güvenlik ayarları")
-        print("11) OpenLiteSpeed performans optimizasyonu")
-        print("12) Dosya yedekleme menüsü")
-        print("13) Veritabanı yedekleme menüsü")
-        print("14) Yedekleri listele")
+        print("3) Domain ekle")
+        print("4) Domain sil")
+        print("5) DB oluştur")
+        print("6) DB sil")
+        print("7) MySQL root şifre sıfırla")
+        print("8) OpenLiteSpeed admin şifre sıfırla")
+        print("9) Port kontrolü ve Firewall yönetimi")
+        print("10) SSL/HTTPS desteği kur")
+        print("11) MariaDB güvenlik ayarları")
+        print("12) OpenLiteSpeed performans optimizasyonu")
+        print("13) Dosya yedekleme menüsü")
+        print("14) Veritabanı yedekleme menüsü")
+        print("15) Yedekleri listele")
         print("17) Cron backup ayarları")
         print("18) Onarım araçları")
         print("19) Cache sistemleri (Redis/Memcached)")
@@ -1072,34 +1074,36 @@ def interactive_menu():
         print("0) Çıkış")
         choice = input("Seçim: ").strip()
         if choice == "1":
-            domain = input("Domain: ").strip()
-            domain_add(domain)
+            DEFAULT_LSPHP_VERSION = "82"
+            cmd_install(argparse.Namespace())
         elif choice == "2":
+            DEFAULT_LSPHP_VERSION = "83"
             cmd_install(argparse.Namespace())
         elif choice == "3":
             domain = input("Domain: ").strip()
-            domain_remove(domain)
+            domain_add(domain)
         elif choice == "4":
+            domain = input("Domain: ").strip()
+            domain_remove(domain)
+        elif choice == "5":
             db = input("DB adı: ").strip()
             user = input("Kullanıcı: ").strip()
             password = input("Parola: ").strip()
             db_create(db, user, password)
-        elif choice == "5":
+        elif choice == "6":
             db = input("DB adı: ").strip()
             user = input("Kullanıcı: ").strip()
             db_delete(db, user)
-        elif choice == "6":
-            reset_mysql_root_password()
         elif choice == "7":
-            reset_openlitespeed_admin_password()
+            reset_mysql_root_password()
         elif choice == "8":
-            manage_firewall()
+            reset_openlitespeed_admin_password()
         elif choice == "9":
-            install_ssl_support()
+            manage_firewall()
         elif choice == "10":
-            secure_mariadb()
+            install_ssl_support()
         elif choice == "11":
-            optimize_openlitespeed()
+            secure_mariadb()
         elif choice == "12":
             while True:
                 print("\n--- Dosya Yedekleme ---")
