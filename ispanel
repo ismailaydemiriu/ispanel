@@ -70,8 +70,8 @@ def install_openlitespeed_and_php():
 
     # Paketler
     run("DEBIAN_FRONTEND=noninteractive apt-get -y install openlitespeed", check=True)
-    # Tüm lsphp82 paketlerini kur
-    run("DEBIAN_FRONTEND=noninteractive apt-get -y install lsphp82*", check=True)
+    # Tüm lsphp paketlerini (81/82/83) kur
+    run("DEBIAN_FRONTEND=noninteractive apt-get -y install lsphp81* lsphp82* lsphp83*", check=True)
 
     # Hizmetleri başlat/enable
     # openlitespeed service name is usually 'lsws'
@@ -312,6 +312,67 @@ def domain_add(domain: str):
     print(f"Domain eklendi: {domain} -> {docroot}")
     print(f"HTTP: http://{domain}")
     print(f"HTTPS: https://{domain} (SSL varsa)")
+
+
+def set_domain_php_version(domain: str, version: str):
+    """Domain için PHP sürümünü (lsphp81/82/83) ayarla"""
+    vconf = VHOSTS_DIR / domain / f"{domain}.conf"
+    if not vconf.exists():
+        print("Vhost config bulunamadı.", file=sys.stderr)
+        return
+    content = vconf.read_text(encoding="utf-8")
+    content = re.sub(r"add\s+lsapi:lsphp\d+\s+php", f"add                   lsapi:lsphp{version} php", content)
+    vconf.write_text(content, encoding="utf-8")
+    reload_lsws()
+    print(f"{domain} için PHP lsphp{version} olarak ayarlandı.")
+
+
+def toggle_http3_brotli(enable: bool):
+    """HTTP/3 (QUIC) ve Brotli sıkıştırmayı aç/kapat"""
+    if not HTTPD_CONF.exists():
+        print("httpd_config.conf bulunamadı.", file=sys.stderr)
+        return
+    content = HTTPD_CONF.read_text(encoding="utf-8")
+    # HTTP/3 QUIC ayarı listener SSL içinde enableQuic 1/0
+    content = re.sub(r"enableQuic\s+\d", f"enableQuic              {'1' if enable else '0'}", content)
+    HTTPD_CONF.write_text(content, encoding="utf-8")
+
+    # Brotli: global conf'a ek basit bayrak (OLS'te mod_brotli yoksa gzip kullanılabilir; burada örnek bayrak koyuyoruz)
+    brotli_marker = "# ispanel_brotli_enabled"
+    if enable:
+        if brotli_marker not in content:
+            with open(HTTPD_CONF, "a", encoding="utf-8") as f:
+                f.write(f"\n{brotli_marker}\n# Brotli etkin: statik içerik için harici reverse proxy veya mod eklentisi gerekebilir.\n")
+    else:
+        newc = Path(HTTPD_CONF).read_text(encoding="utf-8").replace(brotli_marker + "\n", "")
+        Path(HTTPD_CONF).write_text(newc, encoding="utf-8")
+    reload_lsws()
+    print(f"HTTP/3 {'açıldı' if enable else 'kapandı'}; Brotli {'işaretlendi' if enable else 'devre dışı'}.")
+
+
+def ols_php_menu():
+    while True:
+        print("\n--- OLS/PHP Ayarları ---")
+        print("1) Domain için PHP sürümü ayarla (lsphp81/82/83)")
+        print("2) HTTP/3 + Brotli aç")
+        print("3) HTTP/3 + Brotli kapat")
+        print("0) Geri")
+        sub = input("Seçim: ").strip()
+        if sub == '1':
+            domain = input("Domain: ").strip()
+            version = input("Sürüm (81/82/83): ").strip()
+            if version not in {"81","82","83"}:
+                print("Geçersiz sürüm")
+            else:
+                set_domain_php_version(domain, version)
+        elif sub == '2':
+            toggle_http3_brotli(True)
+        elif sub == '3':
+            toggle_http3_brotli(False)
+        elif sub == '0':
+            break
+        else:
+            print("Geçersiz seçim")
 
 
 def domain_remove(domain: str):
@@ -620,11 +681,19 @@ opcache.enable_cli=1
 """
     
     # PHP ini dosyasına ekle
-    php_ini_path = "/usr/local/lsws/lsphp82/etc/php/8.2/litespeed/php.ini"
-    if Path(php_ini_path).exists():
-        with open(php_ini_path, "a", encoding="utf-8") as f:
-            f.write(opcache_config)
-        print("OPcache konfigürasyonu eklendi.")
+    candidates = [
+        "/usr/local/lsws/lsphp81/etc/php/8.1/litespeed/php.ini",
+        "/usr/local/lsws/lsphp82/etc/php/8.2/litespeed/php.ini",
+        "/usr/local/lsws/lsphp83/etc/php/8.3/litespeed/php.ini",
+    ]
+    wrote = False
+    for php_ini_path in candidates:
+        if Path(php_ini_path).exists():
+            with open(php_ini_path, "a", encoding="utf-8") as f:
+                f.write(opcache_config)
+            wrote = True
+    if wrote:
+        print("OPcache konfigürasyonu eklendi (mevcut sürümler).")
     else:
         print("PHP ini dosyası bulunamadı, OPcache manuel olarak yapılandırılmalı.")
 
@@ -767,6 +836,7 @@ def interactive_menu():
         print("18) Onarım araçları")
         print("19) Cache sistemleri (Redis/Memcached)")
         print("20) Sistem yönetimi")
+        print("21) OLS/PHP ayarları")
         print("0) Çıkış")
         choice = input("Seçim: ").strip()
         if choice == "1":
@@ -852,6 +922,8 @@ def interactive_menu():
             cache_menu()
         elif choice == "20":
             system_management_menu()
+        elif choice == "21":
+            ols_php_menu()
         elif choice == "0":
             break
         else:
