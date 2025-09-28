@@ -316,7 +316,176 @@ def ensure_docroot(domain: str) -> Path:
     docroot.mkdir(parents=True, exist_ok=True)
     index_file = docroot / "index.php"
     if not index_file.exists():
-        index_file.write_text("<?php phpinfo();", encoding="utf-8")
+        # Güzel tasarımlı default index.php oluştur
+        default_content = '''<?php
+// isPanel tarafından yönetilmektedir
+// https://ispanel.com
+?>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $_SERVER['HTTP_HOST']; ?> - isPanel ile Yönetiliyor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 600px;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .logo {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .domain {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #f0f0f0;
+        }
+        
+        .status {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1.5rem 0;
+        }
+        
+        .status h3 {
+            color: #4caf50;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info {
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid #2196f3;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .info h4 {
+            color: #2196f3;
+            margin-bottom: 0.5rem;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .feature h4 {
+            color: #ffd700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .footer {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .footer a {
+            color: #4ecdc4;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .php-info {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">isPanel</div>
+        <div class="domain"><?php echo $_SERVER['HTTP_HOST']; ?></div>
+        
+        <div class="status">
+            <h3>✅ Site Aktif</h3>
+            <p>Bu domain isPanel tarafından yönetilmektedir</p>
+        </div>
+        
+        <div class="info">
+            <h4>🚀 isPanel Özellikleri</h4>
+            <p>OpenLiteSpeed + PHP 8.3 + MariaDB ile güçlü web hosting</p>
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <h4>⚡ Hızlı</h4>
+                <p>OpenLiteSpeed ile optimize edilmiş performans</p>
+            </div>
+            <div class="feature">
+                <h4>🔒 Güvenli</h4>
+                <p>SSL sertifikası ve güvenlik ayarları</p>
+            </div>
+            <div class="feature">
+                <h4>📦 Kolay</h4>
+                <p>Tek komutla domain ve veritabanı yönetimi</p>
+            </div>
+        </div>
+        
+        <div class="php-info">
+            <strong>PHP Bilgileri:</strong><br>
+            PHP Sürümü: <?php echo PHP_VERSION; ?><br>
+            Sunucu: <?php echo $_SERVER['SERVER_SOFTWARE'] ?? 'OpenLiteSpeed'; ?><br>
+            Tarih: <?php echo date('d.m.Y H:i:s'); ?>
+        </div>
+        
+        <div class="footer">
+            <p>Daha fazla bilgi için: <a href="https://ispanel.com" target="_blank">ispanel.com</a></p>
+            <p>GitHub: <a href="https://github.com/ismailaydemiriu/ispanel" target="_blank">GitHub Repository</a></p>
+        </div>
+    </div>
+</body>
+</html>'''
+        index_file.write_text(default_content, encoding="utf-8")
     run(f"chown -R lsadm:lsadm {DOCROOT_BASE / domain}", check=False)
     return docroot
 
