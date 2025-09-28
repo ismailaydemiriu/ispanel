@@ -1982,7 +1982,7 @@ def fix_virtual_host_root(domain: str):
         content = content.replace(old_block, new_block)
         HTTPD_CONF.write_text(content, encoding="utf-8")
         print(f"✅ {domain} Virtual Host Root düzeltildi: {docroot}")
-    return True
+        return True
     else:
         print(f"❌ {domain} virtualHost bloğu bulunamadı")
         return False
