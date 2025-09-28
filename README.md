@@ -60,6 +60,7 @@ sudo ispanel
 12) Dosya yedekleme menüsü
 13) Veritabanı yedekleme menüsü
 14) Yedekleri listele
+17) Cron backup ayarları
 15) MySQL root şifre sıfırla
 16) OpenLiteSpeed admin şifre sıfırla
 0) Çıkış

@@ -583,6 +583,52 @@ def list_backups():
         print(f"- {backup.name}")
 
 
+def install_cron():
+    ensure_cmd("crontab", "cron")
+
+
+def cron_add(line: str):
+    install_cron()
+    # mevcut crontab al
+    cp = subprocess.run("crontab -l", shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    current = cp.stdout if cp.returncode == 0 else ""
+    if line in current:
+        print("Cron zaten mevcut")
+        return
+    new = current + ("\n" if current and not current.endswith("\n") else "") + line + "\n"
+    p = subprocess.run("crontab -", shell=True, input=new, text=True)
+    if p.returncode == 0:
+        print("Cron eklendi")
+    else:
+        print("Cron eklenemedi", file=sys.stderr)
+
+
+def cron_backup_menu():
+    while True:
+        print("\n--- Cron Backup Ayarları ---")
+        print("1) Günlük DB yedeği kur (02:30)")
+        print("2) Günlük Dosya yedeği kur (03:00)")
+        print("3) Cron listele")
+        print("0) Geri")
+        sub = input("Seçim: ").strip()
+        if sub == "1":
+            db = input("Yedeklenecek DB adı: ").strip()
+            backup_dir = "/www/backup/databases"
+            line = f"30 2 * * * mysqldump -uroot {db} > {backup_dir}/{db}_$(date +\\%Y\\%m\\%d).sql"
+            cron_add(line)
+        elif sub == "2":
+            domain = input("Yedeklenecek domain: ").strip()
+            backup_dir = "/www/backup/domains"
+            line = f"0 3 * * * tar -czf {backup_dir}/{domain}_$(date +\\%Y\\%m\\%d).tar.gz -C {DOCROOT_BASE} {domain}"
+            cron_add(line)
+        elif sub == "3":
+            subprocess.run("crontab -l | cat", shell=True)
+        elif sub == "0":
+            break
+        else:
+            print("Geçersiz seçim")
+
+
 def interactive_menu():
     while True:
         print("\n=== ispanel (Ubuntu 22+) ===")
@@ -598,6 +644,7 @@ def interactive_menu():
         print("12) Dosya yedekleme menüsü")
         print("13) Veritabanı yedekleme menüsü")
         print("14) Yedekleri listele")
+        print("17) Cron backup ayarları")
         print("15) MySQL root şifre sıfırla")
         print("16) OpenLiteSpeed admin şifre sıfırla")
         print("0) Çıkış")
@@ -673,6 +720,8 @@ def interactive_menu():
                     print("Geçersiz seçim")
         elif choice == "14":
             list_backups()
+        elif choice == "17":
+            cron_backup_menu()
         elif choice == "15":
             reset_mysql_root_password()
         elif choice == "16":
