@@ -30,6 +30,12 @@ sudo python3 ispanel install
 
 Kurulum sonunda `/usr/local/bin/ispanel` komutu oluşturulur.
 
+### Kurulum Dizini
+isPanel `/usr/local/ispanel/` dizinine kurulur:
+- Ana script: `/usr/local/ispanel/ispanel`
+- Templates: `/usr/local/ispanel/templates/`
+- Komut: `/usr/local/bin/ispanel` (wrapper)
+
 ### Komut bulunamazsa / kurulum yarıda kalırsa
 
 Eğer `sudo ispanel` komutu çalışmazsa veya kurulum sırasında symlink oluşumu yarıda kalırsa:

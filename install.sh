@@ -1,77 +1,60 @@
 #!/bin/bash
 
-# ispanel - SSH tabanlı mini panel (Ubuntu 22+)
-# Tek tıkla kurulum scripti
+# isPanel Kurulum Script'i
+# Bu script isPanel'i sisteminize kurulumunu sağlar
 
 set -e
 
-echo "=== ispanel Kurulum Scripti ==="
-echo "Ubuntu 22+ için SSH tabanlı mini panel kurulumu"
-echo ""
+# Renk tanımlamaları
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
 # Root kontrolü
-if [ "$EUID" -ne 0 ]; then
-    echo "Bu script root olarak çalıştırılmalıdır."
-    echo "Kullanım: sudo bash install.sh"
+if [ "$EUID" -ne 0 ]; then 
+    echo -e "${RED}Lütfen bu script'i root olarak çalıştırın${NC}"
     exit 1
 fi
 
-# OS kontrolü
-if [ ! -f /etc/os-release ]; then
-    echo "Desteklenmeyen işletim sistemi."
-    exit 1
-fi
-
-. /etc/os-release
-if [[ "$ID" != "ubuntu" ]] || [[ "$VERSION_ID" < "22.04" ]]; then
-    echo "Bu script Ubuntu 22.04+ için tasarlanmıştır."
-    echo "Mevcut sistem: $PRETTY_NAME"
-    exit 1
-fi
-
-echo "Sistem kontrolü: ✅ Ubuntu $VERSION_ID"
-
-# Gerekli paketleri güncelle
-echo "Sistem paketleri güncelleniyor..."
-apt-get update -y
+echo -e "${GREEN}isPanel Kurulumu Başlıyor...${NC}"
 
 # Gerekli paketleri kur
-echo "Gerekli paketler kuruluyor..."
-apt-get install -y curl wget python3 python3-pip git
+echo -e "${YELLOW}Gerekli paketler kontrol ediliyor...${NC}"
+apt-get update -y
+apt-get install -y python3 python3-pip git
 
-# ispanel'i klonla
-echo "ispanel indiriliyor..."
-if [ -d "/tmp/ispanel" ]; then
-    rm -rf /tmp/ispanel
+# isPanel dizinini oluştur
+ISPANEL_HOME="/usr/local/ispanel"
+echo -e "${YELLOW}isPanel dizini oluşturuluyor: $ISPANEL_HOME${NC}"
+mkdir -p $ISPANEL_HOME
+
+# Mevcut dizinden dosyaları kopyala
+echo -e "${YELLOW}Dosyalar kopyalanıyor...${NC}"
+cp -r * $ISPANEL_HOME/ 2>/dev/null || true
+cp -r .* $ISPANEL_HOME/ 2>/dev/null || true
+
+# Templates dizinini kontrol et
+if [ ! -d "$ISPANEL_HOME/templates" ]; then
+    echo -e "${RED}Templates dizini bulunamadı!${NC}"
+    exit 1
 fi
 
-git clone https://github.com/ismailaydemiriu/ispanel.git /tmp/ispanel
+# Python script'ini çalıştırılabilir yap
+chmod +x $ISPANEL_HOME/ispanel
 
-# ispanel'i /usr/local/bin/ dizinine kopyala
-echo "ispanel kuruluyor..."
+# Symlink kurulumu için Python script'ini çağır
+echo -e "${YELLOW}isPanel komutu kuruluyor...${NC}"
+python3 $ISPANEL_HOME/ispanel install-symlink
 
-# Bozuk symlink'i temizle
-if [ -L "/usr/local/bin/ispanel" ]; then
-    echo "Bozuk symlink temizleniyor..."
-    rm -f /usr/local/bin/ispanel
+# Test et
+if command -v ispanel &> /dev/null; then
+    echo -e "${GREEN}isPanel başarıyla kuruldu!${NC}"
+    echo -e "${GREEN}Kullanım: ispanel${NC}"
+else
+    echo -e "${RED}isPanel kurulumu başarısız!${NC}"
+    exit 1
 fi
 
-# Dosyayı kopyala
-cp /tmp/ispanel/ispanel /usr/local/bin/
-chmod +x /usr/local/bin/ispanel
-
-# Temizlik
-rm -rf /tmp/ispanel
-
-echo ""
-echo "=== Kurulum Tamamlandı ==="
-echo "✅ ispanel başarıyla kuruldu"
-echo ""
-echo "Kullanım:"
-echo "  sudo ispanel"
-echo ""
-echo "İlk kurulum için:"
-echo "  sudo ispanel"
-echo "  Menüden '1' seçeneğini seçin"
-echo ""
-echo "Detaylı bilgi: https://github.com/ismailaydemiriu/ispanel"
+echo -e "${GREEN}Kurulum tamamlandı!${NC}"
+echo -e "${YELLOW}isPanel menüsünü açmak için: ispanel${NC}"

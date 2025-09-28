@@ -127,54 +127,45 @@ def install_mariadb():
 
 
 def install_symlink():
-    target_path = os.environ.get("ISPANEL_SYMLINK_TARGET", "/usr/local/bin/ispanel")
-    target = Path(target_path)
-
-    source_env = os.environ.get("ISPANEL_SOURCE_PATH")
-    if source_env:
-        source = Path(source_env)
-    else:
-        # Symlink loop'u önlemek için os.path.realpath kullan
+    """isPanel'i /usr/local/ispanel dizinine kur ve /usr/local/bin/ispanel symlink oluştur"""
+    
+    # isPanel kurulum dizinini oluştur
+    ISPANEL_HOME.mkdir(parents=True, exist_ok=True)
+    ISPANEL_TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # Mevcut script'i bul
+    current_script = Path(os.path.realpath(__file__))
+    
+    # Script'i kurulum dizinine kopyala
+    target_script = ISPANEL_HOME / "ispanel"
+    if current_script != target_script:
+        shutil.copy2(current_script, target_script)
+        os.chmod(target_script, 0o755)
+        print(f"isPanel kuruldu: {target_script}")
+    
+    # Templates dizinini kopyala
+    source_templates = current_script.parent / "templates"
+    if source_templates.exists():
+        for template_file in source_templates.glob("*.j2"):
+            target_template = ISPANEL_TEMPLATES_DIR / template_file.name
+            shutil.copy2(template_file, target_template)
+            print(f"Template kopyalandı: {target_template}")
+    
+    # /usr/local/bin/ispanel wrapper oluştur
+    bin_path = Path("/usr/local/bin/ispanel")
+    if bin_path.exists() or bin_path.is_symlink():
         try:
-            source = Path(os.path.realpath(__file__))
+            bin_path.unlink()
         except:
-            # Fallback: bilinen lokasyonları dene
-            for possible in ["/root/ispanel/ispanel", Path(__file__)]:
-                try:
-                    if Path(possible).exists():
-                        source = Path(possible)
-                        break
-                except:
-                    continue
-            else:
-                print("Hata: isPanel script dosyası bulunamadı!")
-                return
-
-    # Mevcut file/symlink'i temizle
-    if target.exists() or target.is_symlink():
-        try:
-            if target.is_dir() and not target.is_symlink():
-                shutil.rmtree(target)
-            else:
-                target.unlink()
-        except Exception as exc:
-            # Force remove
-            run(f"rm -rf {target}", check=False)
-
-    # Eğer kaynak ve hedef aynıysa direkt kopyala
-    if str(source.resolve()) == str(target.resolve()):
-        print(f"isPanel zaten kurulu: {target}")
-        return
-
-    # Python wrapper oluştur (symlink yerine)
+            run(f"rm -f {bin_path}", check=False)
+    
     wrapper = f'''#!/usr/bin/env python3
 import os
 import sys
 
-# Script yolu
-script_path = "{source}"
+# isPanel ana script
+script_path = "{target_script}"
 
-# Dosya var mı kontrol et
 if not os.path.exists(script_path):
     print(f"Hata: isPanel script bulunamadı: {{script_path}}")
     sys.exit(1)
@@ -183,10 +174,12 @@ if not os.path.exists(script_path):
 os.execv(sys.executable, [sys.executable, script_path] + sys.argv[1:])
 '''
     
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(wrapper, encoding="utf-8")
-    os.chmod(target, 0o755)
-    print(f"isPanel wrapper kuruldu: {target} -> {source}")
+    bin_path.parent.mkdir(parents=True, exist_ok=True)
+    bin_path.write_text(wrapper, encoding="utf-8")
+    os.chmod(bin_path, 0o755)
+    print(f"isPanel komutu kuruldu: {bin_path}")
+    print(f"Kurulum dizini: {ISPANEL_HOME}")
+    print(f"Templates dizini: {ISPANEL_TEMPLATES_DIR}")
 
 
 def cmd_install(args: argparse.Namespace):
@@ -216,8 +209,8 @@ def cmd_install(args: argparse.Namespace):
     configure_php_opcache()
     
     # Yedek dizinleri oluştur
-    Path("/home/backup/domains").mkdir(parents=True, exist_ok=True)
-    Path("/home/backup/databases").mkdir(parents=True, exist_ok=True)
+    (ISPANEL_BACKUP_DIR / "domains").mkdir(parents=True, exist_ok=True)
+    (ISPANEL_BACKUP_DIR / "databases").mkdir(parents=True, exist_ok=True)
     
     # Symlink oluştur
     install_symlink()
@@ -242,29 +235,14 @@ DEFAULT_LSPHP_VERSION = "83"  # Varsayılan lsphp sürümü (menu kurulum seçim
 LOG_FILE = Path(os.environ.get("ISPANEL_LOG_FILE", "/var/log/ispanel.log"))
 LOG_LEVEL = os.environ.get("ISPANEL_LOG_LEVEL", "INFO").upper()
 
+# isPanel kurulum dizini
+ISPANEL_HOME = Path("/usr/local/ispanel")
+ISPANEL_TEMPLATES_DIR = ISPANEL_HOME / "templates"
+ISPANEL_BACKUP_DIR = Path("/home/backup")
+
 # Template dizinini belirle
-template_env = os.environ.get("ISPANEL_TEMPLATE_DIR", "")
-if template_env:
-    TEMPLATE_DIR = Path(template_env).expanduser().resolve()
-else:
-    # Varsayılan olarak script dizinindeki templates klasörünü kullan
-    try:
-        TEMPLATE_DIR = Path(os.path.realpath(__file__)).parent / "templates"
-    except:
-        TEMPLATE_DIR = Path(__file__).parent / "templates"
-
-# Template dizini yoksa alternatif konumları dene
-if not TEMPLATE_DIR.exists():
-    for alt_path in [
-        Path("/root/ispanel/templates"),
-        Path("/usr/local/lib/ispanel/templates"),
-        Path(__file__).parent / "templates"
-    ]:
-        if alt_path.exists():
-            TEMPLATE_DIR = alt_path
-            break
-
-VHOST_TEMPLATE = Path("vhost.conf.j2")  # load_template fonksiyonu kendi path'ini bulacak
+TEMPLATE_DIR = Path(os.environ.get("ISPANEL_TEMPLATE_DIR", str(ISPANEL_TEMPLATES_DIR)))
+VHOST_TEMPLATE = Path("vhost.conf.j2")
 
 
 def configure_logging():
@@ -374,35 +352,22 @@ listener SSL {{
 
 
 def load_template(template_path: Path) -> str:
-    # Symlink loop'u önlemek için os.path.realpath kullan
-    candidates = [template_path]
+    """Template dosyasını yükle"""
+    # Ana template dizini
+    main_template = ISPANEL_TEMPLATES_DIR / template_path.name
+    if main_template.exists():
+        return main_template.read_text(encoding="utf-8")
     
-    try:
-        # Gerçek dosya yolunu bul (symlink'leri takip et)
-        script_path = Path(os.path.realpath(__file__))
-        repo_template = script_path.parent / "templates" / template_path.name
-        if repo_template not in candidates:
-            candidates.append(repo_template)
-    except:
-        # Hata durumunda bilinen yolları dene
-        pass
+    # Alternatif konumları dene
+    for alt_dir in [
+        Path(__file__).parent / "templates",  # Geliştirme dizini
+        Path("/root/ispanel/templates"),      # Eski konum
+        TEMPLATE_DIR                           # Env değişkeninden gelen
+    ]:
+        template_file = alt_dir / template_path.name
+        if template_file.exists():
+            return template_file.read_text(encoding="utf-8")
     
-    # Sistem genelinde template dizini
-    alt = Path("/usr/local/lib/ispanel/templates") / template_path.name
-    if alt not in candidates:
-        candidates.append(alt)
-    
-    # Doğrudan /root/ispanel dizini
-    root_template = Path("/root/ispanel/templates") / template_path.name
-    if root_template not in candidates:
-        candidates.append(root_template)
-
-    for candidate in candidates:
-        try:
-            if candidate.exists():
-                return candidate.read_text(encoding="utf-8")
-        except:
-            continue
     raise FileNotFoundError(f"Template bulunamadı: {template_path}")
 
 
@@ -1126,7 +1091,7 @@ opcache.enable_cli=1
 
 
 def backup_domain(domain: str):
-    backup_dir = Path("/home/backup/domains")
+    backup_dir = ISPANEL_BACKUP_DIR / "domains"
     backup_dir.mkdir(parents=True, exist_ok=True)
 
     docroot = DOCROOT_BASE / domain
@@ -1147,7 +1112,7 @@ def backup_domain(domain: str):
 
 
 def backup_database(db_name: str):
-    backup_dir = Path("/home/backup/databases")
+    backup_dir = ISPANEL_BACKUP_DIR / "databases"
     backup_dir.mkdir(parents=True, exist_ok=True)
 
     timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -1523,8 +1488,8 @@ def list_backups():
             checksum = checksum_file.read_text(encoding="utf-8").strip() if checksum_file.exists() else "(hesaplanmadı)"
             print(f"- {backup.name} ({size_mb:.2f} MB) | SHA256: {checksum}")
 
-    summarize("Domain Yedekleri", "*.tar.gz", Path("/home/backup/domains"))
-    summarize("Veritabanı Yedekleri", "*.sql", Path("/home/backup/databases"))
+    summarize("Domain Yedekleri", "*.tar.gz", ISPANEL_BACKUP_DIR / "domains")
+    summarize("Veritabanı Yedekleri", "*.sql", ISPANEL_BACKUP_DIR / "databases")
 
 
 def install_cron():
@@ -1558,12 +1523,12 @@ def cron_backup_menu():
         sub = input("Seçim: ").strip()
         if sub == "1":
             db = input("Yedeklenecek DB adı: ").strip()
-            backup_dir = "/home/backup/databases"
+            backup_dir = str(ISPANEL_BACKUP_DIR / "databases")
             line = f"30 2 * * * mysqldump -uroot {db} > {backup_dir}/{db}_$(date +\\%Y\\%m\\%d).sql"
             cron_add(line)
         elif sub == "2":
             domain = input("Yedeklenecek domain: ").strip()
-            backup_dir = "/home/backup/domains"
+            backup_dir = str(ISPANEL_BACKUP_DIR / "domains")
             line = f"0 3 * * * tar -czf {backup_dir}/{domain}_$(date +\\%Y\\%m\\%d).tar.gz -C {DOCROOT_BASE} {domain}"
             cron_add(line)
         elif sub == "3":
@@ -1777,11 +1742,11 @@ def setup_backup_rotation():
     print("Yedek rotasyonu ayarlanıyor...")
     
     # Yedek rotasyon scripti
-    rotation_script = """#!/bin/bash
+    rotation_script = f"""#!/bin/bash
 # 30 günden eski domain yedeklerini sil
-find /home/backup/domains -name "*.tar.gz" -mtime +30 -delete
+find {ISPANEL_BACKUP_DIR}/domains -name "*.tar.gz" -mtime +30 -delete
 # 30 günden eski DB yedeklerini sil  
-find /home/backup/databases -name "*.sql" -mtime +30 -delete
+find {ISPANEL_BACKUP_DIR}/databases -name "*.sql" -mtime +30 -delete
 echo "$(date): Backup rotation completed" >> /var/log/backup_rotation.log
 """
     
