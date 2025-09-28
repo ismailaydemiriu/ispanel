@@ -323,7 +323,6 @@ def install_mariadb():
     
     # Root şifresi oluştur
     root_password = generate_random_password(20)
-    user_password = generate_random_password(16)
     
     try:
         # Güvenli kurulum için mysql_secure_installation eşdeğeri
@@ -358,14 +357,12 @@ FLUSH PRIVILEGES;
         time.sleep(2)
         run("systemctl start mariadb", check=True)
         
-        # Şifreleri global değişkene kaydet
-        global MYSQL_ROOT_PASSWORD, MYSQL_USER_PASSWORD
+        # Şifreyi global değişkene kaydet
+        global MYSQL_ROOT_PASSWORD
         MYSQL_ROOT_PASSWORD = root_password
-        MYSQL_USER_PASSWORD = user_password
         
         print(f"✅ MariaDB kuruldu ve yapılandırıldı")
         print(f"🔑 MySQL Root Şifresi: {root_password}")
-        print(f"🔑 MySQL User Şifresi: {user_password}")
         
         # Root şifresini dosyaya kaydet
         mysql_conf = Path("/root/.my.cnf")
@@ -379,11 +376,10 @@ password={root_password}
         print(f"MariaDB şifre ayarlama hatası: {e}")
         # Fallback: Şifresiz bağlan ve ayarla
         try:
-    run("systemctl restart mariadb", check=True)
+            run("systemctl restart mariadb", check=True)
             # Şifresiz dene
             run(f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';\"", check=False)
             MYSQL_ROOT_PASSWORD = root_password
-            MYSQL_USER_PASSWORD = user_password
             print(f"✅ MariaDB şifresi ayarlandı: {root_password}")
         except:
             print("MariaDB şifre ayarlama başarısız. Manuel müdahale gerekli.")
@@ -496,13 +492,12 @@ def cmd_install(args: argparse.Namespace):
     print("✅ OpenLiteSpeed performans optimizasyonu yapıldı")
     print("✅ Yedek sistemi hazır")
     
-    # Şifreleri göster
+    # Root şifresini göster
     if MYSQL_ROOT_PASSWORD:
-        print("\n🔐 ÖNEMLİ ŞİFRELER:")
+        print("\n🔐 ÖNEMLİ:")
+        print(f"MySQL Root Kullanıcı: root")
         print(f"MySQL Root Şifresi: {MYSQL_ROOT_PASSWORD}")
-        if MYSQL_USER_PASSWORD:
-            print(f"MySQL User Şifresi: {MYSQL_USER_PASSWORD}")
-        print("\n⚠️  Bu şifreleri güvenli bir yerde saklayın!")
+        print("\n⚠️  Bu şifreyi güvenli bir yerde saklayın!")
     
     print("\nKullanım: sudo ispanel")
 
@@ -522,9 +517,8 @@ ISPANEL_HOME = Path("/usr/local/ispanel")
 ISPANEL_TEMPLATES_DIR = ISPANEL_HOME / "templates"
 ISPANEL_BACKUP_DIR = Path("/home/backup")
 
-# MySQL şifreleri (kurulum sırasında ayarlanır)
+# MySQL root şifresi (kurulum sırasında ayarlanır)
 MYSQL_ROOT_PASSWORD = ""
-MYSQL_USER_PASSWORD = ""
 
 # Template dizinini belirle
 TEMPLATE_DIR = Path(os.environ.get("ISPANEL_TEMPLATE_DIR", str(ISPANEL_TEMPLATES_DIR)))
@@ -681,10 +675,10 @@ def ensure_https_listener_mapping(domain: str):
     # HTTPS listener kontrolü
     https_listener_pattern = r"listener\s+SSL\s*\{[^}]*address\s+\*:443[^}]*\}"
     m = re.search(https_listener_pattern, content, re.DOTALL)
-        ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
-        ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
+    ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
+    ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
     map_block = f"map                     {domain} {domain}"
-        
+    
     if not m:
         # HTTPS listener oluştur
         https_listener = f"""
@@ -1551,9 +1545,9 @@ def reset_openlitespeed_admin_password():
         run("/usr/local/lsws/bin/lswsctrl restart", check=True)
         
         print("✅ OpenLiteSpeed admin şifresi başarıyla sıfırlandı!")
-    print(f"Admin panel: https://SERVER_IP:7080")
-    print(f"Kullanıcı: admin")
-    print(f"Şifre: {new_password}")
+        print(f"Admin panel: https://SERVER_IP:7080")
+        print(f"Kullanıcı: admin")
+        print(f"Şifre: {new_password}")
 
     except subprocess.CalledProcessError as e:
         print(f"Şifre sıfırlama hatası: {e}")
@@ -1638,18 +1632,18 @@ def secure_mariadb():
     # Root şifresi zaten install_mariadb'de ayarlandı
     try:
         # Güvenlik komutlarını doğrudan çalıştır
-    sql_commands = [
-        "DELETE FROM mysql.user WHERE User='';",
-        "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');",
-        "DROP DATABASE IF EXISTS test;",
-        "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';",
-        "FLUSH PRIVILEGES;"
-    ]
+        sql_commands = [
+            "DELETE FROM mysql.user WHERE User='';",
+            "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');",
+            "DROP DATABASE IF EXISTS test;",
+            "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';",
+            "FLUSH PRIVILEGES;"
+        ]
         
         # Root şifresi ile bağlan
         password = MYSQL_ROOT_PASSWORD if MYSQL_ROOT_PASSWORD else ""
-    
-    for sql in sql_commands:
+        
+        for sql in sql_commands:
             if password:
                 run(f"mysql -uroot -p{password} -e \"{sql}\"", check=False)
             else:
@@ -1946,12 +1940,12 @@ def backup_domain(domain: str):
     
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     backup_file = backup_dir / f"{domain}_{timestamp}.tar.gz"
-        run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
+    run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
     checksum = run(f"sha256sum {backup_file}", check=True).stdout.strip().split()[0]
     verify = run(f"tar -tzf {backup_file} > /dev/null", check=True)
-        print(f"Domain yedeği alındı: {backup_file}")
+    print(f"Domain yedeği alındı: {backup_file}")
     print(f"SHA256: {checksum}")
-        return str(backup_file)
+    return str(backup_file)
 
 
 def backup_database(db_name: str):
@@ -2018,7 +2012,7 @@ def fix_virtual_host_root(domain: str):
         content = content.replace(old_block, new_block)
         HTTPD_CONF.write_text(content, encoding="utf-8")
         print(f"✅ {domain} Virtual Host Root düzeltildi: {docroot}")
-    return True
+        return True
     else:
         print(f"❌ {domain} virtualHost bloğu bulunamadı")
         return False
