@@ -731,16 +731,32 @@ phpinfo();
 
 
 def set_domain_php_version(domain: str, version: str):
-    """Domain için PHP sürümünü (lsphp81/82/83) ayarla"""
+    """Domain için PHP sürümünü (82/83) ayarla"""
     vconf = VHOSTS_DIR / domain / "vhost.conf"
     if not vconf.exists():
         print("Vhost config bulunamadı.", file=sys.stderr)
         return
+    
+    # vhost.conf içeriğini oku
     content = vconf.read_text(encoding="utf-8")
-    content = re.sub(r"add\s+lsapi:lsphp\d+\s+php", f"add                   lsapi:lsphp{version} php", content)
+    
+    # scriptHandler bölümünü güncelle
+    content = re.sub(
+        r"add\s+lsapi:lsphp\d+\s+php",
+        f"add                    lsapi:lsphp{version} php",
+        content
+    )
+    
+    # PHP context'ini de güncelle (eğer varsa)
+    content = re.sub(
+        r"handler\s+lsphp\d+",
+        f"handler lsphp{version}",
+        content
+    )
+    
     vconf.write_text(content, encoding="utf-8")
     reload_lsws()
-    print(f"{domain} için PHP lsphp{version} olarak ayarlandı.")
+    print(f"✅ {domain} için PHP {version[0]}.{version[1]} olarak ayarlandı.")
 
 
 def toggle_http3_brotli(enable: bool):
@@ -1776,12 +1792,75 @@ def cron_backup_menu():
             print("Geçersiz seçim")
 
 
+def domain_php_version_menu():
+    """Domain PHP sürümü değiştirme menüsü"""
+    print("\n=== Domain PHP Sürüm Yönetimi ===")
+    
+    # Mevcut domainleri listele
+    domains = []
+    if VHOSTS_DIR.exists():
+        for vhost_dir in VHOSTS_DIR.iterdir():
+            if vhost_dir.is_dir() and vhost_dir.name not in ["Example"]:
+                vconf = vhost_dir / "vhost.conf"
+                if vconf.exists():
+                    # Mevcut PHP sürümünü bul
+                    content = vconf.read_text(encoding="utf-8")
+                    current_version = "83"  # varsayılan
+                    if "lsphp82" in content:
+                        current_version = "82"
+                    elif "lsphp83" in content:
+                        current_version = "83"
+                    
+                    domains.append((vhost_dir.name, current_version))
+    
+    if not domains:
+        print("Henüz eklenmiş domain yok!")
+        input("Devam etmek için Enter'a basın...")
+        return
+    
+    print("\nMevcut Domainler:")
+    for i, (domain, version) in enumerate(domains, 1):
+        print(f"{i}) {domain} (PHP {version[0]}.{version[1]})")
+    
+    print("0) Geri dön")
+    
+    choice = input("\nDomain seçin: ").strip()
+    if choice == "0":
+        return
+    
+    try:
+        idx = int(choice) - 1
+        if 0 <= idx < len(domains):
+            domain = domains[idx][0]
+            current_version = domains[idx][1]
+            
+            print(f"\n{domain} için yeni PHP sürümü seçin:")
+            print(f"Mevcut sürüm: PHP {current_version[0]}.{current_version[1]}")
+            print("1) PHP 8.2")
+            print("2) PHP 8.3")
+            print("0) İptal")
+            
+            version_choice = input("Seçim: ").strip()
+            
+            if version_choice == "1":
+                set_domain_php_version(domain, "82")
+                print(f"✅ {domain} PHP 8.2'ye geçirildi")
+            elif version_choice == "2":
+                set_domain_php_version(domain, "83")
+                print(f"✅ {domain} PHP 8.3'e geçirildi")
+            
+            input("Devam etmek için Enter'a basın...")
+    except:
+        print("Geçersiz seçim!")
+        input("Devam etmek için Enter'a basın...")
+
+
 def interactive_menu():
     while True:
         print("\n=== ispanel (Ubuntu 22+) ===")
-        print("1) Kurulum (OpenLiteSpeed + PHP 8.2 + MariaDB)")
-        print("2) Kurulum (OpenLiteSpeed + PHP 8.3 + MariaDB)")
-        print("3) Domain ekle")
+        print("1) Kurulum (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)")
+        print("2) Domain ekle")
+        print("3) Domain PHP sürümü değiştir")
         print("4) Domain Listesi")
         print("5) Domain sil")
         print("6) DB Listesi")
@@ -1807,14 +1886,13 @@ def interactive_menu():
         print("0) Çıkış")
         choice = input("Seçim: ").strip()
         if choice == "1":
-            DEFAULT_LSPHP_VERSION = "82"
-            cmd_install(argparse.Namespace(php_version="82"))
-        elif choice == "2":
-            DEFAULT_LSPHP_VERSION = "83"
+            # Her iki PHP sürümü de kurulacak
             cmd_install(argparse.Namespace(php_version="83"))
-        elif choice == "3":
+        elif choice == "2":
             domain = input("Domain: ").strip()
             domain_add(domain)
+        elif choice == "3":
+            domain_php_version_menu()
         elif choice == "4":
             list_domains()
         elif choice == "5":
