@@ -23,7 +23,7 @@ TEXTS = {
             "Add Domain",
             "Change Domain PHP Version",
             "Domain List",
-            "Remove Domain", 
+            "Remove Domain",
             "Create Database",
             "Database List",
             "Delete Database",
@@ -84,7 +84,7 @@ TEXTS = {
             "Domain Listesi",
             "Domain Sil",
             "Veritabanı Oluştur",
-            "Veritabanı Listesi", 
+            "Veritabanı Listesi",
             "Veritabanı Sil",
             "Virtual Host Root Düzelt",
             "Vhost Konfigürasyon Düzelt",
@@ -135,21 +135,23 @@ TEXTS = {
     }
 }
 
+
 def get_text(key: str) -> str:
     """Mevcut dildeki metni döndür"""
     return TEXTS[CURRENT_LANGUAGE].get(key, key)
 
+
 def select_language():
     """Dil seçimi yap"""
     global CURRENT_LANGUAGE
-    
-    print("\n" + "="*60)
+
+    print("\n" + "=" * 60)
     print(f"🌍 {get_text('language_selection')}")
-    print("="*60)
-    
+    print("=" * 60)
+
     for i, lang in enumerate(get_text('language_options'), 1):
         print(f"{i}) {lang}")
-    
+
     while True:
         try:
             choice = input(f"\n{get_text('enter_choice')} (1-2): ").strip()
@@ -164,9 +166,14 @@ def select_language():
         except KeyboardInterrupt:
             print(f"\n{get_text('goodbye')}")
             sys.exit(0)
-    
-    print(f"\n✅ Language selected: {get_text('language_options')[int(choice)-1]}")
-    print("="*60)
+
+    print(
+    f"\n✅ Language selected: {
+        get_text('language_options')[
+            int(choice) -
+             1]}")
+    print("=" * 60)
+
 
 try:
     from pwd import getpwuid  # type: ignore[attr-defined]
@@ -226,9 +233,13 @@ def wait_for_apt(max_retries: int = 30, delay: int = 10):
         if not cp.stdout.strip():
             return
         retries += 1
-        logger.info("apt kullanımda, %s/%s bekleniyor...", retries, max_retries)
+        logger.info(
+    "apt kullanımda, %s/%s bekleniyor...",
+    retries,
+     max_retries)
         time.sleep(delay)
-    logger.error("apt kilitli görünüyor. Lütfen diğer apt işlemlerini kapatın.")
+    logger.error(
+        "apt kilitli görünüyor. Lütfen diğer apt işlemlerini kapatın.")
     sys.exit(1)
 
 
@@ -258,30 +269,34 @@ def stop_nginx_if_running():
         # Nginx kurulu mu kontrol et
         if shutil.which("nginx"):
             print("Nginx tespit edildi, kaldırılıyor...")
-            
+
             # Nginx'i durdur
             run("systemctl stop nginx", check=False)
             run("systemctl disable nginx", check=False)
-            
+
             # Nginx process'lerini zorla sonlandır
             run("pkill -f nginx", check=False)
             run("killall nginx", check=False)
-            
+
             # Nginx'i tamamen kaldır
             run("DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y nginx nginx-common nginx-core", check=False)
             run("DEBIAN_FRONTEND=noninteractive apt-get autoremove -y", check=False)
-            
+
             # Nginx dizinlerini temizle
             run("rm -rf /etc/nginx", check=False)
             run("rm -rf /var/www/html", check=False)
-            
+
             print("✅ Nginx tamamen kaldırıldı")
-            
+
     except:
         pass  # Nginx yoksa hata verme
 
+
 def install_openlitespeed_and_php(lsphp_version: str = "83"):
-    logger.info("OpenLiteSpeed ve PHP %s.%s kuruluyor...", lsphp_version[0], lsphp_version[1])
+    logger.info(
+    "OpenLiteSpeed ve PHP %s.%s kuruluyor...",
+    lsphp_version[0],
+     lsphp_version[1])
     wait_for_apt()
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
     ensure_cmd("curl", "curl")
@@ -317,36 +332,37 @@ def generate_random_password(length: int = 16) -> str:
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
+
 def install_mariadb():
     logger.info("MariaDB kuruluyor...")
     wait_for_apt()
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
-    
+
     # MariaDB kurulumu - debconf ile otomatik kurulum
     run("DEBIAN_FRONTEND=noninteractive apt-get install -y debconf-utils", check=True)
-    
+
     # MariaDB için debconf ayarları
     run("echo 'mariadb-server mysql-server/root_password password' | debconf-set-selections", check=False)
     run("echo 'mariadb-server mysql-server/root_password_again password' | debconf-set-selections", check=False)
-    
+
     # MariaDB kurulumu
     run("DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server", check=True)
-    
+
     # MariaDB servisini başlat
     run("systemctl enable mariadb", check=False)
     run("systemctl start mariadb", check=True)
-    
+
     # Root şifresi oluştur
     root_password = generate_random_password(20)
-    
+
     try:
         # Güvenli kurulum için mysql_secure_installation eşdeğeri
         import shlex
         escaped_password = shlex.quote(root_password)
-        
+
         # MariaDB'yi durdur
         run("systemctl stop mariadb", check=False)
-        
+
         # Geçici init dosyası oluştur
         init_file = "/tmp/mariadb-init.sql"
         init_content = f"""
@@ -359,26 +375,26 @@ DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
 FLUSH PRIVILEGES;
 """
         Path(init_file).write_text(init_content, encoding="utf-8")
-        
+
         # MariaDB'yi init dosyası ile başlat
         run(f"mysqld --init-file={init_file} &", check=False)
         time.sleep(5)
-        
+
         # Init dosyasını sil
         Path(init_file).unlink()
-        
+
         # MariaDB'yi normal başlat
         run("pkill mysqld", check=False)
         time.sleep(2)
         run("systemctl start mariadb", check=True)
-        
+
         # Şifreyi global değişkene kaydet
         global MYSQL_ROOT_PASSWORD
         MYSQL_ROOT_PASSWORD = root_password
-        
+
         print(f"✅ MariaDB kuruldu ve yapılandırıldı")
         print(f"🔑 MySQL Root Şifresi: {root_password}")
-        
+
         # Root şifresini dosyaya kaydet
         mysql_conf = Path("/root/.my.cnf")
         mysql_conf.write_text(f"""[client]
@@ -386,14 +402,16 @@ user=root
 password={root_password}
 """, encoding="utf-8")
         mysql_conf.chmod(0o600)
-        
+
     except Exception as e:
         print(f"MariaDB şifre ayarlama hatası: {e}")
         # Fallback: Şifresiz bağlan ve ayarla
         try:
-            run("systemctl restart mariadb", check=True)
+    run("systemctl restart mariadb", check=True)
             # Şifresiz dene
-            run(f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';\"", check=False)
+            run(
+    f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';\"",
+     check=False)
             MYSQL_ROOT_PASSWORD = root_password
             print(f"✅ MariaDB şifresi ayarlandı: {root_password}")
         except:
@@ -700,8 +718,8 @@ def ensure_https_listener_mapping(domain: str):
     # HTTPS listener kontrolü
     https_listener_pattern = r"listener\s+SSL\s*\{[^}]*address\s+\*:443[^}]*\}"
     m = re.search(https_listener_pattern, content, re.DOTALL)
-    ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
-    ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
+        ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
+        ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
     map_block = f"map                     {domain} {domain}"
         
     if not m:
@@ -1671,8 +1689,8 @@ def secure_mariadb():
         
         # Root şifresi ile bağlan
         password = MYSQL_ROOT_PASSWORD if MYSQL_ROOT_PASSWORD else ""
-    
-    for sql in sql_commands:
+        
+        for sql in sql_commands:
             if password:
                 run(f"mysql -uroot -p{password} -e \"{sql}\"", check=False)
             else:
@@ -1969,12 +1987,12 @@ def backup_domain(domain: str):
     
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     backup_file = backup_dir / f"{domain}_{timestamp}.tar.gz"
-    run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
+        run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
     checksum = run(f"sha256sum {backup_file}", check=True).stdout.strip().split()[0]
     verify = run(f"tar -tzf {backup_file} > /dev/null", check=True)
-    print(f"Domain yedeği alındı: {backup_file}")
+        print(f"Domain yedeği alındı: {backup_file}")
     print(f"SHA256: {checksum}")
-    return str(backup_file)
+        return str(backup_file)
 
 
 def backup_database(db_name: str):
@@ -2041,7 +2059,7 @@ def fix_virtual_host_root(domain: str):
         content = content.replace(old_block, new_block)
         HTTPD_CONF.write_text(content, encoding="utf-8")
         print(f"✅ {domain} Virtual Host Root düzeltildi: {docroot}")
-        return True
+    return True
     else:
         print(f"❌ {domain} virtualHost bloğu bulunamadı")
         return False
