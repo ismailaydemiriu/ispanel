@@ -391,7 +391,7 @@ password={root_password}
         print(f"MariaDB şifre ayarlama hatası: {e}")
         # Fallback: Şifresiz bağlan ve ayarla
         try:
-    run("systemctl restart mariadb", check=True)
+            run("systemctl restart mariadb", check=True)
             # Şifresiz dene
             run(f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';\"", check=False)
             MYSQL_ROOT_PASSWORD = root_password
@@ -700,8 +700,8 @@ def ensure_https_listener_mapping(domain: str):
     # HTTPS listener kontrolü
     https_listener_pattern = r"listener\s+SSL\s*\{[^}]*address\s+\*:443[^}]*\}"
     m = re.search(https_listener_pattern, content, re.DOTALL)
-        ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
-        ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
+    ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
+    ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
     map_block = f"map                     {domain} {domain}"
         
     if not m:
