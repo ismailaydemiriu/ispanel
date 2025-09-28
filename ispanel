@@ -145,6 +145,33 @@ def get_text(key: str) -> str:
     return TEXTS[CURRENT_LANGUAGE].get(key, key)
 
 
+def load_config():
+    """Konfigürasyon dosyasından ayarları yükle"""
+    global MYSQL_ROOT_PASSWORD
+    
+    if ISPANEL_CONFIG_FILE.exists():
+        try:
+            import json
+            with open(ISPANEL_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                MYSQL_ROOT_PASSWORD = config.get('mysql_root_password', '')
+        except Exception as e:
+            print(f"Konfigürasyon yüklenirken hata: {e}")
+
+
+def save_config():
+    """Mevcut ayarları konfigürasyon dosyasına kaydet"""
+    try:
+        import json
+        config = {
+            'mysql_root_password': MYSQL_ROOT_PASSWORD
+        }
+        with open(ISPANEL_CONFIG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2)
+    except Exception as e:
+        print(f"Konfigürasyon kaydedilirken hata: {e}")
+
+
 def select_language():
     """Dil seçimi yap"""
     global CURRENT_LANGUAGE
@@ -400,6 +427,9 @@ FLUSH PRIVILEGES;
         global MYSQL_ROOT_PASSWORD
         MYSQL_ROOT_PASSWORD = root_password
 
+        # Konfigürasyon dosyasına kaydet
+        save_config()
+
         print(f"✅ MariaDB kuruldu ve yapılandırıldı")
         print(f"🔑 MySQL Root Şifresi: {root_password}")
 
@@ -632,6 +662,9 @@ ISPANEL_BACKUP_DIR = Path("/home/backup")
 
 # MySQL root şifresi (kurulum sırasında ayarlanır)
 MYSQL_ROOT_PASSWORD = ""
+
+# Konfigürasyon dosyası
+ISPANEL_CONFIG_FILE = ISPANEL_HOME / "config.json"
 
 # Template dizinini belirle
 TEMPLATE_DIR = Path(os.environ.get("ISPANEL_TEMPLATE_DIR", str(ISPANEL_TEMPLATES_DIR)))
@@ -3404,6 +3437,9 @@ def system_management_menu():
 
 
 def main():
+    # Konfigürasyonu yükle
+    load_config()
+    
     parser = argparse.ArgumentParser(description="SSH tabanlı mini panel (Ubuntu 22+)")
     sub = parser.add_subparsers(dest="cmd")
 
