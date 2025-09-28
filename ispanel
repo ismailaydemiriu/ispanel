@@ -649,9 +649,8 @@ def ensure_https_listener_mapping(domain: str):
     # HTTPS listener kontrolü
     https_listener_pattern = r"listener\s+SSL\s*\{[^}]*address\s+\*:443[^}]*\}"
     m = re.search(https_listener_pattern, content, re.DOTALL)
-    
-        ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
-        ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
+    ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
+    ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
     map_block = f"map                     {domain} {domain}"
         
     if not m:
@@ -1521,9 +1520,9 @@ expect eof
         run("/usr/local/lsws/bin/lswsctrl restart", check=True)
         
         print("✅ OpenLiteSpeed admin şifresi başarıyla sıfırlandı!")
-    print(f"Admin panel: https://SERVER_IP:7080")
-    print(f"Kullanıcı: admin")
-    print(f"Şifre: {new_password}")
+        print(f"Admin panel: https://SERVER_IP:7080")
+        print(f"Kullanıcı: admin")
+        print(f"Şifre: {new_password}")
         
     except subprocess.CalledProcessError as e:
         print(f"Şifre sıfırlama hatası: {e}")
@@ -1531,7 +1530,6 @@ expect eof
         print(f"sudo {admin_script}")
     except Exception as e:
         print(f"Beklenmeyen hata: {e}")
-
 
 def check_port(port):
     """Port kullanımını kontrol et"""
@@ -1909,13 +1907,13 @@ def backup_domain(domain: str):
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     backup_file = backup_dir / f"{domain}_{timestamp}.tar.gz"
     
-        run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
+    run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
 
     checksum = run(f"sha256sum {backup_file}", check=True).stdout.strip().split()[0]
     verify = run(f"tar -tzf {backup_file} > /dev/null", check=True)
-        print(f"Domain yedeği alındı: {backup_file}")
+    print(f"Domain yedeği alındı: {backup_file}")
     print(f"SHA256: {checksum}")
-        return str(backup_file)
+    return str(backup_file)
 
 
 def backup_database(db_name: str):
@@ -1982,7 +1980,7 @@ def fix_virtual_host_root(domain: str):
         content = content.replace(old_block, new_block)
         HTTPD_CONF.write_text(content, encoding="utf-8")
         print(f"✅ {domain} Virtual Host Root düzeltildi: {docroot}")
-    return True
+        return True
     else:
         print(f"❌ {domain} virtualHost bloğu bulunamadı")
         return False
