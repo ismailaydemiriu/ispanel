@@ -120,6 +120,7 @@ sudo ispanel
 - ✅ MariaDB güvenlik ayarları
 - ✅ OpenLiteSpeed performans optimizasyonu
 - ✅ Port kontrolü
+- ✅ Fail2Ban ile brute-force koruması
 
 ### Yedekleme Sistemi
 - ✅ Domain yedekleme (tar.gz)
@@ -127,12 +128,14 @@ sudo ispanel
 - ✅ Yedek geri yükleme
 - ✅ Yedek listeleme
 - ✅ Otomatik yedek dizinleri
+- ✅ SHA256 doğrulamalı yedekleme çıktıları
 
 ### SSL/HTTPS Özellikleri
 - ✅ Let's Encrypt otomatik sertifika
 - ✅ HTTPS listener konfigürasyonu
 - ✅ SSL güvenlik ayarları
 - ✅ HTTP/HTTPS yönlendirme
+- ✅ Fail2Ban kurulumu (temel brute-force koruması)
 
 ## Test ve Geliştirme
 

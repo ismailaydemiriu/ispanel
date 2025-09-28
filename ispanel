@@ -841,12 +841,33 @@ def install_ssl_support():
     
     # Certbot kurulumu
     run("DEBIAN_FRONTEND=noninteractive apt-get install -y certbot", check=True)
+
+    # Fail2Ban kurulumu ve temel konfigürasyon
+    run("DEBIAN_FRONTEND=noninteractive apt-get install -y fail2ban", check=False)
+    jail_local = """
+[nginx-http-auth]
+enabled = true
+port     = http,https
+filter   = nginx-http-auth
+logpath  = /usr/local/lsws/logs/error.log
+maxretry = 3
+
+[sshd]
+enabled = true
+
+[recidive]
+enabled = true
+""".strip()
+    jail_path = Path("/etc/fail2ban/jail.local")
+    jail_path.write_text(jail_local, encoding="utf-8")
+    run("systemctl enable fail2ban", check=False)
+    run("systemctl restart fail2ban", check=False)
     
     # OpenLiteSpeed için SSL konfigürasyonu
     ssl_dir = Path("/usr/local/lsws/conf/cert")
     ssl_dir.mkdir(exist_ok=True)
     
-    print("SSL desteği kuruldu. Let's Encrypt sertifikaları domain ekleme sırasında otomatik oluşturulacak.")
+    print("SSL ve Fail2Ban desteği kuruldu. Let's Encrypt sertifikaları domain ekleme sırasında otomatik oluşturulacak.")
 
 
 def secure_mariadb():
@@ -1449,6 +1470,7 @@ def cron_backup_menu():
         print("1) Günlük DB yedeği kur (02:30)")
         print("2) Günlük Dosya yedeği kur (03:00)")
         print("3) Cron listele")
+        print("4) Fail2Ban'i tekrar başlat")
         print("0) Geri")
         sub = input("Seçim: ").strip()
         if sub == "1":
@@ -1463,6 +1485,10 @@ def cron_backup_menu():
             cron_add(line)
         elif sub == "3":
             subprocess.run("crontab -l | cat", shell=True)
+        elif sub == "4":
+            subprocess.run("systemctl enable fail2ban", shell=True, check=False)
+            subprocess.run("systemctl restart fail2ban", shell=True, check=False)
+            print("Fail2Ban yeniden başlatıldı.")
         elif sub == "0":
             break
         else:
