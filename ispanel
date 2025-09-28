@@ -2412,12 +2412,51 @@ def optimize_mysql_performance(total_mem_gb: float, cpu_cores: int):
             Path(config_file).parent.mkdir(parents=True, exist_ok=True)
         
         # MySQL ayarlarını hesapla
-        if total_mem_gb >= 16:
+        if total_mem_gb >= 256:
+            # 256GB+ RAM - Enterprise seviye
+            innodb_buffer_pool = "128G"
+            max_connections = "2000"
+            query_cache_size = "2G"
+            tmp_table_size = "2G"
+            max_heap_table_size = "2G"
+            innodb_log_file_size = "2G"
+            innodb_log_buffer_size = "256M"
+        elif total_mem_gb >= 128:
+            # 128GB RAM - High-end server
+            innodb_buffer_pool = "64G"
+            max_connections = "1500"
+            query_cache_size = "1G"
+            tmp_table_size = "1G"
+            max_heap_table_size = "1G"
+            innodb_log_file_size = "1G"
+            innodb_log_buffer_size = "128M"
+        elif total_mem_gb >= 64:
+            # 64GB RAM - Enterprise server
+            innodb_buffer_pool = "32G"
+            max_connections = "1000"
+            query_cache_size = "512M"
+            tmp_table_size = "512M"
+            max_heap_table_size = "512M"
+            innodb_log_file_size = "512M"
+            innodb_log_buffer_size = "64M"
+        elif total_mem_gb >= 32:
+            # 32GB RAM - High-performance server
+            innodb_buffer_pool = "16G"
+            max_connections = "800"
+            query_cache_size = "256M"
+            tmp_table_size = "256M"
+            max_heap_table_size = "256M"
+            innodb_log_file_size = "256M"
+            innodb_log_buffer_size = "32M"
+        elif total_mem_gb >= 16:
+            # 16GB RAM - Production server
             innodb_buffer_pool = "8G"
             max_connections = "500"
             query_cache_size = "256M"
             tmp_table_size = "256M"
             max_heap_table_size = "256M"
+            innodb_log_file_size = "256M"
+            innodb_log_buffer_size = "32M"
         elif total_mem_gb >= 8:
             innodb_buffer_pool = "4G"
             max_connections = "300"
@@ -2440,13 +2479,15 @@ def optimize_mysql_performance(total_mem_gb: float, cpu_cores: int):
         print(f"⚙️  InnoDB Buffer Pool: {innodb_buffer_pool}")
         print(f"⚙️  Max Connections: {max_connections}")
         print(f"⚙️  Query Cache: {query_cache_size}")
+        print(f"⚙️  Log File Size: {innodb_log_file_size}")
+        print(f"⚙️  Log Buffer: {innodb_log_buffer_size}")
         
         # MySQL optimizasyon ayarları
         mysql_optimizations = {
             # InnoDB ayarları
             "innodb_buffer_pool_size": innodb_buffer_pool,
-            "innodb_log_file_size": "256M",
-            "innodb_log_buffer_size": "64M",
+            "innodb_log_file_size": innodb_log_file_size,
+            "innodb_log_buffer_size": innodb_log_buffer_size,
             "innodb_flush_log_at_trx_commit": "2",
             "innodb_flush_method": "O_DIRECT",
             "innodb_file_per_table": "1",
