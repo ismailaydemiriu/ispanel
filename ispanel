@@ -1696,7 +1696,27 @@ def reset_mysql_root_password():
     time.sleep(2)
     run("systemctl start mariadb", check=True)
     
-    print("MySQL root şifresi başarıyla sıfırlandı!")
+    # Global değişkeni güncelle
+    global MYSQL_ROOT_PASSWORD
+    MYSQL_ROOT_PASSWORD = new_password
+    
+    # Konfigürasyon dosyasını güncelle
+    save_config()
+    
+    # /root/.my.cnf dosyasını güncelle
+    mysql_conf = Path("/root/.my.cnf")
+    mysql_conf.write_text(
+        f"""[client]
+user=root
+password={new_password}
+""",
+        encoding="utf-8",
+    )
+    mysql_conf.chmod(0o600)
+    
+    print("✅ MySQL root şifresi başarıyla sıfırlandı!")
+    print("✅ Konfigürasyon dosyası güncellendi!")
+    print("✅ /root/.my.cnf dosyası güncellendi!")
 
 
 def reset_openlitespeed_admin_password():
