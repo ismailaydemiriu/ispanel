@@ -67,6 +67,29 @@ Note: Python command must be `python3`. If `python` doesn't exist, run like this
 sudo python3 ispanel install
 ```
 
+### Git Repository Repair (Update Issues)
+
+If you encounter "Git repository bulunamadı" error during updates:
+
+```bash
+# Navigate to isPanel directory
+cd /usr/local/ispanel
+
+# Clone repository temporarily
+git clone https://github.com/ismailaydemiriu/ispanel.git temp
+
+# Copy Git information
+cp -r temp/.git .
+
+# Clean up
+rm -rf temp
+```
+
+**Alternative:** Use the automatic repair option in the update menu:
+1. Run `sudo ispanel`
+2. Select `27) Update isPanel`
+3. Choose `1) Otomatik düzelt (önerilen)` when prompted
+
 ## Menu Usage
 
 ```bash
@@ -238,6 +261,29 @@ Not: Python komutu `python3` olmalıdır. `python` yoksa şu şekilde çalışt�
 ```bash
 sudo python3 ispanel install
 ```
+
+### Git Repository Onarımı (Güncelleme Sorunları)
+
+Eğer güncelleme sırasında "Git repository bulunamadı" hatası alırsanız:
+
+```bash
+# isPanel dizinine git
+cd /usr/local/ispanel
+
+# Repository'yi geçici olarak klonla
+git clone https://github.com/ismailaydemiriu/ispanel.git temp
+
+# Git bilgilerini kopyala
+cp -r temp/.git .
+
+# Temizle
+rm -rf temp
+```
+
+**Alternatif:** Güncelleme menüsündeki otomatik onarım seçeneğini kullanın:
+1. `sudo ispanel` çalıştırın
+2. `27) isPanel Güncelle` seçin
+3. İstendiğinde `1) Otomatik düzelt (önerilen)` seçin
 
 ## Menülü kullanım
 
