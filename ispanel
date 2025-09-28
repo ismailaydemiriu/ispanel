@@ -269,6 +269,54 @@ def db_delete(db: str, user: str):
     print(f"DB silindi: {db}, kullanıcı: {user}")
 
 
+def reset_mysql_root_password():
+    print("MySQL root şifresi sıfırlanıyor...")
+    new_password = input("Yeni root şifresi: ").strip()
+    if not new_password:
+        print("Şifre boş olamaz!")
+        return
+    
+    # MySQL servisini durdur
+    run("systemctl stop mariadb", check=False)
+    
+    # Güvenli modda MySQL başlat
+    run("mysqld_safe --skip-grant-tables --skip-networking &", check=False)
+    time.sleep(3)
+    
+    # Root şifresini sıfırla
+    sql = f"ALTER USER 'root'@'localhost' IDENTIFIED BY '{new_password}';"
+    run(f"mysql -u root -e \"{sql}\"", check=True)
+    
+    # MySQL'i normal modda yeniden başlat
+    run("pkill mysqld", check=False)
+    time.sleep(2)
+    run("systemctl start mariadb", check=True)
+    
+    print("MySQL root şifresi başarıyla sıfırlandı!")
+
+
+def reset_openlitespeed_admin_password():
+    print("OpenLiteSpeed admin şifresi sıfırlanıyor...")
+    new_password = input("Yeni admin şifresi: ").strip()
+    if not new_password:
+        print("Şifre boş olamaz!")
+        return
+    
+    # OpenLiteSpeed admin şifresini sıfırla
+    admin_script = "/usr/local/lsws/admin/misc/admpass.sh"
+    if not Path(admin_script).exists():
+        print("OpenLiteSpeed admin scripti bulunamadı!", file=sys.stderr)
+        return
+    
+    # Admin şifresini ayarla
+    run(f"echo '{new_password}' | {admin_script}", check=True)
+    
+    print("OpenLiteSpeed admin şifresi başarıyla sıfırlandı!")
+    print(f"Admin panel: https://SERVER_IP:7080")
+    print(f"Kullanıcı: admin")
+    print(f"Şifre: {new_password}")
+
+
 def interactive_menu():
     while True:
         print("\n=== ispanel (Ubuntu 22+) ===")
@@ -277,6 +325,8 @@ def interactive_menu():
         print("3) Domain sil")
         print("4) DB oluştur")
         print("5) DB sil")
+        print("6) MySQL root şifre sıfırla")
+        print("7) OpenLiteSpeed admin şifre sıfırla")
         print("0) Çıkış")
         choice = input("Seçim: ").strip()
         if choice == "1":
@@ -296,6 +346,10 @@ def interactive_menu():
             db = input("DB adı: ").strip()
             user = input("Kullanıcı: ").strip()
             db_delete(db, user)
+        elif choice == "6":
+            reset_mysql_root_password()
+        elif choice == "7":
+            reset_openlitespeed_admin_password()
         elif choice == "0":
             break
         else:
