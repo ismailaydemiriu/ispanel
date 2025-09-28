@@ -22,6 +22,8 @@ TEXTS = {
             "Installation (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)",
             "Add Domain",
             "Change Domain PHP Version",
+            "Install OpenLiteSpeed Only",
+            "Install MariaDB Only",
             "Domain List",
             "Remove Domain",
             "Create Database",
@@ -81,6 +83,8 @@ TEXTS = {
             "Kurulum (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)",
             "Domain Ekle",
             "Domain PHP Sürümü Değiştir",
+            "Sadece OpenLiteSpeed Kur",
+            "Sadece MariaDB Kur",
             "Domain Listesi",
             "Domain Sil",
             "Veritabanı Oluştur",
@@ -483,6 +487,71 @@ os.execv(sys.executable, [sys.executable, script_path] + sys.argv[1:])
     print(f"isPanel komutu kuruldu: {bin_path}")
     print(f"Kurulum dizini: {ISPANEL_HOME}")
     print(f"Templates dizini: {ISPANEL_TEMPLATES_DIR}")
+
+
+def install_openlitespeed_only():
+    """Sadece OpenLiteSpeed ve PHP kurulumu"""
+    require_root()
+    check_disk_space(1)
+    
+    print("=== Sadece OpenLiteSpeed + PHP Kurulumu ===")
+    
+    # Port çakışmalarını kontrol et
+    check_port_conflicts()
+    
+    # OpenLiteSpeed ve PHP kurulumu
+    install_openlitespeed_and_php("83")
+    
+    # Güvenlik ve performans ayarları
+    print("\n=== Güvenlik ve Performans Ayarları ===")
+    manage_firewall()
+    install_ssl_support()
+    optimize_openlitespeed()
+    cleanup_default_listeners()
+    
+    # PHP OPcache konfigürasyonu
+    configure_php_opcache()
+    
+    # Symlink oluştur
+    install_symlink()
+    
+    print("\n=== Kurulum Tamamlandı ===")
+    print("✅ OpenLiteSpeed + PHP 8.2/8.3 kuruldu")
+    print("✅ Firewall ayarları yapıldı")
+    print("✅ SSL/HTTPS desteği eklendi")
+    print("✅ OpenLiteSpeed performans optimizasyonu yapıldı")
+    print("\nKullanım: sudo ispanel")
+
+
+def install_mariadb_only():
+    """Sadece MariaDB kurulumu"""
+    require_root()
+    check_disk_space(1)
+    
+    print("=== Sadece MariaDB Kurulumu ===")
+    
+    # MariaDB kurulumu
+    install_mariadb()
+    
+    # Güvenlik ayarları
+    print("\n=== Güvenlik Ayarları ===")
+    secure_mariadb()
+    
+    # Symlink oluştur
+    install_symlink()
+    
+    print("\n=== Kurulum Tamamlandı ===")
+    print("✅ MariaDB kuruldu")
+    print("✅ MariaDB güvenlik ayarları yapıldı")
+    
+    # Root şifresini göster
+    if MYSQL_ROOT_PASSWORD:
+        print("\n🔐 ÖNEMLİ:")
+        print(f"MySQL Root Kullanıcı: root")
+        print(f"MySQL Root Şifresi: {MYSQL_ROOT_PASSWORD}")
+        print("\n⚠️  Bu şifreyi güvenli bir yerde saklayın!")
+    
+    print("\nKullanım: sudo ispanel")
 
 
 def cmd_install(args: argparse.Namespace):
@@ -2617,58 +2686,62 @@ def interactive_menu():
             domain = input(f"{get_text('domain_prompt')}: ").strip()
             domain_add(domain)
         elif choice == "3":
-            domain_php_version_menu()
+            install_openlitespeed_only()
         elif choice == "4":
-            list_domains()
+            install_mariadb_only()
         elif choice == "5":
+            domain_php_version_menu()
+        elif choice == "6":
+            list_domains()
+        elif choice == "7":
             domain = input(f"{get_text('domain_prompt')}: ").strip()
             domain_remove(domain)
-        elif choice == "6":
+        elif choice == "8":
             db = input(f"{get_text('db_name_prompt')}: ").strip()
             user = input(f"{get_text('db_user_prompt')}: ").strip()
             password = input(f"{get_text('db_pass_prompt')}: ").strip()
             db_create(db, user, password)
-        elif choice == "7":
+        elif choice == "9":
             list_databases()
-        elif choice == "8":
+        elif choice == "10":
             db = input(f"{get_text('db_name_prompt')}: ").strip()
             user = input(f"{get_text('db_user_prompt')}: ").strip()
             db_delete(db, user)
-        elif choice == "9":
+        elif choice == "11":
             domain = input(f"{get_text('domain_prompt')}: ").strip()
             fix_virtual_host_root(domain)
-        elif choice == "10":
+        elif choice == "12":
             domain = input(f"{get_text('domain_prompt')}: ").strip()
             fix_vhost_config(domain)
-        elif choice == "11":
-            reset_mysql_root_password()
-        elif choice == "12":
-            reset_openlitespeed_admin_password()
         elif choice == "13":
-            manage_firewall()
+            reset_mysql_root_password()
         elif choice == "14":
-            install_ssl_support()
+            reset_openlitespeed_admin_password()
         elif choice == "15":
-            secure_mariadb_menu()
+            manage_firewall()
         elif choice == "16":
-            optimize_openlitespeed()
+            install_ssl_support()
         elif choice == "17":
-            backup_domain_menu()
+            secure_mariadb_menu()
         elif choice == "18":
-            backup_database_menu()
+            optimize_openlitespeed()
         elif choice == "19":
-            list_backups()
+            backup_domain_menu()
         elif choice == "20":
-            cron_backup_menu()
+            backup_database_menu()
         elif choice == "21":
-            repair_menu()
+            list_backups()
         elif choice == "22":
-            cache_menu()
+            cron_backup_menu()
         elif choice == "23":
-            system_management_menu()
+            repair_menu()
         elif choice == "24":
-            ols_php_menu()
+            cache_menu()
         elif choice == "25":
+            system_management_menu()
+        elif choice == "26":
+            ols_php_menu()
+        elif choice == "27":
             update_ispanel()
         elif choice == "0":
             break
