@@ -376,7 +376,7 @@ password={root_password}
         print(f"MariaDB şifre ayarlama hatası: {e}")
         # Fallback: Şifresiz bağlan ve ayarla
         try:
-            run("systemctl restart mariadb", check=True)
+    run("systemctl restart mariadb", check=True)
             # Şifresiz dene
             run(f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';\"", check=False)
             MYSQL_ROOT_PASSWORD = root_password
@@ -675,10 +675,10 @@ def ensure_https_listener_mapping(domain: str):
     # HTTPS listener kontrolü
     https_listener_pattern = r"listener\s+SSL\s*\{[^}]*address\s+\*:443[^}]*\}"
     m = re.search(https_listener_pattern, content, re.DOTALL)
-    ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
-    ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
+        ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
+        ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
     map_block = f"map                     {domain} {domain}"
-    
+        
     if not m:
         # HTTPS listener oluştur
         https_listener = f"""
@@ -1512,6 +1512,7 @@ def reset_openlitespeed_admin_password():
         # Script'i interaktif olmadan çalıştırmak için expect kullan
         if not shutil.which("expect"):
             print("expect yükleniyor...")
+            run("apt-get update", check=True)
             run("apt-get install -y expect", check=True)
         
         # Expect script oluştur
@@ -1545,9 +1546,9 @@ def reset_openlitespeed_admin_password():
         run("/usr/local/lsws/bin/lswsctrl restart", check=True)
         
         print("✅ OpenLiteSpeed admin şifresi başarıyla sıfırlandı!")
-        print(f"Admin panel: https://SERVER_IP:7080")
-        print(f"Kullanıcı: admin")
-        print(f"Şifre: {new_password}")
+    print(f"Admin panel: https://SERVER_IP:7080")
+    print(f"Kullanıcı: admin")
+    print(f"Şifre: {new_password}")
 
     except subprocess.CalledProcessError as e:
         print(f"Şifre sıfırlama hatası: {e}")
@@ -1632,18 +1633,18 @@ def secure_mariadb():
     # Root şifresi zaten install_mariadb'de ayarlandı
     try:
         # Güvenlik komutlarını doğrudan çalıştır
-        sql_commands = [
-            "DELETE FROM mysql.user WHERE User='';",
-            "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');",
-            "DROP DATABASE IF EXISTS test;",
-            "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';",
-            "FLUSH PRIVILEGES;"
-        ]
+    sql_commands = [
+        "DELETE FROM mysql.user WHERE User='';",
+        "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');",
+        "DROP DATABASE IF EXISTS test;",
+        "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';",
+        "FLUSH PRIVILEGES;"
+    ]
         
         # Root şifresi ile bağlan
         password = MYSQL_ROOT_PASSWORD if MYSQL_ROOT_PASSWORD else ""
-        
-        for sql in sql_commands:
+    
+    for sql in sql_commands:
             if password:
                 run(f"mysql -uroot -p{password} -e \"{sql}\"", check=False)
             else:
@@ -1940,12 +1941,12 @@ def backup_domain(domain: str):
     
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     backup_file = backup_dir / f"{domain}_{timestamp}.tar.gz"
-    run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
+        run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
     checksum = run(f"sha256sum {backup_file}", check=True).stdout.strip().split()[0]
     verify = run(f"tar -tzf {backup_file} > /dev/null", check=True)
-    print(f"Domain yedeği alındı: {backup_file}")
+        print(f"Domain yedeği alındı: {backup_file}")
     print(f"SHA256: {checksum}")
-    return str(backup_file)
+        return str(backup_file)
 
 
 def backup_database(db_name: str):
@@ -2012,7 +2013,7 @@ def fix_virtual_host_root(domain: str):
         content = content.replace(old_block, new_block)
         HTTPD_CONF.write_text(content, encoding="utf-8")
         print(f"✅ {domain} Virtual Host Root düzeltildi: {docroot}")
-        return True
+    return True
     else:
         print(f"❌ {domain} virtualHost bloğu bulunamadı")
         return False
@@ -3135,10 +3136,15 @@ def reset_openlitespeed_admin_password():
         if len(new_password) < 6:
             print("❌ Password must be at least 6 characters")
             return
+        
+        # Expect paketini kur
+        if not shutil.which("expect"):
+            print("expect yükleniyor...")
+            run("apt-get update", check=True)
+            run("apt-get install -y expect", check=True)
             
         # Use expect script for non-interactive password reset
-        expect_script = f"""
-#!/usr/bin/expect -f
+        expect_script = f"""#!/usr/bin/expect -f
 set timeout 30
 spawn /usr/local/lsws/admin/misc/admpass.sh
 expect "Please specify the user name:"
