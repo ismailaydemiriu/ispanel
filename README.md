@@ -258,13 +258,22 @@ sudo ispanel
 8) Veritabanı Sil
 9) Virtual Host Root Düzelt
 10) Vhost Konfigürasyon Düzelt
-11) Domain Yedekle
-12) Veritabanı Yedekle
-13) Yedekleri Listele
-14) OpenLiteSpeed Admin Şifre Sıfırla
-15) OpenLiteSpeed Optimize Et
-16) isPanel Güncelle
-17) Çıkış
+11) MySQL Root Şifre Sıfırla
+12) OpenLiteSpeed Admin Şifre Sıfırla
+13) Port Kontrolü ve Firewall Yönetimi
+14) SSL/HTTPS Desteği Kur
+15) MariaDB Güvenlik Ayarları
+16) OpenLiteSpeed Performans Optimizasyonu
+17) Dosya Yedekleme Menüsü
+18) Veritabanı Yedekleme Menüsü
+19) Yedekleri Listele
+20) Cron Backup Ayarları
+21) Onarım Araçları
+22) Cache Sistemleri (Redis/Memcached)
+23) Sistem Yönetimi
+24) OLS/PHP Ayarları
+25) isPanel Güncelle
+0) Çıkış
 ```
 
 ## Özellikler
