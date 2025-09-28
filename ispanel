@@ -2861,10 +2861,10 @@ def interactive_menu():
             ols_php_menu()
         elif choice == "27":
             update_ispanel()
-            elif choice == "0":
-                break
-            else:
-                print("Geçersiz seçim")
+        elif choice == "0":
+            break
+        else:
+            print("Geçersiz seçim")
         
         except KeyboardInterrupt:
             print(f"\n\n{'='*60}")
