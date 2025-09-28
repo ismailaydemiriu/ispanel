@@ -1930,6 +1930,11 @@ def main():
 
     p_install = sub.add_parser("install", help="OpenLiteSpeed, PHP 8.2 ve MariaDB kur")
     p_install.set_defaults(func=cmd_install)
+    
+    p_install_symlink = sub.add_parser("install-symlink", help="isPanel komutunu kur")
+    def _install_symlink(args):
+        install_symlink()
+    p_install_symlink.set_defaults(func=_install_symlink)
 
     p_dadd = sub.add_parser("domain-add", help="Domain ekle")
     p_dadd.add_argument("domain")
