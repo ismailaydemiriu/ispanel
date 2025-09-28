@@ -253,25 +253,29 @@ def check_disk_space(min_gb: int = 1):
 
 
 def stop_nginx_if_running():
-    """Nginx çalışıyorsa durdur ve devre dışı bırak"""
+    """Nginx varsa tamamen kaldır"""
     try:
-        # Nginx durumunu kontrol et
-        result = run("systemctl is-active nginx", check=False)
-        if result.returncode == 0:
-            print("Nginx çalışıyor, durduruluyor...")
+        # Nginx kurulu mu kontrol et
+        if shutil.which("nginx"):
+            print("Nginx tespit edildi, kaldırılıyor...")
+            
+            # Nginx'i durdur
             run("systemctl stop nginx", check=False)
             run("systemctl disable nginx", check=False)
-            print("✅ Nginx durduruldu ve devre dışı bırakıldı")
-        
-        # Nginx process'lerini zorla sonlandır
-        run("pkill -f nginx", check=False)
-        run("killall nginx", check=False)
-        
-        # Nginx konfigürasyonunu yedekle ve devre dışı bırak
-        nginx_conf = Path("/etc/nginx/sites-enabled/default")
-        if nginx_conf.exists():
-            run(f"mv {nginx_conf} {nginx_conf}.backup", check=False)
-            print("✅ Nginx default site devre dışı bırakıldı")
+            
+            # Nginx process'lerini zorla sonlandır
+            run("pkill -f nginx", check=False)
+            run("killall nginx", check=False)
+            
+            # Nginx'i tamamen kaldır
+            run("DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y nginx nginx-common nginx-core", check=False)
+            run("DEBIAN_FRONTEND=noninteractive apt-get autoremove -y", check=False)
+            
+            # Nginx dizinlerini temizle
+            run("rm -rf /etc/nginx", check=False)
+            run("rm -rf /var/www/html", check=False)
+            
+            print("✅ Nginx tamamen kaldırıldı")
             
     except:
         pass  # Nginx yoksa hata verme
@@ -1618,7 +1622,7 @@ def install_ssl_support():
     print("SSL/HTTPS desteği kuruluyor...")
     wait_for_apt()
     
-    # Certbot kurulumu
+    # Certbot kurulumu (OpenLiteSpeed için)
     run("DEBIAN_FRONTEND=noninteractive apt-get install -y certbot", check=True)
 
     # Fail2Ban kurulumu ve temel konfigürasyon
@@ -3202,7 +3206,7 @@ def install_ssl_support():
     """SSL/HTTPS desteği kur"""
     try:
         run("apt-get update", check=True)
-        run("apt-get install -y certbot python3-certbot-nginx", check=True)
+        run("apt-get install -y certbot", check=True)
         print("✅ SSL/HTTPS support installed")
     except Exception as e:
         print(f"❌ SSL/HTTPS support installation failed: {e}")
