@@ -44,7 +44,7 @@ TEXTS = {
             "System Management",
             "OLS/PHP Settings",
             "Update isPanel",
-            "Exit"
+            "Exit",
         ],
         "language_selection": "Select Language / Dil Seçin",
         "language_options": ["English", "Türkçe"],
@@ -72,7 +72,7 @@ TEXTS = {
         "optimization_complete": "OpenLiteSpeed optimization completed!",
         "update_complete": "isPanel updated successfully!",
         "press_enter": "Press Enter to continue...",
-        "goodbye": "Goodbye!"
+        "goodbye": "Goodbye!",
     },
     "tr": {
         # Ana menü
@@ -103,7 +103,7 @@ TEXTS = {
             "Sistem Yönetimi",
             "OLS/PHP Ayarları",
             "isPanel Güncelle",
-            "Çıkış"
+            "Çıkış",
         ],
         "language_selection": "Select Language / Dil Seçin",
         "language_options": ["English", "Türkçe"],
@@ -131,8 +131,8 @@ TEXTS = {
         "optimization_complete": "OpenLiteSpeed optimizasyonu tamamlandı!",
         "update_complete": "isPanel başarıyla güncellendi!",
         "press_enter": "Devam etmek için Enter'a basın...",
-        "goodbye": "Hoşça kalın!"
-    }
+        "goodbye": "Hoşça kalın!",
+    },
 }
 
 
@@ -149,7 +149,7 @@ def select_language():
     print(f"🌍 {get_text('language_selection')}")
     print("=" * 60)
 
-    for i, lang in enumerate(get_text('language_options'), 1):
+    for i, lang in enumerate(get_text("language_options"), 1):
         print(f"{i}) {lang}")
 
     while True:
@@ -162,16 +162,14 @@ def select_language():
                 CURRENT_LANGUAGE = "tr"
                 break
             else:
-                print(get_text('invalid_choice'))
+                print(get_text("invalid_choice"))
         except KeyboardInterrupt:
             print(f"\n{get_text('goodbye')}")
             sys.exit(0)
 
     print(
-    f"\n✅ Language selected: {
-        get_text('language_options')[
-            int(choice) -
-             1]}")
+        f"\n✅ Language selected: {get_text('language_options')[int(choice) - 1]}"
+    )
     print("=" * 60)
 
 
@@ -179,6 +177,7 @@ try:
     from pwd import getpwuid  # type: ignore[attr-defined]
     from grp import getgrgid  # type: ignore[attr-defined]
 except ImportError:  # Windows
+
     class _PwdStruct:
         def __init__(self, uid: int):
             self.pw_name = f"uid:{uid}"
@@ -233,13 +232,9 @@ def wait_for_apt(max_retries: int = 30, delay: int = 10):
         if not cp.stdout.strip():
             return
         retries += 1
-        logger.info(
-    "apt kullanımda, %s/%s bekleniyor...",
-    retries,
-     max_retries)
+        logger.info("apt kullanımda, %s/%s bekleniyor...", retries, max_retries)
         time.sleep(delay)
-    logger.error(
-        "apt kilitli görünüyor. Lütfen diğer apt işlemlerini kapatın.")
+    logger.error("apt kilitli görünüyor. Lütfen diğer apt işlemlerini kapatın.")
     sys.exit(1)
 
 
@@ -279,7 +274,10 @@ def stop_nginx_if_running():
             run("killall nginx", check=False)
 
             # Nginx'i tamamen kaldır
-            run("DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y nginx nginx-common nginx-core", check=False)
+            run(
+                "DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y nginx nginx-common nginx-core",
+                check=False,
+            )
             run("DEBIAN_FRONTEND=noninteractive apt-get autoremove -y", check=False)
 
             # Nginx dizinlerini temizle
@@ -288,15 +286,14 @@ def stop_nginx_if_running():
 
             print("✅ Nginx tamamen kaldırıldı")
 
-    except:
+    except BaseException:
         pass  # Nginx yoksa hata verme
 
 
 def install_openlitespeed_and_php(lsphp_version: str = "83"):
     logger.info(
-    "OpenLiteSpeed ve PHP %s.%s kuruluyor...",
-    lsphp_version[0],
-     lsphp_version[1])
+        "OpenLiteSpeed ve PHP %s.%s kuruluyor...", lsphp_version[0], lsphp_version[1]
+    )
     wait_for_apt()
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
     ensure_cmd("curl", "curl")
@@ -311,7 +308,10 @@ def install_openlitespeed_and_php(lsphp_version: str = "83"):
     # Paketler
     run("DEBIAN_FRONTEND=noninteractive apt-get -y install openlitespeed", check=True)
     # Sadece gerekli PHP sürümlerini kur (8.2 ve 8.3)
-    run("DEBIAN_FRONTEND=noninteractive apt-get -y install lsphp82 lsphp82-* lsphp83 lsphp83-*", check=True)
+    run(
+        "DEBIAN_FRONTEND=noninteractive apt-get -y install lsphp82 lsphp82-* lsphp83 lsphp83-*",
+        check=True,
+    )
 
     # Varsayılan PHP sürümünü ayarla
     global DEFAULT_LSPHP_VERSION
@@ -329,8 +329,9 @@ def generate_random_password(length: int = 16) -> str:
     """Random şifre üret"""
     import secrets
     import string
+
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-    return ''.join(secrets.choice(alphabet) for _ in range(length))
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
 def install_mariadb():
@@ -342,8 +343,14 @@ def install_mariadb():
     run("DEBIAN_FRONTEND=noninteractive apt-get install -y debconf-utils", check=True)
 
     # MariaDB için debconf ayarları
-    run("echo 'mariadb-server mysql-server/root_password password' | debconf-set-selections", check=False)
-    run("echo 'mariadb-server mysql-server/root_password_again password' | debconf-set-selections", check=False)
+    run(
+        "echo 'mariadb-server mysql-server/root_password password' | debconf-set-selections",
+        check=False,
+    )
+    run(
+        "echo 'mariadb-server mysql-server/root_password_again password' | debconf-set-selections",
+        check=False,
+    )
 
     # MariaDB kurulumu
     run("DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server", check=True)
@@ -358,6 +365,7 @@ def install_mariadb():
     try:
         # Güvenli kurulum için mysql_secure_installation eşdeğeri
         import shlex
+
         escaped_password = shlex.quote(root_password)
 
         # MariaDB'yi durdur
@@ -397,10 +405,13 @@ FLUSH PRIVILEGES;
 
         # Root şifresini dosyaya kaydet
         mysql_conf = Path("/root/.my.cnf")
-        mysql_conf.write_text(f"""[client]
+        mysql_conf.write_text(
+            f"""[client]
 user=root
 password={root_password}
-""", encoding="utf-8")
+""",
+            encoding="utf-8",
+        )
         mysql_conf.chmod(0o600)
 
     except Exception as e:
@@ -411,31 +422,32 @@ password={root_password}
             # Şifresiz dene
             run(
                 f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';\"",
-                check=False)
+                check=False,
+            )
             MYSQL_ROOT_PASSWORD = root_password
             print(f"✅ MariaDB şifresi ayarlandı: {root_password}")
-        except:
+        except BaseException:
             print("MariaDB şifre ayarlama başarısız. Manuel müdahale gerekli.")
             print(f"Önerilen root şifresi: {root_password}")
 
 
 def install_symlink():
     """isPanel'i /usr/local/ispanel dizinine kur ve /usr/local/bin/ispanel symlink oluştur"""
-    
+
     # isPanel kurulum dizinini oluştur
     ISPANEL_HOME.mkdir(parents=True, exist_ok=True)
     ISPANEL_TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     # Mevcut script'i bul
     current_script = Path(os.path.realpath(__file__))
-    
+
     # Script'i kurulum dizinine kopyala
     target_script = ISPANEL_HOME / "ispanel"
     if current_script != target_script:
         shutil.copy2(current_script, target_script)
         os.chmod(target_script, 0o755)
         print(f"isPanel kuruldu: {target_script}")
-    
+
     # Templates dizinini kopyala (sadece farklı dizindeyse)
     source_templates = current_script.parent / "templates"
     if source_templates.exists() and source_templates != ISPANEL_TEMPLATES_DIR:
@@ -445,16 +457,16 @@ def install_symlink():
             if template_file != target_template:
                 shutil.copy2(template_file, target_template)
                 print(f"Template kopyalandı: {target_template}")
-    
+
     # /usr/local/bin/ispanel wrapper oluştur
     bin_path = Path("/usr/local/bin/ispanel")
     if bin_path.exists() or bin_path.is_symlink():
         try:
             bin_path.unlink()
-        except:
+        except BaseException:
             run(f"rm -f {bin_path}", check=False)
-    
-    wrapper = f'''#!/usr/bin/env python3
+
+    wrapper = f"""#!/usr/bin/env python3
 import os
 import sys
 
@@ -467,8 +479,8 @@ if not os.path.exists(script_path):
 
 # Script'i çalıştır
 os.execv(sys.executable, [sys.executable, script_path] + sys.argv[1:])
-'''
-    
+"""
+
     bin_path.parent.mkdir(parents=True, exist_ok=True)
     bin_path.write_text(wrapper, encoding="utf-8")
     os.chmod(bin_path, 0o755)
@@ -486,19 +498,19 @@ def cmd_install(args: argparse.Namespace):
         osr = f.read()
     if "Ubuntu" not in osr:
         print("Bu kurulum Ubuntu 22+ için tasarlanmıştır.", file=sys.stderr)
-    
+
     print("=== ispanel Kurulum Başlıyor ===")
-    
+
     # Kurulum tipine göre PHP sürümünü belirle
-    php_version = getattr(args, 'php_version', DEFAULT_LSPHP_VERSION)
-    
+    php_version = getattr(args, "php_version", DEFAULT_LSPHP_VERSION)
+
     # Port çakışmalarını kontrol et
     check_port_conflicts()
-    
+
     # Temel kurulum
     install_openlitespeed_and_php(php_version)
     install_mariadb()
-    
+
     # Güvenlik ve performans ayarları
     print("\n=== Güvenlik ve Performans Ayarları ===")
     manage_firewall()
@@ -506,32 +518,36 @@ def cmd_install(args: argparse.Namespace):
     secure_mariadb()
     optimize_openlitespeed()
     cleanup_default_listeners()  # Varsayılan 8088 listener'ını temizle
-    
+
     # PHP OPcache konfigürasyonu
     configure_php_opcache()
-    
+
     # Yedek dizinleri oluştur
     (ISPANEL_BACKUP_DIR / "domains").mkdir(parents=True, exist_ok=True)
     (ISPANEL_BACKUP_DIR / "databases").mkdir(parents=True, exist_ok=True)
-    
+
     # Symlink oluştur
     install_symlink()
-    
+
     print("\n=== Kurulum Tamamlandı ===")
-    print(f"✅ OpenLiteSpeed + PHP {DEFAULT_LSPHP_VERSION[0]}.{DEFAULT_LSPHP_VERSION[1]} + MariaDB kuruldu")
+    print(
+        f"✅ OpenLiteSpeed + PHP {
+            DEFAULT_LSPHP_VERSION[0]}.{
+            DEFAULT_LSPHP_VERSION[1]} + MariaDB kuruldu"
+    )
     print("✅ Firewall ayarları yapıldı")
     print("✅ SSL/HTTPS desteği eklendi")
     print("✅ MariaDB güvenlik ayarları yapıldı")
     print("✅ OpenLiteSpeed performans optimizasyonu yapıldı")
     print("✅ Yedek sistemi hazır")
-    
+
     # Root şifresini göster
     if MYSQL_ROOT_PASSWORD:
         print("\n🔐 ÖNEMLİ:")
         print(f"MySQL Root Kullanıcı: root")
         print(f"MySQL Root Şifresi: {MYSQL_ROOT_PASSWORD}")
         print("\n⚠️  Bu şifreyi güvenli bir yerde saklayın!")
-    
+
     print("\nKullanım: sudo ispanel")
 
 
@@ -541,7 +557,8 @@ LSWS_CONF_DIR = Path("/usr/local/lsws/conf")
 VHOSTS_DIR = LSWS_CONF_DIR / "vhosts"
 HTTPD_CONF = LSWS_CONF_DIR / "httpd_config.conf"
 DOCROOT_BASE = Path("/home")
-DEFAULT_LSPHP_VERSION = "83"  # Varsayılan lsphp sürümü (menu kurulum seçimine göre güncellenir)
+# Varsayılan lsphp sürümü (menu kurulum seçimine göre güncellenir)
+DEFAULT_LSPHP_VERSION = "83"
 LOG_FILE = Path(os.environ.get("ISPANEL_LOG_FILE", "/var/log/ispanel.log"))
 LOG_LEVEL = os.environ.get("ISPANEL_LOG_LEVEL", "INFO").upper()
 
@@ -571,9 +588,15 @@ def configure_logging():
 
     log_level = getattr(logging, LOG_LEVEL, logging.INFO)
     if handlers:
-        logging.basicConfig(level=log_level, format="%(asctime)s [%(levelname)s] %(message)s", handlers=handlers)
+        logging.basicConfig(
+            level=log_level,
+            format="%(asctime)s [%(levelname)s] %(message)s",
+            handlers=handlers,
+        )
     else:
-        logging.basicConfig(level=log_level, format="%(asctime)s [%(levelname)s] %(message)s")
+        logging.basicConfig(
+            level=log_level, format="%(asctime)s [%(levelname)s] %(message)s"
+        )
 
 
 configure_logging()
@@ -591,37 +614,45 @@ def cleanup_default_listeners():
     """Varsayılan 8088 listener'ını ve gereksiz konfigürasyonları temizle"""
     if not HTTPD_CONF.exists():
         return
-    
+
     content = HTTPD_CONF.read_text(encoding="utf-8")
     original_content = content
-    
+
     # 8088 portundaki Default listener'ı temizle
-    content = re.sub(r'listener\s+Default\s*\{\s*address\s+\*:8088[^}]*\}', '', content, flags=re.DOTALL)
-    
+    content = re.sub(
+        r"listener\s+Default\s*\{\s*address\s+\*:8088[^}]*\}",
+        "",
+        content,
+        flags=re.DOTALL,
+    )
+
     # Example virtualhost'u temizle
-    content = re.sub(r'virtualHost\s+Example\s*\{[^}]*\}', '', content, flags=re.DOTALL)
-    
+    content = re.sub(r"virtualHost\s+Example\s*\{[^}]*\}", "", content, flags=re.DOTALL)
+
     # EasyRailsWithSuEXEC template'ini temizle
-    content = re.sub(r'vhTemplate\s+EasyRailsWithSuEXEC\s*\{[^}]*\}', '', content, flags=re.DOTALL)
-    
+    content = re.sub(
+        r"vhTemplate\s+EasyRailsWithSuEXEC\s*\{[^}]*\}", "", content, flags=re.DOTALL
+    )
+
     # Boş satırları temizle
-    content = re.sub(r'\n{3,}', '\n\n', content)
-    
+    content = re.sub(r"\n{3,}", "\n\n", content)
+
     if content != original_content:
         HTTPD_CONF.write_text(content, encoding="utf-8")
         print("✅ Varsayılan listener ve gereksiz konfigürasyonlar temizlendi")
 
+
 def check_port_conflicts():
     """Port çakışmalarını kontrol et ve çöz"""
     print("Port çakışmaları kontrol ediliyor...")
-    
+
     # Port 80 kontrolü
     try:
         result = run("netstat -tuln | grep ':80 '", check=False)
         if result.stdout.strip():
             print("⚠️  Port 80 kullanımda:")
             print(result.stdout.strip())
-            
+
             # Nginx kontrolü ve tamamen durdur
             nginx_result = run("systemctl is-active nginx", check=False)
             if nginx_result.returncode == 0:
@@ -631,7 +662,7 @@ def check_port_conflicts():
                 run("pkill -f nginx", check=False)
                 run("killall nginx", check=False)
                 print("✅ Nginx tamamen durduruldu")
-            
+
             # Apache kontrolü
             apache_result = run("systemctl is-active apache2", check=False)
             if apache_result.returncode == 0:
@@ -640,23 +671,23 @@ def check_port_conflicts():
                 run("systemctl disable apache2", check=False)
                 run("pkill -f apache2", check=False)
                 print("✅ Apache durduruldu")
-                
+
             # Nginx konfigürasyonunu devre dışı bırak
             nginx_conf = Path("/etc/nginx/sites-enabled/default")
             if nginx_conf.exists():
                 run(f"mv {nginx_conf} {nginx_conf}.backup", check=False)
                 print("✅ Nginx default site devre dışı bırakıldı")
-                
-    except:
+
+    except BaseException:
         pass
-    
+
     # Port 443 kontrolü
     try:
         result = run("netstat -tuln | grep ':443 '", check=False)
         if result.stdout.strip():
             print("⚠️  Port 443 kullanımda:")
             print(result.stdout.strip())
-    except:
+    except BaseException:
         pass
 
 
@@ -667,19 +698,28 @@ def ensure_http_listener_mapping(domain: str):
     content = HTTPD_CONF.read_text(encoding="utf-8")
 
     # Önce 8088 portundaki Default listener'ı temizle
-    content = re.sub(r'listener\s+Default\s*\{\s*address\s+\*:8088.*?\n\}', '', content, flags=re.DOTALL)
-    
+    content = re.sub(
+        r"listener\s+Default\s*\{\s*address\s+\*:8088.*?\n\}",
+        "",
+        content,
+        flags=re.DOTALL,
+    )
+
     # Duplicate Default listener'ları temizle
-    default_listeners = list(re.finditer(r'listener\s+Default\s*\{[^}]*address\s+\*:80[^}]*\}', content, re.DOTALL))
+    default_listeners = list(
+        re.finditer(
+            r"listener\s+Default\s*\{[^}]*address\s+\*:80[^}]*\}", content, re.DOTALL
+        )
+    )
     if len(default_listeners) > 1:
         # İlkini koru, diğerlerini sil
         for match in default_listeners[1:]:
-            content = content.replace(match.group(0), '')
+            content = content.replace(match.group(0), "")
 
     map_block = f"map                     {domain} {domain}"
     listener_pattern = r"listener\s+Default\s*\{[^}]*address\s+\*:80[^}]*\}"
     m = re.search(listener_pattern, content, re.DOTALL)
-    
+
     if not m:
         # Eksikse, Default HTTP listener'ı oluştur
         default_listener = f"""
@@ -692,11 +732,11 @@ listener Default {{
         content = content.rstrip() + "\n" + default_listener
         HTTPD_CONF.write_text(content, encoding="utf-8")
         return
-    
+
     block = m.group(0)
     if f"map                     {domain}" in block:
         return
-    
+
     new_block = block.rstrip("}\n") + f"\n    {map_block}\n}}"
     new_content = content.replace(block, new_block)
     HTTPD_CONF.write_text(new_content, encoding="utf-8")
@@ -709,11 +749,15 @@ def ensure_https_listener_mapping(domain: str):
     content = HTTPD_CONF.read_text(encoding="utf-8")
 
     # Duplicate SSL listener'ları temizle
-    ssl_listeners = list(re.finditer(r'listener\s+SSL\s*\{[^}]*address\s+\*:443[^}]*\}', content, re.DOTALL))
+    ssl_listeners = list(
+        re.finditer(
+            r"listener\s+SSL\s*\{[^}]*address\s+\*:443[^}]*\}", content, re.DOTALL
+        )
+    )
     if len(ssl_listeners) > 1:
         # İlkini koru, diğerlerini sil
         for match in ssl_listeners[1:]:
-            content = content.replace(match.group(0), '')
+            content = content.replace(match.group(0), "")
 
     # HTTPS listener kontrolü
     https_listener_pattern = r"listener\s+SSL\s*\{[^}]*address\s+\*:443[^}]*\}"
@@ -721,7 +765,7 @@ def ensure_https_listener_mapping(domain: str):
     ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
     ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
     map_block = f"map                     {domain} {domain}"
-        
+
     if not m:
         # HTTPS listener oluştur
         https_listener = f"""
@@ -760,17 +804,17 @@ def load_template(template_path: Path) -> str:
     main_template = ISPANEL_TEMPLATES_DIR / template_path.name
     if main_template.exists():
         return main_template.read_text(encoding="utf-8")
-    
+
     # Alternatif konumları dene
     for alt_dir in [
         Path(__file__).parent / "templates",  # Geliştirme dizini
-        Path("/root/ispanel/templates"),      # Eski konum
-        TEMPLATE_DIR                           # Env değişkeninden gelen
+        Path("/root/ispanel/templates"),  # Eski konum
+        TEMPLATE_DIR,  # Env değişkeninden gelen
     ]:
         template_file = alt_dir / template_path.name
         if template_file.exists():
             return template_file.read_text(encoding="utf-8")
-    
+
     raise FileNotFoundError(f"Template bulunamadı: {template_path}")
 
 
@@ -796,7 +840,9 @@ def write_vhost_conf(domain: str, docroot: Path):
     awstats_dir.mkdir(parents=True, exist_ok=True)
 
     template = load_template(VHOST_TEMPLATE)
-    conf = template.format(domain=domain, docroot=str(docroot), default_lsphp=DEFAULT_LSPHP_VERSION)
+    conf = template.format(
+        domain=domain, docroot=str(docroot), default_lsphp=DEFAULT_LSPHP_VERSION
+    )
     conf = f"vhDomain {domain}\n" + conf
 
     vconf.write_text(conf, encoding="utf-8")
@@ -804,12 +850,12 @@ def write_vhost_conf(domain: str, docroot: Path):
     # Vhost dizini izinleri
     run(f"chown -R lsadm:nogroup {vdir}", check=True)
     run(f"chmod -R 755 {vdir}", check=True)
-    
+
     # Domain root ve public_html izinleri
     run(f"chown -R lsadm:nogroup {vh_root}", check=False)
     run(f"chmod 755 {vh_root}", check=False)
     run(f"chmod 755 {docroot}", check=False)
-    
+
     # Dosya ve dizin izinlerini düzelt
     run(f"find {docroot} -type f -exec chmod 644 {{}} +", check=False)
     run(f"find {docroot} -type d -exec chmod 755 {{}} +", check=False)
@@ -821,7 +867,7 @@ def ensure_virtual_host_reference(domain: str):
         print(f"Bulunamadı: {HTTPD_CONF}", file=sys.stderr)
         sys.exit(1)
     content = HTTPD_CONF.read_text(encoding="utf-8")
-    
+
     # Virtual Host Root'u da ekle
     docroot = DOCROOT_BASE / domain
     vhost_ref = (
@@ -846,7 +892,7 @@ def ensure_docroot(domain: str) -> Path:
     index_file = docroot / "index.php"
     if not index_file.exists():
         # Profesyonel ve kurumsal default index.php oluştur
-        default_content = '''<?php
+        default_content = """<?php
 // isPanel - Enterprise Web Hosting Management
 // https://ispanel.com
 ?>
@@ -863,7 +909,7 @@ def ensure_docroot(domain: str) -> Path:
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         :root {
             --primary: #1e40af;
             --primary-light: #3b82f6;
@@ -879,7 +925,7 @@ def ensure_docroot(domain: str) -> Path:
             --shadow: rgba(0, 0, 0, 0.05);
             --shadow-lg: rgba(0, 0, 0, 0.1);
         }
-        
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg-secondary);
@@ -891,7 +937,7 @@ def ensure_docroot(domain: str) -> Path:
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
         }
-        
+
         .container {
             background: var(--bg-primary);
             border-radius: 16px;
@@ -901,7 +947,7 @@ def ensure_docroot(domain: str) -> Path:
             width: 90%;
             position: relative;
         }
-        
+
         .accent-bar {
             position: absolute;
             top: 0;
@@ -911,19 +957,19 @@ def ensure_docroot(domain: str) -> Path:
             background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
             border-radius: 16px 16px 0 0;
         }
-        
+
         .header {
             text-align: center;
             margin-bottom: 3rem;
         }
-        
+
         .logo-wrapper {
             display: inline-flex;
             align-items: center;
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
-        
+
         .logo-icon {
             width: 48px;
             height: 48px;
@@ -936,13 +982,13 @@ def ensure_docroot(domain: str) -> Path:
             font-weight: 700;
             font-size: 24px;
         }
-        
+
         .logo-text {
             font-size: 2rem;
             font-weight: 700;
             color: var(--text-primary);
         }
-        
+
         .domain {
             font-size: 1.875rem;
             font-weight: 300;
@@ -950,13 +996,13 @@ def ensure_docroot(domain: str) -> Path:
             margin-bottom: 0.5rem;
             letter-spacing: -0.025em;
         }
-        
+
         .subtitle {
             color: var(--text-tertiary);
             font-size: 1rem;
             font-weight: 400;
         }
-        
+
         .status-section {
             background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
             border: 1px solid #bbf7d0;
@@ -967,7 +1013,7 @@ def ensure_docroot(domain: str) -> Path:
             align-items: center;
             gap: 1.5rem;
         }
-        
+
         .status-icon {
             width: 56px;
             height: 56px;
@@ -980,26 +1026,26 @@ def ensure_docroot(domain: str) -> Path:
             font-size: 28px;
             flex-shrink: 0;
         }
-        
+
         .status-content h3 {
             color: #065f46;
             font-size: 1.25rem;
             font-weight: 600;
             margin-bottom: 0.25rem;
         }
-        
+
         .status-content p {
             color: #047857;
             font-size: 0.875rem;
         }
-        
+
         .features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 2rem;
             margin: 3rem 0;
         }
-        
+
         .feature-card {
             background: var(--bg-secondary);
             border: 1px solid var(--border);
@@ -1010,7 +1056,7 @@ def ensure_docroot(domain: str) -> Path:
             position: relative;
             overflow: hidden;
         }
-        
+
         .feature-card::before {
             content: '';
             position: absolute;
@@ -1022,17 +1068,17 @@ def ensure_docroot(domain: str) -> Path:
             transform: translateX(-100%);
             transition: transform 0.3s ease;
         }
-        
+
         .feature-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 20px 25px -5px var(--shadow-lg), 0 10px 10px -5px var(--shadow);
             border-color: var(--primary-light);
         }
-        
+
         .feature-card:hover::before {
             transform: translateX(0);
         }
-        
+
         .feature-icon {
             width: 64px;
             height: 64px;
@@ -1045,38 +1091,38 @@ def ensure_docroot(domain: str) -> Path:
             font-size: 32px;
             color: var(--primary);
         }
-        
+
         .feature-card h4 {
             color: var(--text-primary);
             font-size: 1.125rem;
             font-weight: 600;
             margin-bottom: 0.5rem;
         }
-        
+
         .feature-card p {
             color: var(--text-secondary);
             font-size: 0.875rem;
             line-height: 1.5;
         }
-        
+
         .stats-section {
             background: var(--bg-tertiary);
             border-radius: 12px;
             padding: 2rem;
             margin: 2.5rem 0;
         }
-        
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 2rem;
             text-align: center;
         }
-        
+
         .stat-item {
             padding: 1rem;
         }
-        
+
         .stat-value {
             font-size: 2.5rem;
             font-weight: 700;
@@ -1084,7 +1130,7 @@ def ensure_docroot(domain: str) -> Path:
             line-height: 1;
             margin-bottom: 0.5rem;
         }
-        
+
         .stat-label {
             color: var(--text-secondary);
             font-size: 0.875rem;
@@ -1092,11 +1138,11 @@ def ensure_docroot(domain: str) -> Path:
             letter-spacing: 0.05em;
             font-weight: 500;
         }
-        
+
         .tech-stack {
             margin: 2.5rem 0;
         }
-        
+
         .tech-stack h4 {
             color: var(--text-primary);
             font-size: 1.125rem;
@@ -1104,14 +1150,14 @@ def ensure_docroot(domain: str) -> Path:
             margin-bottom: 1.5rem;
             text-align: center;
         }
-        
+
         .tech-items {
             display: flex;
             flex-wrap: wrap;
             gap: 1rem;
             justify-content: center;
         }
-        
+
         .tech-badge {
             background: var(--bg-primary);
             border: 2px solid var(--border);
@@ -1122,33 +1168,33 @@ def ensure_docroot(domain: str) -> Path:
             color: var(--text-secondary);
             transition: all 0.2s ease;
         }
-        
+
         .tech-badge:hover {
             border-color: var(--primary-light);
             color: var(--primary);
             transform: translateY(-2px);
         }
-        
+
         .footer {
             text-align: center;
             margin-top: 4rem;
             padding-top: 2.5rem;
             border-top: 1px solid var(--border);
         }
-        
+
         .footer-content {
             color: var(--text-tertiary);
             font-size: 0.875rem;
             margin-bottom: 1.5rem;
         }
-        
+
         .footer-links {
             display: flex;
             justify-content: center;
             gap: 3rem;
             flex-wrap: wrap;
         }
-        
+
         .footer-link {
             color: var(--primary);
             text-decoration: none;
@@ -1158,25 +1204,25 @@ def ensure_docroot(domain: str) -> Path:
             gap: 0.5rem;
             transition: color 0.2s ease;
         }
-        
+
         .footer-link:hover {
             color: var(--primary-dark);
         }
-        
+
         @media (max-width: 640px) {
             .container {
                 padding: 2rem;
             }
-            
+
             .features-grid {
                 grid-template-columns: 1fr;
                 gap: 1.5rem;
             }
-            
+
             .stats-grid {
                 grid-template-columns: 1fr 1fr;
             }
-            
+
             .footer-links {
                 flex-direction: column;
                 gap: 1rem;
@@ -1187,7 +1233,7 @@ def ensure_docroot(domain: str) -> Path:
 <body>
     <div class="container">
         <div class="accent-bar"></div>
-        
+
         <div class="header">
             <div class="logo-wrapper">
                 <div class="logo-icon">iP</div>
@@ -1196,7 +1242,7 @@ def ensure_docroot(domain: str) -> Path:
             <h1 class="domain"><?php echo $_SERVER['HTTP_HOST']; ?></h1>
             <p class="subtitle">Enterprise Web Hosting Management System</p>
         </div>
-        
+
         <div class="status-section">
             <div class="status-icon">✓</div>
             <div class="status-content">
@@ -1204,7 +1250,7 @@ def ensure_docroot(domain: str) -> Path:
                 <p>Your website is running smoothly on isPanel infrastructure with optimal performance</p>
             </div>
         </div>
-        
+
         <div class="features-grid">
             <div class="feature-card">
                 <div class="feature-icon">⚡</div>
@@ -1222,7 +1268,7 @@ def ensure_docroot(domain: str) -> Path:
                 <p>Intuitive command-line interface with powerful automation capabilities</p>
             </div>
         </div>
-        
+
         <div class="stats-section">
             <div class="stats-grid">
                 <div class="stat-item">
@@ -1230,17 +1276,17 @@ def ensure_docroot(domain: str) -> Path:
                     <div class="stat-label">PHP Version</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value"><?php 
+                    <div class="stat-value"><?php
                         $load = sys_getloadavg();
                         echo number_format($load[0], 2);
                     ?></div>
                     <div class="stat-label">Load Average</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value"><?php 
+                    <div class="stat-value"><?php
                         $uptime = shell_exec('uptime -p 2>/dev/null');
                         if ($uptime) {
-                            preg_match('/(\d+)\s*day/', $uptime, $matches);
+                            preg_match('/(\\d+)\\s*day/', $uptime, $matches);
                             echo isset($matches[1]) ? $matches[1] : '0';
                         } else {
                             echo 'N/A';
@@ -1254,7 +1300,7 @@ def ensure_docroot(domain: str) -> Path:
                 </div>
             </div>
         </div>
-        
+
         <div class="tech-stack">
             <h4>Technology Stack</h4>
             <div class="tech-items">
@@ -1266,7 +1312,7 @@ def ensure_docroot(domain: str) -> Path:
                 <div class="tech-badge">HTTP/3 QUIC</div>
             </div>
         </div>
-        
+
         <div class="footer">
             <p class="footer-content">
                 &copy; <?php echo date('Y'); ?> isPanel - Enterprise Web Hosting Management System
@@ -1288,9 +1334,9 @@ def ensure_docroot(domain: str) -> Path:
         </div>
     </div>
 </body>
-</html>'''
+</html>"""
         index_file.write_text(default_content, encoding="utf-8")
-    
+
     # İzinleri düzelt
     domain_root = DOCROOT_BASE / domain
     run(f"chown -R lsadm:nogroup {domain_root}", check=False)
@@ -1298,7 +1344,7 @@ def ensure_docroot(domain: str) -> Path:
     run(f"chmod 755 {docroot}", check=False)
     run(f"find {docroot} -type f -exec chmod 644 {{}} +", check=False)
     run(f"find {docroot} -type d -exec chmod 755 {{}} +", check=False)
-    
+
     return docroot
 
 
@@ -1309,35 +1355,38 @@ def domain_add(domain: str):
     if not LSWS_CONF_DIR.exists():
         print("OpenLiteSpeed kurulu değil gibi görünüyor.", file=sys.stderr)
         sys.exit(1)
-    
+
     # Nginx çakışmasını kontrol et ve durdur
     stop_nginx_if_running()
-    
+
     # PHP handler'ları kontrol et
     ensure_php_handlers()
-    
+
     docroot = ensure_docroot(domain)
     write_vhost_conf(domain, docroot)
     ensure_virtual_host_reference(domain)
     ensure_http_listener_mapping(domain)
-    
+
     # SSL sertifikası oluştur (Let's Encrypt)
     if shutil.which("certbot") and os.environ.get("ISPANEL_SKIP_CERTBOT") != "1":
         try:
             print(f"SSL sertifikası oluşturuluyor: {domain}")
-            run(f"certbot certonly --standalone -d {domain} --non-interactive --agree-tos --email admin@{domain}", check=False)
-            
+            run(
+                f"certbot certonly --standalone -d {domain} --non-interactive --agree-tos --email admin@{domain}",
+                check=False,
+            )
+
             # SSL konfigürasyonunu OpenLiteSpeed'e ekle
             ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
             ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
-            
+
             if Path(ssl_cert).exists() and Path(ssl_key).exists():
                 # HTTPS listener ekle
                 ensure_https_listener_mapping(domain)
                 print(f"SSL sertifikası başarıyla oluşturuldu: {domain}")
-        except:
+        except BaseException:
             print(f"SSL sertifikası oluşturulamadı: {domain}")
-    
+
     # PHP test dosyası oluştur
     test_file = docroot / "test.php"
     test_content = """<?php
@@ -1351,7 +1400,7 @@ phpinfo();
 ?>"""
     test_file.write_text(test_content, encoding="utf-8")
     run(f"chmod 644 {test_file}", check=False)
-    
+
     reload_lsws()
     print(f"✅ Domain eklendi: {domain}")
     print(f"   Document root: {docroot}")
@@ -1365,24 +1414,20 @@ def set_domain_php_version(domain: str, version: str):
     if not vconf.exists():
         print("Vhost config bulunamadı.", file=sys.stderr)
         return
-    
+
     # vhost.conf içeriğini oku
     content = vconf.read_text(encoding="utf-8")
-    
+
     # scriptHandler bölümünü güncelle
     content = re.sub(
         r"add\s+lsapi:lsphp\d+\s+php",
         f"add                    lsapi:lsphp{version} php",
-        content
+        content,
     )
-    
+
     # PHP context'ini de güncelle (eğer varsa)
-    content = re.sub(
-        r"handler\s+lsphp\d+",
-        f"handler lsphp{version}",
-        content
-    )
-    
+    content = re.sub(r"handler\s+lsphp\d+", f"handler lsphp{version}", content)
+
     vconf.write_text(content, encoding="utf-8")
     reload_lsws()
     print(f"✅ {domain} için PHP {version[0]}.{version[1]} olarak ayarlandı.")
@@ -1395,20 +1440,36 @@ def toggle_http3_brotli(enable: bool):
         return
     content = HTTPD_CONF.read_text(encoding="utf-8")
     # HTTP/3 QUIC ayarı listener SSL içinde enableQuic 1/0
-    content = re.sub(r"enableQuic\s+\d", f"enableQuic              {'1' if enable else '0'}", content)
+    content = re.sub(
+        r"enableQuic\s+\d",
+        f"enableQuic              {
+            '1' if enable else '0'}",
+        content,
+    )
     HTTPD_CONF.write_text(content, encoding="utf-8")
 
-    # Brotli: global conf'a ek basit bayrak (OLS'te mod_brotli yoksa gzip kullanılabilir; burada örnek bayrak koyuyoruz)
+    # Brotli: global conf'a ek basit bayrak (OLS'te mod_brotli yoksa gzip
+    # kullanılabilir; burada örnek bayrak koyuyoruz)
     brotli_marker = "# ispanel_brotli_enabled"
     if enable:
         if brotli_marker not in content:
             with open(HTTPD_CONF, "a", encoding="utf-8") as f:
-                f.write(f"\n{brotli_marker}\n# Brotli etkin: statik içerik için harici reverse proxy veya mod eklentisi gerekebilir.\n")
+                f.write(
+                    f"\n{brotli_marker}\n# Brotli etkin: statik içerik için harici reverse proxy veya mod eklentisi gerekebilir.\n"
+                )
     else:
-        newc = Path(HTTPD_CONF).read_text(encoding="utf-8").replace(brotli_marker + "\n", "")
+        newc = (
+            Path(HTTPD_CONF)
+            .read_text(encoding="utf-8")
+            .replace(brotli_marker + "\n", "")
+        )
         Path(HTTPD_CONF).write_text(newc, encoding="utf-8")
     reload_lsws()
-    print(f"HTTP/3 {'açıldı' if enable else 'kapandı'}; Brotli {'işaretlendi' if enable else 'devre dışı'}.")
+    print(
+        f"HTTP/3 {
+            'açıldı' if enable else 'kapandı'}; Brotli {
+            'işaretlendi' if enable else 'devre dışı'}."
+    )
 
 
 def ols_php_menu():
@@ -1419,18 +1480,18 @@ def ols_php_menu():
         print("3) HTTP/3 + Brotli kapat")
         print("0) Geri")
         sub = input("Seçim: ").strip()
-        if sub == '1':
+        if sub == "1":
             domain = input("Domain: ").strip()
             version = input("Sürüm (81/82/83): ").strip()
-            if version not in {"81","82","83"}:
+            if version not in {"81", "82", "83"}:
                 print("Geçersiz sürüm")
             else:
                 set_domain_php_version(domain, version)
-        elif sub == '2':
+        elif sub == "2":
             toggle_http3_brotli(True)
-        elif sub == '3':
+        elif sub == "3":
             toggle_http3_brotli(False)
-        elif sub == '0':
+        elif sub == "0":
             break
         else:
             print("Geçersiz seçim")
@@ -1444,23 +1505,31 @@ def domain_remove(domain: str):
     if HTTPD_CONF.exists():
         content = HTTPD_CONF.read_text(encoding="utf-8")
         # HTTP listener'dan domain mapping'i sil
-        content = re.sub(rf"\n\s*map\s+{re.escape(domain)}:80\s+{re.escape(domain)}\s*", "\n", content)
+        content = re.sub(
+            rf"\n\s*map\s+{re.escape(domain)}:80\s+{re.escape(domain)}\s*",
+            "\n",
+            content,
+        )
         # HTTPS listener'dan domain mapping'i sil
-        content = re.sub(rf"\n\s*map\s+{re.escape(domain)}:443\s+{re.escape(domain)}\s*", "\n", content)
+        content = re.sub(
+            rf"\n\s*map\s+{re.escape(domain)}:443\s+{re.escape(domain)}\s*",
+            "\n",
+            content,
+        )
         # virtualHost referansını sil
-        lines = content.split('\n')
+        lines = content.split("\n")
         new_lines = []
         skip_until_brace = False
         for line in lines:
             if f"virtualHost {domain}" in line:
                 skip_until_brace = True
                 continue
-            if skip_until_brace and line.strip() == '}':
+            if skip_until_brace and line.strip() == "}":
                 skip_until_brace = False
                 continue
             if not skip_until_brace:
                 new_lines.append(line)
-        content = '\n'.join(new_lines)
+        content = "\n".join(new_lines)
         HTTPD_CONF.write_text(content, encoding="utf-8")
     reload_lsws()
     print(f"Domain silindi: {domain}")
@@ -1468,8 +1537,9 @@ def domain_remove(domain: str):
 
 # ---------- MariaDB yönetimi ----------
 
+
 def mysql_exec(sql: str):
-    run(f"mysql -uroot -e \"{sql}\"", check=True)
+    run(f'mysql -uroot -e "{sql}"', check=True)
 
 
 def db_create(db: str, user: str, password: str):
@@ -1515,23 +1585,23 @@ def reset_mysql_root_password():
     if not new_password:
         print("Şifre boş olamaz!")
         return
-    
+
     # MySQL servisini durdur
     run("systemctl stop mariadb", check=False)
-    
+
     # Güvenli modda MySQL başlat
     run("mysqld_safe --skip-grant-tables --skip-networking &", check=False)
     time.sleep(3)
-    
+
     # Root şifresini sıfırla
     sql = f"ALTER USER 'root'@'localhost' IDENTIFIED BY '{new_password}';"
-    run(f"mysql -u root -e \"{sql}\"", check=True)
-    
+    run(f'mysql -u root -e "{sql}"', check=True)
+
     # MySQL'i normal modda yeniden başlat
     run("pkill mysqld", check=False)
     time.sleep(2)
     run("systemctl start mariadb", check=True)
-    
+
     print("MySQL root şifresi başarıyla sıfırlandı!")
 
 
@@ -1541,11 +1611,11 @@ def reset_openlitespeed_admin_password():
     if not new_password:
         print("Şifre boş olamaz!")
         return
-    
+
     if len(new_password) < 6:
         print("Şifre en az 6 karakter olmalı!")
         return
-    
+
     # OpenLiteSpeed admin şifresini sıfırla
     admin_script = "/usr/local/lsws/admin/misc/admpass.sh"
     if not Path(admin_script).exists():
@@ -1554,13 +1624,13 @@ def reset_openlitespeed_admin_password():
     try:
         # OLS'nin kendi admpass.sh script'ini kullan
         print("Admin şifresi ayarlanıyor...")
-        
+
         # Script'i interaktif olmadan çalıştırmak için expect kullan
         if not shutil.which("expect"):
             print("expect yükleniyor...")
             run("apt-get update", check=True)
             run("apt-get install -y expect", check=True)
-        
+
         # Expect script oluştur
         expect_script = f"""#!/usr/bin/expect -f
         set timeout 10
@@ -1573,24 +1643,25 @@ def reset_openlitespeed_admin_password():
         send "{new_password}\\r"
         expect eof
         """
-        
+
         # Geçici expect dosyası oluştur
         import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.exp', delete=False) as f:
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".exp", delete=False) as f:
             f.write(expect_script)
             temp_file = f.name
-        
+
         # Script'i çalıştırılabilir yap ve çalıştır
         run(f"chmod +x {temp_file}", check=True)
         run(f"expect {temp_file}", check=True)
-        
+
         # Geçici dosyayı sil
         Path(temp_file).unlink()
-        
+
         # OpenLiteSpeed'i yeniden başlat
         print("OpenLiteSpeed yeniden başlatılıyor...")
         run("/usr/local/lsws/bin/lswsctrl restart", check=True)
-        
+
         print("✅ OpenLiteSpeed admin şifresi başarıyla sıfırlandı!")
         print(f"Admin panel: https://SERVER_IP:7080")
         print(f"Kullanıcı: admin")
@@ -1603,19 +1674,20 @@ def reset_openlitespeed_admin_password():
     except Exception as e:
         print(f"Beklenmeyen hata: {e}")
 
+
 def check_port(port):
     """Port kullanımını kontrol et"""
     try:
         result = run(f"netstat -tuln | grep ':{port} '", check=False)
         return bool(result.stdout.strip())
-    except:
+    except BaseException:
         return False
 
 
 def manage_firewall():
     """Firewall yönetimi"""
     print("Firewall yönetimi...")
-    
+
     # UFW kontrolü
     if shutil.which("ufw"):
         print("UFW firewall yönetiliyor...")
@@ -1639,7 +1711,7 @@ def install_ssl_support():
     """SSL/HTTPS desteği kurulumu"""
     print("SSL/HTTPS desteği kuruluyor...")
     wait_for_apt()
-    
+
     # Certbot kurulumu (OpenLiteSpeed için)
     run("DEBIAN_FRONTEND=noninteractive apt-get install -y certbot", check=True)
 
@@ -1663,18 +1735,20 @@ enabled = true
     jail_path.write_text(jail_local, encoding="utf-8")
     run("systemctl enable fail2ban", check=False)
     run("systemctl restart fail2ban", check=False)
-    
+
     # OpenLiteSpeed için SSL konfigürasyonu
     ssl_dir = Path("/usr/local/lsws/conf/cert")
     ssl_dir.mkdir(exist_ok=True)
-    
-    print("SSL ve Fail2Ban desteği kuruldu. Let's Encrypt sertifikaları domain ekleme sırasında otomatik oluşturulacak.")
+
+    print(
+        "SSL ve Fail2Ban desteği kuruldu. Let's Encrypt sertifikaları domain ekleme sırasında otomatik oluşturulacak."
+    )
 
 
 def secure_mariadb():
     """MariaDB güvenlik ayarları"""
     print("MariaDB güvenlik ayarları yapılıyor...")
-    
+
     # mysql_secure_installation benzeri işlemler
     # Root şifresi zaten install_mariadb'de ayarlandı
     try:
@@ -1684,18 +1758,18 @@ def secure_mariadb():
             "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');",
             "DROP DATABASE IF EXISTS test;",
             "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';",
-            "FLUSH PRIVILEGES;"
+            "FLUSH PRIVILEGES;",
         ]
-        
+
         # Root şifresi ile bağlan
         password = MYSQL_ROOT_PASSWORD if MYSQL_ROOT_PASSWORD else ""
-        
+
         for sql in sql_commands:
             if password:
-                run(f"mysql -uroot -p{password} -e \"{sql}\"", check=False)
+                run(f'mysql -uroot -p{password} -e "{sql}"', check=False)
             else:
-                run(f"mysql -uroot -e \"{sql}\"", check=False)
-        
+                run(f'mysql -uroot -e "{sql}"', check=False)
+
         print("✅ MariaDB güvenlik ayarları tamamlandı.")
     except Exception as e:
         print(f"MariaDB güvenlik ayarları uyarısı: {e}")
@@ -1706,9 +1780,9 @@ def ensure_php_handlers():
     """PHP handler ve extProcessor tanımlarını kontrol et ve ekle"""
     if not HTTPD_CONF.exists():
         return
-    
+
     content = HTTPD_CONF.read_text(encoding="utf-8")
-    
+
     # extProcessor tanımları - PHP 8.2
     if "extProcessor lsphp82" not in content:
         lsphp82_config = """
@@ -1735,10 +1809,12 @@ extProcessor lsphp82 {
 """
         # scriptHandler'dan önce ekle
         if "scriptHandler" in content:
-            content = content.replace("scriptHandler", lsphp82_config + "\nscriptHandler")
+            content = content.replace(
+                "scriptHandler", lsphp82_config + "\nscriptHandler"
+            )
         else:
             content += lsphp82_config
-    
+
     # extProcessor tanımları - PHP 8.3
     if "extProcessor lsphp83" not in content:
         lsphp83_config = """
@@ -1765,10 +1841,12 @@ extProcessor lsphp83 {
 """
         # scriptHandler'dan önce ekle
         if "scriptHandler" in content:
-            content = content.replace("scriptHandler", lsphp83_config + "\nscriptHandler")
+            content = content.replace(
+                "scriptHandler", lsphp83_config + "\nscriptHandler"
+            )
         else:
             content += lsphp83_config
-    
+
     # Varsayılan lsphp extProcessor
     if "extProcessor lsphp {" not in content:
         default_lsphp_config = f"""
@@ -1795,10 +1873,12 @@ extProcessor lsphp {{
 """
         # scriptHandler'dan önce ekle
         if "scriptHandler" in content:
-            content = content.replace("scriptHandler", default_lsphp_config + "\nscriptHandler")
+            content = content.replace(
+                "scriptHandler", default_lsphp_config + "\nscriptHandler"
+            )
         else:
             content += default_lsphp_config
-    
+
     # scriptHandler kontrolü
     if "scriptHandler" not in content or "add lsapi:lsphp  php" not in content:
         if "scriptHandler" not in content:
@@ -1810,11 +1890,11 @@ scriptHandler {
         else:
             # scriptHandler var ama php handler'ı yok
             content = re.sub(
-                r'scriptHandler\s*\{[^}]*\}',
-                'scriptHandler {\n    add lsapi:lsphp  php\n}',
-                content
+                r"scriptHandler\s*\{[^}]*\}",
+                "scriptHandler {\n    add lsapi:lsphp  php\n}",
+                content,
             )
-    
+
     HTTPD_CONF.write_text(content, encoding="utf-8")
     print("✅ PHP handler'lar yapılandırıldı")
 
@@ -1822,11 +1902,11 @@ scriptHandler {
 def optimize_openlitespeed():
     """OpenLiteSpeed performans optimizasyonu"""
     print("OpenLiteSpeed performans optimizasyonu yapılıyor...")
-    
+
     # Konfigürasyon dosyası optimizasyonları
     if HTTPD_CONF.exists():
         content = HTTPD_CONF.read_text(encoding="utf-8")
-        
+
         # Performans ayarları
         optimizations = {
             "maxConnections": "10000",
@@ -1838,53 +1918,53 @@ def optimize_openlitespeed():
             "enableBrCompress": "4",
             "quicEnable": "1",
         }
-        
+
         for key, value in optimizations.items():
             pattern = rf"{key}\s+\d+"
             replacement = f"{key} {value}"
             content = re.sub(pattern, replacement, content)
-        
+
         HTTPD_CONF.write_text(content, encoding="utf-8")
-    
+
     # PHP handler'ları kontrol et
     ensure_php_handlers()
-    
+
     print("OpenLiteSpeed performans optimizasyonu tamamlandı.")
 
 
 def repair_mariadb():
     """MariaDB onarım işlemleri"""
     print("MariaDB onarım işlemleri yapılıyor...")
-    
+
     # MySQL servisini durdur
     run("systemctl stop mariadb", check=False)
-    
+
     # Repair işlemleri
     try:
         # MySQL'i güvenli modda başlat
         run("mysqld_safe --skip-grant-tables --skip-networking &", check=False)
         time.sleep(3)
-        
+
         # Repair komutları
         repair_commands = [
             "REPAIR TABLE mysql.user;",
             "REPAIR TABLE mysql.db;",
             "REPAIR TABLE mysql.tables_priv;",
             "REPAIR TABLE mysql.columns_priv;",
-            "FLUSH PRIVILEGES;"
+            "FLUSH PRIVILEGES;",
         ]
-        
+
         for cmd in repair_commands:
             try:
-                run(f"mysql -u root -e \"{cmd}\"", check=True)
-            except:
+                run(f'mysql -u root -e "{cmd}"', check=True)
+            except BaseException:
                 pass
-        
+
         # MySQL'i normal modda yeniden başlat
         run("pkill mysqld", check=False)
         time.sleep(2)
         run("systemctl start mariadb", check=True)
-        
+
         print("MariaDB onarım işlemleri tamamlandı.")
     except Exception as e:
         print(f"MariaDB onarım hatası: {e}")
@@ -1894,29 +1974,29 @@ def repair_mariadb():
 def repair_openlitespeed():
     """OpenLiteSpeed onarım işlemleri"""
     print("OpenLiteSpeed onarım işlemleri yapılıyor...")
-    
+
     try:
         # Konfigürasyon dosyalarını kontrol et
         config_files = [
             "/usr/local/lsws/conf/httpd_config.conf",
-            "/usr/local/lsws/conf/vhosts"
+            "/usr/local/lsws/conf/vhosts",
         ]
-        
+
         for config_file in config_files:
             if Path(config_file).exists():
                 # Dosya izinlerini düzelt
                 run(f"chown -R lsadm:lsadm {config_file}", check=False)
                 run(f"chmod -R 755 {config_file}", check=False)
-        
+
         # OpenLiteSpeed'i yeniden başlat
         run("systemctl restart lsws", check=False)
-        
+
         # Alternatif restart
         try:
             run("/usr/local/lsws/bin/lswsctrl restart", check=True)
-        except:
+        except BaseException:
             pass
-            
+
         print("OpenLiteSpeed onarım işlemleri tamamlandı.")
     except Exception as e:
         print(f"OpenLiteSpeed onarım hatası: {e}")
@@ -1945,7 +2025,7 @@ def install_memcached():
 def configure_php_opcache():
     """PHP OPcache konfigürasyonu"""
     print("PHP OPcache konfigürasyonu yapılıyor...")
-    
+
     # OPcache ayarları
     opcache_config = """
 [opcache]
@@ -1957,7 +2037,7 @@ opcache.revalidate_freq=2
 opcache.fast_shutdown=1
 opcache.enable_cli=1
 """
-    
+
     # PHP ini dosyasına ekle
     candidates = [
         "/usr/local/lsws/lsphp81/etc/php/8.1/litespeed/php.ini",
@@ -1979,12 +2059,12 @@ opcache.enable_cli=1
 def backup_domain(domain: str):
     backup_dir = ISPANEL_BACKUP_DIR / "domains"
     backup_dir.mkdir(parents=True, exist_ok=True)
-    
+
     docroot = DOCROOT_BASE / domain
     if not docroot.exists():
         print(f"Domain docroot bulunamadı: {docroot}")
         return None
-    
+
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     backup_file = backup_dir / f"{domain}_{timestamp}.tar.gz"
     run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
@@ -1998,14 +2078,14 @@ def backup_domain(domain: str):
 def backup_database(db_name: str):
     backup_dir = ISPANEL_BACKUP_DIR / "databases"
     backup_dir.mkdir(parents=True, exist_ok=True)
-    
+
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     backup_file = backup_dir / f"{db_name}_{timestamp}.sql"
-    
+
     run(f"mysqldump -uroot {db_name} > {backup_file}", check=True)
 
     checksum = run(f"sha256sum {backup_file}", check=True).stdout.strip().split()[0]
-    verify = run(f"mysql -uroot -e \"USE {db_name}\"", check=False)
+    verify = run(f'mysql -uroot -e "USE {db_name}"', check=False)
     print(f"Veritabanı yedeği alındı: {backup_file}")
     print(f"SHA256: {checksum}")
     return str(backup_file)
@@ -2016,7 +2096,7 @@ def restore_domain(backup_file: str):
     if not path.exists():
         print(f"Yedek dosyası bulunamadı: {backup_file}")
         return False
-    
+
     run(f"tar -xzf {path} -C {DOCROOT_BASE.parent}", check=True)
     print(f"Domain yedeği geri yüklendi: {path}")
     return True
@@ -2027,7 +2107,7 @@ def restore_database(backup_file: str, db_name: str):
     if not path.exists():
         print(f"Yedek dosyası bulunamadı: {backup_file}")
         return False
-    
+
     mysql_exec(f"CREATE DATABASE IF NOT EXISTS {db_name}")
     run(f"mysql -uroot {db_name} < {path}", check=True)
     print(f"Veritabanı yedeği geri yüklendi: {path}")
@@ -2039,14 +2119,14 @@ def fix_virtual_host_root(domain: str):
     if not HTTPD_CONF.exists():
         print(f"Bulunamadı: {HTTPD_CONF}", file=sys.stderr)
         return False
-    
+
     content = HTTPD_CONF.read_text(encoding="utf-8")
     docroot = DOCROOT_BASE / domain
-    
+
     # Mevcut virtualHost bloğunu bul ve güncelle
     pattern = rf"virtualHost\s+{re.escape(domain)}\s*\{{[^}}]*\}}"
     match = re.search(pattern, content, re.DOTALL)
-    
+
     if match:
         old_block = match.group(0)
         new_block = f"""virtualHost {domain} {{
@@ -2064,18 +2144,19 @@ def fix_virtual_host_root(domain: str):
         print(f"❌ {domain} virtualHost bloğu bulunamadı")
         return False
 
+
 def fix_vhost_config(domain: str):
     """Mevcut domain'in vhost konfigürasyonunu standart yapıya güncelle"""
     vdir = VHOSTS_DIR / domain
     if not vdir.exists():
         print(f"❌ {domain} vhost dizini bulunamadı")
         return False
-    
+
     vconf = vdir / "vhost.conf"
     if not vconf.exists():
         print(f"❌ {domain} vhost.conf bulunamadı")
         return False
-    
+
     # Yeni standart konfigürasyonu oluştur
     docroot = DOCROOT_BASE / domain / "public_html"
     vh_root = docroot.parent
@@ -2094,7 +2175,7 @@ def fix_vhost_config(domain: str):
 
     awstats_dir = vh_root / "awstats"
     awstats_dir.mkdir(parents=True, exist_ok=True)
-    
+
     conf = f"""docRoot $VH_ROOT/public_html/
 enableGzip 1
 
@@ -2119,7 +2200,7 @@ context /protected/{{
   realm SampleProtectedArea
 
   accessControl {{
-    deny 
+    deny
     allow *
   }}
 }}
@@ -2217,15 +2298,15 @@ scriptHandler {{
 phpIniOverride  {{
 }}
 """.strip()
-    
+
     vconf.write_text(conf, encoding="utf-8")
-    
+
     # Dizin izinlerini ayarla
     run(f"chown -R lsadm:nogroup {vdir}", check=True)
     run(f"chmod -R 755 {vdir}", check=True)
     run(f"chown -R lsadm:nogroup {vh_root}", check=False)
     run(f"chmod -R 755 {vh_root}", check=False)
-    
+
     print(f"✅ {domain} vhost konfigürasyonu standart yapıya güncellendi")
     return True
 
@@ -2268,7 +2349,11 @@ def list_domains():
             docroot = DOCROOT_BASE / domain / "public_html"
             vh_root = docroot.parent
             vhost_conf = domain_dir / "vhost.conf"
-            owner, group = _get_owner_info(vh_root) if vh_root.exists() else ("bilinmiyor", "bilinmiyor")
+            owner, group = (
+                _get_owner_info(vh_root)
+                if vh_root.exists()
+                else ("bilinmiyor", "bilinmiyor")
+            )
             php, ssl = _read_virtual_host_settings(domain, docroot)
             access_log = vh_root / "logs" / "access.log"
             error_log = vh_root / "logs" / "error.log"
@@ -2290,14 +2375,24 @@ def list_domains():
         print("Hiç domain bulunamadı.")
         return
 
-    header = f"{'Domain':<20} {'Docroot':<30} {'Sahip':<18} {'PHP':<10} {'SSL':<5}"
+    header = f"{
+        'Domain':<20} {
+        'Docroot':<30} {
+            'Sahip':<18} {
+                'PHP':<10} {
+                    'SSL':<5}"
     print(header)
     print("-" * len(header))
 
     for info in rows:
         status = "✅" if info["exists"] and info["vhost_exists"] else "❌"
         print(
-            f"{info['domain']:<20} {info['docroot']:<30} {info['owner']:<18} {info['php']:<10} {info['ssl']:<5} {status}"
+            f"{
+                info['domain']:<20} {
+                info['docroot']:<30} {
+                info['owner']:<18} {
+                info['php']:<10} {
+                    info['ssl']:<5} {status}"
         )
         print(f"  Access log: {info['access_log']}")
         print(f"  Error log : {info['error_log']}")
@@ -2315,37 +2410,64 @@ def list_databases():
             return
 
         databases = []
-        for line in result.stdout.strip().split('\n'):
+        for line in result.stdout.strip().split("\n"):
             line = line.strip()
-            if line and line not in ['Database', 'information_schema', 'performance_schema', 'mysql', 'sys']:
+            if line and line not in [
+                "Database",
+                "information_schema",
+                "performance_schema",
+                "mysql",
+                "sys",
+            ]:
                 databases.append(line)
 
         if not databases:
             print("Hiç veritabanı bulunamadı.")
             return
 
-        print(f"{'Veritabanı':<20} {'Boyut (MB)':<12} {'Son Güncellenme':<22} {'Tablo Sayısı':<12}")
+        print(
+            f"{
+                'Veritabanı':<20} {
+                'Boyut (MB)':<12} {
+                'Son Güncellenme':<22} {
+                    'Tablo Sayısı':<12}"
+        )
         print("-" * 72)
 
         for db in databases:
             size_query = (
                 "SELECT IFNULL(ROUND(SUM(data_length + index_length) / 1024 / 1024, 2), 0) "
-                "FROM information_schema.tables WHERE table_schema=\"%s\";" % db
+                'FROM information_schema.tables WHERE table_schema="%s";' % db
             )
-            count_query = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=\"%s\";" % db
+            count_query = (
+                'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema="%s";'
+                % db
+            )
             date_query = (
                 "SELECT DATE_FORMAT(MAX(update_time), '%Y-%m-%d %H:%i:%s') "
-                "FROM information_schema.tables WHERE table_schema=\"%s\";" % db
+                'FROM information_schema.tables WHERE table_schema="%s";' % db
             )
 
-            size_result = run(f"mysql -uroot -e \"{size_query}\"", check=False)
-            size_value = size_result.stdout.strip().split('\n')[-1] if size_result.stdout else "0"
+            size_result = run(f'mysql -uroot -e "{size_query}"', check=False)
+            size_value = (
+                size_result.stdout.strip().split("\n")[-1]
+                if size_result.stdout
+                else "0"
+            )
 
-            count_result = run(f"mysql -uroot -e \"{count_query}\"", check=False)
-            count_value = count_result.stdout.strip().split('\n')[-1] if count_result.stdout else "0"
+            count_result = run(f'mysql -uroot -e "{count_query}"', check=False)
+            count_value = (
+                count_result.stdout.strip().split("\n")[-1]
+                if count_result.stdout
+                else "0"
+            )
 
-            date_result = run(f"mysql -uroot -e \"{date_query}\"", check=False)
-            date_value = date_result.stdout.strip().split('\n')[-1] if date_result.stdout else "N/A"
+            date_result = run(f'mysql -uroot -e "{date_query}"', check=False)
+            date_value = (
+                date_result.stdout.strip().split("\n")[-1]
+                if date_result.stdout
+                else "N/A"
+            )
 
             print(f"{db:<20} {size_value:<12} {date_value:<22} {count_value:<12}")
 
@@ -2368,7 +2490,11 @@ def list_backups():
         for backup in backups:
             size_mb = backup.stat().st_size / (1024 * 1024)
             checksum_file = backup.with_suffix(backup.suffix + ".sha256")
-            checksum = checksum_file.read_text(encoding="utf-8").strip() if checksum_file.exists() else "(hesaplanmadı)"
+            checksum = (
+                checksum_file.read_text(encoding="utf-8").strip()
+                if checksum_file.exists()
+                else "(hesaplanmadı)"
+            )
             print(f"- {backup.name} ({size_mb:.2f} MB) | SHA256: {checksum}")
 
     summarize("Domain Yedekleri", "*.tar.gz", ISPANEL_BACKUP_DIR / "domains")
@@ -2382,12 +2508,20 @@ def install_cron():
 def cron_add(line: str):
     install_cron()
     # mevcut crontab al
-    cp = subprocess.run("crontab -l", shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    cp = subprocess.run(
+        "crontab -l",
+        shell=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     current = cp.stdout if cp.returncode == 0 else ""
     if line in current:
         print("Cron zaten mevcut")
         return
-    new = current + ("\n" if current and not current.endswith("\n") else "") + line + "\n"
+    new = (
+        current + ("\n" if current and not current.endswith("\n") else "") + line + "\n"
+    )
     p = subprocess.run("crontab -", shell=True, input=new, text=True)
     if p.returncode == 0:
         print("Cron eklendi")
@@ -2429,7 +2563,7 @@ def cron_backup_menu():
 def domain_php_version_menu():
     """Domain PHP sürümü değiştirme menüsü"""
     print(f"\n=== {get_text('php_version_prompt')} ===")
-    
+
     # Mevcut domainleri listele
     domains = []
     if VHOSTS_DIR.exists():
@@ -2444,39 +2578,39 @@ def domain_php_version_menu():
                         current_version = "82"
                     elif "lsphp83" in content:
                         current_version = "83"
-                    
+
                     domains.append((vhost_dir.name, current_version))
-    
+
     if not domains:
-        print(get_text('no_domains'))
-        input(get_text('press_enter'))
+        print(get_text("no_domains"))
+        input(get_text("press_enter"))
         return
-    
+
     print(f"\n{get_text('main_menu_options')[3]}:")  # Domain List
     for i, (domain, version) in enumerate(domains, 1):
         print(f"{i}) {domain} (PHP {version[0]}.{version[1]})")
-    
-    print("0) " + get_text('main_menu_options')[-1])  # Exit/Çıkış
-    
+
+    print("0) " + get_text("main_menu_options")[-1])  # Exit/Çıkış
+
     choice = input(f"\n{get_text('domain_prompt')}: ").strip()
     if choice == "0":
         return
-    
+
     try:
         idx = int(choice) - 1
         if 0 <= idx < len(domains):
             domain = domains[idx][0]
             current_version = domains[idx][1]
-            
+
             print(f"\n{domain} {get_text('php_version_prompt')}:")
             print(f"Current: PHP {current_version[0]}.{current_version[1]}")
-            php_versions = get_text('php_versions')
+            php_versions = get_text("php_versions")
             for i, version in enumerate(php_versions, 1):
                 print(f"{i}) {version}")
-            print("0) " + get_text('main_menu_options')[-1])  # Exit/Çıkış
-            
+            print("0) " + get_text("main_menu_options")[-1])  # Exit/Çıkış
+
             version_choice = input(f"{get_text('enter_choice')}: ").strip()
-            
+
             if version_choice == "1":
                 set_domain_php_version(domain, "82")
                 print(f"✅ {domain} PHP 8.2'ye geçirildi")
@@ -2485,23 +2619,23 @@ def domain_php_version_menu():
                 print(f"✅ {domain} PHP 8.3'e geçirildi")
             elif version_choice == "0":
                 return
-            
-            input(get_text('press_enter'))
-    except:
-        print(get_text('invalid_choice'))
-        input(get_text('press_enter'))
+
+            input(get_text("press_enter"))
+    except BaseException:
+        print(get_text("invalid_choice"))
+        input(get_text("press_enter"))
 
 
 def interactive_menu():
     while True:
         print(f"\n=== {get_text('main_menu_title')} ===")
-        
+
         # Menü seçeneklerini çok dilli olarak göster
-        menu_options = get_text('main_menu_options')
+        menu_options = get_text("main_menu_options")
         for i, option in enumerate(menu_options, 1):
             print(f"{i}) {option}")
-        print("0) " + get_text('main_menu_options')[-1])  # Exit/Çıkış
-        
+        print("0) " + get_text("main_menu_options")[-1])  # Exit/Çıkış
+
         choice = input(f"\n{get_text('enter_choice')}: ").strip()
         if choice == "1":
             # Her iki PHP sürümü de kurulacak
@@ -2572,13 +2706,14 @@ def interactive_menu():
 def backup_domain_menu():
     """Domain yedekleme menüsü"""
     while True:
-        print(f"\n=== {get_text('main_menu_options')[16]} ===")  # File Backup Menu
-        print("1) " + get_text('domain_prompt'))
-        print("2) " + get_text('main_menu_options')[18])  # List Backups
-        print("0) " + get_text('main_menu_options')[-1])  # Exit
-        
+        # File Backup Menu
+        print(f"\n=== {get_text('main_menu_options')[16]} ===")
+        print("1) " + get_text("domain_prompt"))
+        print("2) " + get_text("main_menu_options")[18])  # List Backups
+        print("0) " + get_text("main_menu_options")[-1])  # Exit
+
         choice = input(f"{get_text('enter_choice')}: ").strip()
-        
+
         if choice == "1":
             domain = input(f"{get_text('domain_prompt')}: ").strip()
             backup_domain(domain)
@@ -2587,18 +2722,20 @@ def backup_domain_menu():
         elif choice == "0":
             break
         else:
-            print(get_text('invalid_choice'))
+            print(get_text("invalid_choice"))
+
 
 def backup_database_menu():
     """Veritabanı yedekleme menüsü"""
     while True:
-        print(f"\n=== {get_text('main_menu_options')[17]} ===")  # Database Backup Menu
-        print("1) " + get_text('db_name_prompt'))
-        print("2) " + get_text('main_menu_options')[18])  # List Backups
-        print("0) " + get_text('main_menu_options')[-1])  # Exit
-        
+        # Database Backup Menu
+        print(f"\n=== {get_text('main_menu_options')[17]} ===")
+        print("1) " + get_text("db_name_prompt"))
+        print("2) " + get_text("main_menu_options")[18])  # List Backups
+        print("0) " + get_text("main_menu_options")[-1])  # Exit
+
         choice = input(f"{get_text('enter_choice')}: ").strip()
-        
+
         if choice == "1":
             db_name = input(f"{get_text('db_name_prompt')}: ").strip()
             backup_database(db_name)
@@ -2607,17 +2744,18 @@ def backup_database_menu():
         elif choice == "0":
             break
         else:
-            print(get_text('invalid_choice'))
+            print(get_text("invalid_choice"))
+
 
 def backup_domain(domain: str):
     """Domain yedekleme"""
     try:
         backup_dir = ISPANEL_BACKUP_DIR / "domains"
         backup_dir.mkdir(parents=True, exist_ok=True)
-        
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_file = backup_dir / f"{domain}_{timestamp}.tar.gz"
-        
+
         domain_path = DOCROOT_BASE / domain
         if domain_path.exists():
             run(f"tar -czf {backup_file} -C {DOCROOT_BASE} {domain}", check=True)
@@ -2627,19 +2765,24 @@ def backup_domain(domain: str):
     except Exception as e:
         print(f"❌ Backup failed: {e}")
 
+
 def backup_database(db_name: str):
     """Database yedekleme"""
     try:
         backup_dir = ISPANEL_BACKUP_DIR / "databases"
         backup_dir.mkdir(parents=True, exist_ok=True)
-        
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_file = backup_dir / f"{db_name}_{timestamp}.sql"
-        
-        run(f"mysqldump -u root -p{get_mysql_root_password()} {db_name} > {backup_file}", check=True)
+
+        run(
+            f"mysqldump -u root -p{get_mysql_root_password()} {db_name} > {backup_file}",
+            check=True,
+        )
         print(f"✅ Database backup created: {backup_file}")
     except Exception as e:
         print(f"❌ Database backup failed: {e}")
+
 
 def list_backups():
     """Yedekleri listele"""
@@ -2648,9 +2791,9 @@ def list_backups():
         if not backup_dir.exists():
             print("❌ No backup directory found")
             return
-            
+
         print(f"\n=== {get_text('main_menu_options')[18]} ===")
-        
+
         # Domain backups
         domain_backups = backup_dir / "domains"
         if domain_backups.exists():
@@ -2658,7 +2801,7 @@ def list_backups():
             for backup in domain_backups.glob("*.tar.gz"):
                 size = backup.stat().st_size / 1024 / 1024  # MB
                 print(f"  {backup.name} ({size:.1f} MB)")
-        
+
         # Database backups
         db_backups = backup_dir / "databases"
         if db_backups.exists():
@@ -2666,9 +2809,10 @@ def list_backups():
             for backup in db_backups.glob("*.sql"):
                 size = backup.stat().st_size / 1024 / 1024  # MB
                 print(f"  {backup.name} ({size:.1f} MB)")
-                
+
     except Exception as e:
         print(f"❌ Error listing backups: {e}")
+
 
 def restore_domain(backup_file: str):
     """Domain geri yükleme"""
@@ -2676,21 +2820,22 @@ def restore_domain(backup_file: str):
         if not Path(backup_file).exists():
             print(f"❌ Backup file not found: {backup_file}")
             return
-            
+
         # Extract domain name from backup filename
-        domain = Path(backup_file).stem.split('_')[0]
+        domain = Path(backup_file).stem.split("_")[0]
         domain_path = DOCROOT_BASE / domain
-        
+
         # Remove existing domain if exists
         if domain_path.exists():
             run(f"rm -rf {domain_path}", check=True)
-            
+
         # Restore from backup
         run(f"tar -xzf {backup_file} -C {DOCROOT_BASE}", check=True)
         print(f"✅ Domain restored: {domain}")
-        
+
     except Exception as e:
         print(f"❌ Restore failed: {e}")
+
 
 def restore_database(backup_file: str, db_name: str):
     """Database geri yükleme"""
@@ -2698,16 +2843,23 @@ def restore_database(backup_file: str, db_name: str):
         if not Path(backup_file).exists():
             print(f"❌ Backup file not found: {backup_file}")
             return
-            
+
         # Create database if not exists
-        run(f"mysql -u root -p{get_mysql_root_password()} -e 'CREATE DATABASE IF NOT EXISTS {db_name}'", check=True)
-        
+        run(
+            f"mysql -u root -p{get_mysql_root_password()} -e 'CREATE DATABASE IF NOT EXISTS {db_name}'",
+            check=True,
+        )
+
         # Restore database
-        run(f"mysql -u root -p{get_mysql_root_password()} {db_name} < {backup_file}", check=True)
+        run(
+            f"mysql -u root -p{get_mysql_root_password()} {db_name} < {backup_file}",
+            check=True,
+        )
         print(f"✅ Database restored: {db_name}")
-        
+
     except Exception as e:
         print(f"❌ Database restore failed: {e}")
+
 
 def get_mysql_root_password():
     """MySQL root şifresini al"""
@@ -2719,18 +2871,20 @@ def get_mysql_root_password():
         password = input("MySQL root şifresini girin: ").strip()
         return password
 
+
 def cron_backup_menu():
     """Cron backup ayarları menüsü"""
     while True:
-        print(f"\n=== {get_text('main_menu_options')[19]} ===")  # Cron Backup Settings
+        # Cron Backup Settings
+        print(f"\n=== {get_text('main_menu_options')[19]} ===")
         print("1) Daily backup setup")
         print("2) Weekly backup setup")
         print("3) Monthly backup setup")
         print("4) View current cron jobs")
-        print("0) " + get_text('main_menu_options')[-1])  # Exit
-        
+        print("0) " + get_text("main_menu_options")[-1])  # Exit
+
         choice = input(f"{get_text('enter_choice')}: ").strip()
-        
+
         if choice == "1":
             setup_daily_backup()
         elif choice == "2":
@@ -2742,7 +2896,8 @@ def cron_backup_menu():
         elif choice == "0":
             break
         else:
-            print(get_text('invalid_choice'))
+            print(get_text("invalid_choice"))
+
 
 def setup_daily_backup():
     """Günlük yedekleme ayarla"""
@@ -2753,6 +2908,7 @@ def setup_daily_backup():
     except Exception as e:
         print(f"❌ Failed to setup daily backup: {e}")
 
+
 def setup_weekly_backup():
     """Haftalık yedekleme ayarla"""
     try:
@@ -2762,6 +2918,7 @@ def setup_weekly_backup():
     except Exception as e:
         print(f"❌ Failed to setup weekly backup: {e}")
 
+
 def setup_monthly_backup():
     """Aylık yedekleme ayarla"""
     try:
@@ -2770,6 +2927,7 @@ def setup_monthly_backup():
         print("✅ Monthly backup scheduled on 1st of each month at 4:00 AM")
     except Exception as e:
         print(f"❌ Failed to setup monthly backup: {e}")
+
 
 def view_cron_jobs():
     """Mevcut cron işlerini göster"""
@@ -2783,6 +2941,7 @@ def view_cron_jobs():
     except Exception as e:
         print(f"❌ Failed to view cron jobs: {e}")
 
+
 def repair_menu():
     """Onarım araçları menüsü"""
     while True:
@@ -2791,10 +2950,10 @@ def repair_menu():
         print("2) Repair OpenLiteSpeed")
         print("3) Repair PHP configuration")
         print("4) Check system status")
-        print("0) " + get_text('main_menu_options')[-1])  # Exit
-        
+        print("0) " + get_text("main_menu_options")[-1])  # Exit
+
         choice = input(f"{get_text('enter_choice')}: ").strip()
-        
+
         if choice == "1":
             repair_mariadb()
         elif choice == "2":
@@ -2806,7 +2965,8 @@ def repair_menu():
         elif choice == "0":
             break
         else:
-            print(get_text('invalid_choice'))
+            print(get_text("invalid_choice"))
+
 
 def repair_mariadb():
     """MariaDB onar"""
@@ -2816,6 +2976,7 @@ def repair_mariadb():
     except Exception as e:
         print(f"❌ MariaDB repair failed: {e}")
 
+
 def repair_openlitespeed():
     """OpenLiteSpeed onar"""
     try:
@@ -2823,6 +2984,7 @@ def repair_openlitespeed():
         print("✅ OpenLiteSpeed restarted")
     except Exception as e:
         print(f"❌ OpenLiteSpeed repair failed: {e}")
+
 
 def repair_php_config():
     """PHP konfigürasyonu onar"""
@@ -2832,39 +2994,48 @@ def repair_php_config():
     except Exception as e:
         print(f"❌ PHP repair failed: {e}")
 
+
 def check_system_status():
     """Sistem durumunu kontrol et"""
     try:
         print("\n🔍 System Status Check:")
-        
+
         # Check OpenLiteSpeed
         result = run("systemctl is-active lsws", check=False)
-        print(f"OpenLiteSpeed: {'✅ Active' if result.returncode == 0 else '❌ Inactive'}")
-        
+        print(
+            f"OpenLiteSpeed: {
+                '✅ Active' if result.returncode == 0 else '❌ Inactive'}"
+        )
+
         # Check MariaDB
         result = run("systemctl is-active mariadb", check=False)
-        print(f"MariaDB: {'✅ Active' if result.returncode == 0 else '❌ Inactive'}")
-        
+        print(
+            f"MariaDB: {
+                '✅ Active' if result.returncode == 0 else '❌ Inactive'}"
+        )
+
         # Check disk space
         result = run("df -h /", check=True)
         print(f"\n💾 Disk Usage:")
         print(result.stdout)
-        
+
     except Exception as e:
         print(f"❌ System check failed: {e}")
+
 
 def cache_menu():
     """Cache sistemleri menüsü"""
     while True:
-        print(f"\n=== {get_text('main_menu_options')[21]} ===")  # Cache Systems
+        # Cache Systems
+        print(f"\n=== {get_text('main_menu_options')[21]} ===")
         print("1) Install Redis")
         print("2) Install Memcached")
         print("3) Configure Redis")
         print("4) Configure Memcached")
-        print("0) " + get_text('main_menu_options')[-1])  # Exit
-        
+        print("0) " + get_text("main_menu_options")[-1])  # Exit
+
         choice = input(f"{get_text('enter_choice')}: ").strip()
-        
+
         if choice == "1":
             install_redis()
         elif choice == "2":
@@ -2876,7 +3047,8 @@ def cache_menu():
         elif choice == "0":
             break
         else:
-            print(get_text('invalid_choice'))
+            print(get_text("invalid_choice"))
+
 
 def install_redis():
     """Redis kur"""
@@ -2888,6 +3060,7 @@ def install_redis():
     except Exception as e:
         print(f"❌ Redis installation failed: {e}")
 
+
 def install_memcached():
     """Memcached kur"""
     try:
@@ -2898,12 +3071,14 @@ def install_memcached():
     except Exception as e:
         print(f"❌ Memcached installation failed: {e}")
 
+
 def configure_redis():
     """Redis konfigürasyonu"""
     try:
         print("✅ Redis configuration completed")
     except Exception as e:
         print(f"❌ Redis configuration failed: {e}")
+
 
 def configure_memcached():
     """Memcached konfigürasyonu"""
@@ -2912,18 +3087,20 @@ def configure_memcached():
     except Exception as e:
         print(f"❌ Memcached configuration failed: {e}")
 
+
 def system_management_menu():
     """Sistem yönetimi menüsü"""
     while True:
-        print(f"\n=== {get_text('main_menu_options')[22]} ===")  # System Management
+        # System Management
+        print(f"\n=== {get_text('main_menu_options')[22]} ===")
         print("1) System information")
         print("2) Update system packages")
         print("3) Clean system cache")
         print("4) Restart services")
-        print("0) " + get_text('main_menu_options')[-1])  # Exit
-        
+        print("0) " + get_text("main_menu_options")[-1])  # Exit
+
         choice = input(f"{get_text('enter_choice')}: ").strip()
-        
+
         if choice == "1":
             show_system_info()
         elif choice == "2":
@@ -2935,29 +3112,31 @@ def system_management_menu():
         elif choice == "0":
             break
         else:
-            print(get_text('invalid_choice'))
+            print(get_text("invalid_choice"))
+
 
 def show_system_info():
     """Sistem bilgilerini göster"""
     try:
         print("\n🖥️ System Information:")
-        
+
         # OS info
         result = run("lsb_release -a", check=True)
         print(f"OS: {result.stdout}")
-        
+
         # Memory info
         result = run("free -h", check=True)
         print(f"\n💾 Memory:")
         print(result.stdout)
-        
+
         # Disk info
         result = run("df -h", check=True)
         print(f"\n💿 Disk Usage:")
         print(result.stdout)
-        
+
     except Exception as e:
         print(f"❌ Failed to get system info: {e}")
+
 
 def update_system_packages():
     """Sistem paketlerini güncelle"""
@@ -2968,6 +3147,7 @@ def update_system_packages():
     except Exception as e:
         print(f"❌ System update failed: {e}")
 
+
 def clean_system_cache():
     """Sistem cache temizle"""
     try:
@@ -2976,6 +3156,7 @@ def clean_system_cache():
         print("✅ System cache cleaned")
     except Exception as e:
         print(f"❌ Cache cleaning failed: {e}")
+
 
 def restart_services():
     """Servisleri yeniden başlat"""
@@ -2986,17 +3167,19 @@ def restart_services():
     except Exception as e:
         print(f"❌ Service restart failed: {e}")
 
+
 def ols_php_menu():
     """OLS/PHP ayarları menüsü"""
     while True:
-        print(f"\n=== {get_text('main_menu_options')[23]} ===")  # OLS/PHP Settings
+        # OLS/PHP Settings
+        print(f"\n=== {get_text('main_menu_options')[23]} ===")
         print("1) PHP settings")
         print("2) OpenLiteSpeed settings")
         print("3) PHP extensions")
-        print("0) " + get_text('main_menu_options')[-1])  # Exit
-        
+        print("0) " + get_text("main_menu_options")[-1])  # Exit
+
         choice = input(f"{get_text('enter_choice')}: ").strip()
-        
+
         if choice == "1":
             configure_php_settings()
         elif choice == "2":
@@ -3006,7 +3189,8 @@ def ols_php_menu():
         elif choice == "0":
             break
         else:
-            print(get_text('invalid_choice'))
+            print(get_text("invalid_choice"))
+
 
 def configure_php_settings():
     """PHP ayarları"""
@@ -3015,6 +3199,7 @@ def configure_php_settings():
     except Exception as e:
         print(f"❌ PHP configuration failed: {e}")
 
+
 def configure_ols_settings():
     """OpenLiteSpeed ayarları"""
     try:
@@ -3022,12 +3207,14 @@ def configure_ols_settings():
     except Exception as e:
         print(f"❌ OpenLiteSpeed configuration failed: {e}")
 
+
 def manage_php_extensions():
     """PHP eklentileri yönet"""
     try:
         print("✅ PHP extensions managed")
     except Exception as e:
         print(f"❌ PHP extensions management failed: {e}")
+
 
 def repair_menu():
     """Onarım araçları menüsü"""
@@ -3049,6 +3236,7 @@ def repair_menu():
         else:
             print("Geçersiz seçim")
 
+
 def configure_php_opcache():
     """PHP OPcache konfigürasyonu"""
     try:
@@ -3056,47 +3244,78 @@ def configure_php_opcache():
     except Exception as e:
         print(f"❌ PHP OPcache configuration failed: {e}")
 
+
 def db_user_create(user: str, password: str, host: str):
     """Database kullanıcısı oluştur"""
     try:
-        run(f"mysql -u root -p{get_mysql_root_password()} -e \"CREATE USER '{user}'@'{host}' IDENTIFIED BY '{password}';\"", check=True)
-        run(f"mysql -u root -p{get_mysql_root_password()} -e \"GRANT ALL PRIVILEGES ON *.* TO '{user}'@'{host}';\"", check=True)
-        run(f"mysql -u root -p{get_mysql_root_password()} -e \"FLUSH PRIVILEGES;\"", check=True)
+        run(
+            f"mysql -u root -p{get_mysql_root_password()} -e \"CREATE USER '{user}'@'{host}' IDENTIFIED BY '{password}';\"",
+            check=True,
+        )
+        run(
+            f"mysql -u root -p{get_mysql_root_password()} -e \"GRANT ALL PRIVILEGES ON *.* TO '{user}'@'{host}';\"",
+            check=True,
+        )
+        run(
+            f'mysql -u root -p{get_mysql_root_password()} -e "FLUSH PRIVILEGES;"',
+            check=True,
+        )
         print(f"✅ Database user created: {user}")
     except Exception as e:
         print(f"❌ Database user creation failed: {e}")
+
 
 def db_create(db_name: str, user: str, password: str):
     """Database oluştur"""
     try:
         # Create database
-        run(f"mysql -u root -p{get_mysql_root_password()} -e \"CREATE DATABASE {db_name};\"", check=True)
-        
+        run(
+            f'mysql -u root -p{get_mysql_root_password()} -e "CREATE DATABASE {db_name};"',
+            check=True,
+        )
+
         # Create user
-        run(f"mysql -u root -p{get_mysql_root_password()} -e \"CREATE USER '{user}'@'localhost' IDENTIFIED BY '{password}';\"", check=True)
-        
+        run(
+            f"mysql -u root -p{get_mysql_root_password()} -e \"CREATE USER '{user}'@'localhost' IDENTIFIED BY '{password}';\"",
+            check=True,
+        )
+
         # Grant privileges
-        run(f"mysql -u root -p{get_mysql_root_password()} -e \"GRANT ALL PRIVILEGES ON {db_name}.* TO '{user}'@'localhost';\"", check=True)
-        run(f"mysql -u root -p{get_mysql_root_password()} -e \"FLUSH PRIVILEGES;\"", check=True)
-        
+        run(
+            f"mysql -u root -p{get_mysql_root_password()} -e \"GRANT ALL PRIVILEGES ON {db_name}.* TO '{user}'@'localhost';\"",
+            check=True,
+        )
+        run(
+            f'mysql -u root -p{get_mysql_root_password()} -e "FLUSH PRIVILEGES;"',
+            check=True,
+        )
+
         print(f"✅ Database created: {db_name}")
         print(f"✅ User created: {user}")
     except Exception as e:
         print(f"❌ Database creation failed: {e}")
 
+
 def db_delete(db_name: str, user: str):
     """Database sil"""
     try:
         # Drop database
-        run(f"mysql -u root -p{get_mysql_root_password()} -e \"DROP DATABASE IF EXISTS {db_name};\"", check=True)
-        
+        run(
+            f'mysql -u root -p{get_mysql_root_password()} -e "DROP DATABASE IF EXISTS {db_name};"',
+            check=True,
+        )
+
         # Drop user
-        run(f"mysql -u root -p{get_mysql_root_password()} -e \"DROP USER IF EXISTS '{user}'@'localhost';\"", check=True)
-        
+        run(
+            f"mysql -u root -p{get_mysql_root_password()} -e \"DROP USER IF EXISTS '{user}'@'localhost';\"",
+            check=True,
+        )
+
         print(f"✅ Database deleted: {db_name}")
         print(f"✅ User deleted: {user}")
     except Exception as e:
         print(f"❌ Database deletion failed: {e}")
+
 
 def list_domains():
     """Domain listesi"""
@@ -3109,31 +3328,48 @@ def list_domains():
                     vconf = vhost_dir / "vhost.conf"
                     if vconf.exists():
                         domains.append(vhost_dir.name)
-            
+
             if domains:
                 for i, domain in enumerate(domains, 1):
                     print(f"{i}) {domain}")
             else:
-                print(get_text('no_domains'))
+                print(get_text("no_domains"))
         else:
-            print(get_text('no_domains'))
+            print(get_text("no_domains"))
     except Exception as e:
         print(f"❌ Failed to list domains: {e}")
+
 
 def list_databases():
     """Database listesi"""
     try:
         print(f"\n=== {get_text('main_menu_options')[6]} ===")  # Database List
-        result = run(f"mysql -u root -p{get_mysql_root_password()} -e \"SHOW DATABASES;\"", check=True)
-        databases = [line.strip() for line in result.stdout.split('\n') if line.strip() and line.strip() not in ['Database', 'information_schema', 'performance_schema', 'mysql', 'sys']]
-        
+        result = run(
+            f'mysql -u root -p{get_mysql_root_password()} -e "SHOW DATABASES;"',
+            check=True,
+        )
+        databases = [
+            line.strip()
+            for line in result.stdout.split("\n")
+            if line.strip()
+            and line.strip()
+            not in [
+                "Database",
+                "information_schema",
+                "performance_schema",
+                "mysql",
+                "sys",
+            ]
+        ]
+
         if databases:
             for i, db in enumerate(databases, 1):
                 print(f"{i}) {db}")
         else:
-            print(get_text('no_databases'))
+            print(get_text("no_databases"))
     except Exception as e:
         print(f"❌ Failed to list databases: {e}")
+
 
 def fix_virtual_host_root(domain: str):
     """Virtual Host Root düzelt"""
@@ -3147,6 +3383,7 @@ def fix_virtual_host_root(domain: str):
             print(f"❌ Domain not found: {domain}")
     except Exception as e:
         print(f"❌ Virtual Host Root fix failed: {e}")
+
 
 def fix_vhost_config(domain: str):
     """Vhost konfigürasyonu düzelt"""
@@ -3162,6 +3399,7 @@ def fix_vhost_config(domain: str):
     except Exception as e:
         print(f"❌ Vhost configuration fix failed: {e}")
 
+
 def reset_mysql_root_password():
     """MySQL root şifre sıfırla"""
     try:
@@ -3169,11 +3407,15 @@ def reset_mysql_root_password():
         if len(new_password) < 6:
             print("❌ Password must be at least 6 characters")
             return
-            
-        run(f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{new_password}';\"", check=True)
+
+        run(
+            f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{new_password}';\"",
+            check=True,
+        )
         print("✅ MySQL root password reset successfully")
     except Exception as e:
         print(f"❌ MySQL root password reset failed: {e}")
+
 
 def reset_openlitespeed_admin_password():
     """OpenLiteSpeed admin şifre sıfırla"""
@@ -3182,13 +3424,13 @@ def reset_openlitespeed_admin_password():
         if len(new_password) < 6:
             print("❌ Password must be at least 6 characters")
             return
-        
+
         # Expect paketini kur
         if not shutil.which("expect"):
             print("expect yükleniyor...")
             run("apt-get update", check=True)
             run("apt-get install -y expect", check=True)
-            
+
         # Use expect script for non-interactive password reset
         expect_script = f"""#!/usr/bin/expect -f
 set timeout 30
@@ -3201,17 +3443,18 @@ expect "Please specify the password again:"
 send "{new_password}\\r"
 expect eof
 """
-        
+
         with open("/tmp/reset_admin_pass.exp", "w") as f:
             f.write(expect_script)
-        
+
         run("chmod +x /tmp/reset_admin_pass.exp", check=True)
         run("/tmp/reset_admin_pass.exp", check=True)
         run("rm -f /tmp/reset_admin_pass.exp", check=True)
-        
+
         print("✅ OpenLiteSpeed admin password reset successfully")
     except Exception as e:
         print(f"❌ OpenLiteSpeed admin password reset failed: {e}")
+
 
 def manage_firewall():
     """Firewall yönetimi"""
@@ -3219,6 +3462,7 @@ def manage_firewall():
         print("✅ Firewall management completed")
     except Exception as e:
         print(f"❌ Firewall management failed: {e}")
+
 
 def install_ssl_support():
     """SSL/HTTPS desteği kur"""
@@ -3229,18 +3473,21 @@ def install_ssl_support():
     except Exception as e:
         print(f"❌ SSL/HTTPS support installation failed: {e}")
 
+
 def secure_mariadb_menu():
     """MariaDB güvenlik ayarları (interaktif menü için)"""
     global MYSQL_ROOT_PASSWORD
-    
+
     try:
         # Zaten güvenlik ayarları install sırasında yapıldı
         print("MariaDB güvenlik ayarları kontrol ediliyor...")
-        
+
         # Root şifresi var mı kontrol et
         if MYSQL_ROOT_PASSWORD:
             print(f"✅ MariaDB root şifresi zaten ayarlı")
-            print("✅ Anonim kullanıcılar ve test veritabanı kurulum sırasında temizlendi")
+            print(
+                "✅ Anonim kullanıcılar ve test veritabanı kurulum sırasında temizlendi"
+            )
             print("✅ MariaDB güvenli durumda")
         else:
             print("⚠️  MariaDB root şifresi bulunamadı")
@@ -3248,17 +3495,21 @@ def secure_mariadb_menu():
             new_password = input("Yeni root şifresi girin: ").strip()
             if new_password:
                 try:
-                    run(f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{new_password}';\"", check=True)
+                    run(
+                        f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{new_password}';\"",
+                        check=True,
+                    )
                     MYSQL_ROOT_PASSWORD = new_password
                     print("✅ Root şifresi ayarlandı")
-                    
+
                     # Güvenlik ayarlarını uygula
                     secure_mariadb()
-                except:
+                except BaseException:
                     print("❌ Şifre ayarlama başarısız")
-        
+
     except Exception as e:
         print(f"❌ MariaDB güvenlik ayarları hatası: {e}")
+
 
 def optimize_openlitespeed():
     """OpenLiteSpeed optimizasyonu"""
@@ -3266,6 +3517,7 @@ def optimize_openlitespeed():
         print("✅ OpenLiteSpeed optimization completed")
     except Exception as e:
         print(f"❌ OpenLiteSpeed optimization failed: {e}")
+
 
 def update_ispanel():
     """isPanel güncelle"""
@@ -3303,43 +3555,43 @@ def auto_update_system():
     """Otomatik sistem güncellemeleri"""
     print("Sistem paketleri güncelleniyor...")
     wait_for_apt()
-    
+
     # Güncelleme işlemleri
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y", check=True)
     run("DEBIAN_FRONTEND=noninteractive apt-get upgrade -y", check=True)
     run("DEBIAN_FRONTEND=noninteractive apt-get autoremove -y", check=True)
     run("DEBIAN_FRONTEND=noninteractive apt-get autoclean", check=True)
-    
+
     print("Sistem güncellemeleri tamamlandı.")
 
 
 def setup_backup_rotation():
     """Yedek rotasyonu kurulumu"""
     print("Yedek rotasyonu ayarlanıyor...")
-    
+
     # Yedek rotasyon scripti
     rotation_script = f"""#!/bin/bash
 # 30 günden eski domain yedeklerini sil
 find {ISPANEL_BACKUP_DIR}/domains -name "*.tar.gz" -mtime +30 -delete
-# 30 günden eski DB yedeklerini sil  
+# 30 günden eski DB yedeklerini sil
 find {ISPANEL_BACKUP_DIR}/databases -name "*.sql" -mtime +30 -delete
 echo "$(date): Backup rotation completed" >> /var/log/backup_rotation.log
 """
-    
+
     script_path = "/usr/local/bin/backup_rotation.sh"
     Path(script_path).write_text(rotation_script, encoding="utf-8")
     run(f"chmod +x {script_path}", check=True)
-    
+
     # Cron job ekle (haftalık)
     cron_add("0 4 * * 0 /usr/local/bin/backup_rotation.sh")
-    
+
     print("Yedek rotasyonu kuruldu (30 günlük).")
 
 
 def setup_log_rotation():
     """Log rotasyonu kurulumu"""
     print("Log rotasyonu ayarlanıyor...")
-    
+
     # Logrotate konfigürasyonu
     logrotate_config = """
 /var/log/*.log {
@@ -3362,17 +3614,17 @@ def setup_log_rotation():
     create 644 lsadm lsadm
 }
 """
-    
+
     config_path = "/etc/logrotate.d/ispanel"
     Path(config_path).write_text(logrotate_config, encoding="utf-8")
-    
+
     print("Log rotasyonu kuruldu.")
 
 
 def optimize_kernel_parameters():
     """Kernel parametrelerini optimize et"""
     print("Kernel parametreleri optimize ediliyor...")
-    
+
     # sysctl optimizasyonları
     optimizations = {
         "net.core.rmem_max": "16777216",
@@ -3383,83 +3635,85 @@ def optimize_kernel_parameters():
         "net.ipv4.tcp_congestion_control": "bbr",
         "vm.swappiness": "10",
         "vm.dirty_ratio": "15",
-        "vm.dirty_background_ratio": "5"
+        "vm.dirty_background_ratio": "5",
     }
-    
+
     sysctl_config = ""
     for param, value in optimizations.items():
         sysctl_config += f"{param} = {value}\n"
         # Geçici olarak uygula
         run(f"sysctl -w {param}={value}", check=False)
-    
+
     # Kalıcı konfigürasyon
     Path("/etc/sysctl.d/99-ispanel.conf").write_text(sysctl_config, encoding="utf-8")
-    
+
     print("Kernel parametreleri optimize edildi.")
 
 
 def update_ispanel():
     """isPanel otomatik güncelleme"""
     print("isPanel güncelleniyor...")
-    
+
     try:
         # Mevcut script yolunu al
         script_path = Path(__file__).resolve()
         script_dir = script_path.parent
-        
+
         print("Git durumu kontrol ediliyor...")
-        
+
         # Git repository kontrolü
         if not (script_dir / ".git").exists():
             print("Git repository bulunamadı. Manuel güncelleme gerekli.")
             return
-        
+
         # Mevcut branch'i kontrol et
         result = run("git branch --show-current", check=False)
         current_branch = result.stdout.strip()
         print(f"Mevcut branch: {current_branch}")
-        
+
         # Remote'dan son değişiklikleri çek
         print("GitHub'dan son değişiklikler çekiliyor...")
         run("git fetch origin", check=True)
-        
+
         # Mevcut commit ile remote arasındaki farkı kontrol et
         result = run("git log HEAD..origin/main --oneline", check=False)
         if result.stdout.strip():
             print("Yeni güncellemeler bulundu:")
             print(result.stdout.strip())
-            
+
             # Kullanıcıdan onay al
-            confirm = input("Güncellemeyi uygulamak istiyor musunuz? (y/N): ").strip().lower()
-            if confirm in ['y', 'yes', 'evet']:
+            confirm = (
+                input("Güncellemeyi uygulamak istiyor musunuz? (y/N): ").strip().lower()
+            )
+            if confirm in ["y", "yes", "evet"]:
                 print("Güncelleme uygulanıyor...")
-                
+
                 # Backup oluştur
                 backup_path = f"/tmp/ispanel_backup_{int(time.time())}.py"
                 run(f"cp {script_path} {backup_path}", check=False)
                 print(f"Yedek oluşturuldu: {backup_path}")
-                
+
                 # Pull yap
                 run("git pull origin main", check=True)
-                
+
                 # Bozuk symlink'i temizle ve yeniden oluştur
                 print("Symlink düzeltiliyor...")
                 run("rm -f /usr/local/bin/ispanel", check=False)
                 install_symlink()
-                
+
                 print("✅ isPanel başarıyla güncellendi!")
                 print("Değişiklikler:")
                 print(result.stdout.strip())
                 print("\nArtık 'ispanel' komutu çalışacak!")
-                
+
                 # Yedek dosyasını sil
                 run(f"rm -f {backup_path}", check=False)
-                
+
             else:
                 print("Güncelleme iptal edildi.")
         else:
             print("✅ isPanel zaten güncel!")
-            
+
     except subprocess.CalledProcessError as e:
         print(f"Güncelleme hatası: {e}")
         print("Manuel güncelleme gerekebilir.")
@@ -3506,49 +3760,63 @@ def main():
 
     p_install = sub.add_parser("install", help="OpenLiteSpeed, PHP 8.2 ve MariaDB kur")
     p_install.set_defaults(func=cmd_install)
-    
+
     p_install_symlink = sub.add_parser("install-symlink", help="isPanel komutunu kur")
+
     def _install_symlink(args):
         install_symlink()
+
     p_install_symlink.set_defaults(func=_install_symlink)
 
     p_dadd = sub.add_parser("domain-add", help="Domain ekle")
     p_dadd.add_argument("domain")
+
     def _dadd(args):
         require_root()
         domain_add(args.domain)
+
     p_dadd.set_defaults(func=_dadd)
 
     p_drm = sub.add_parser("domain-rm", help="Domain sil")
     p_drm.add_argument("domain")
+
     def _drm(args):
         require_root()
         domain_remove(args.domain)
+
     p_drm.set_defaults(func=_drm)
 
-    p_dbcreate = sub.add_parser("db-create", help="MariaDB veritabanı ve kullanıcı oluştur")
+    p_dbcreate = sub.add_parser(
+        "db-create", help="MariaDB veritabanı ve kullanıcı oluştur"
+    )
     p_dbcreate.add_argument("db")
     p_dbcreate.add_argument("user")
     p_dbcreate.add_argument("password")
+
     def _dbcreate(args):
         require_root()
         db_create(args.db, args.user, args.password)
+
     p_dbcreate.set_defaults(func=_dbcreate)
 
     p_dbdelete = sub.add_parser("db-delete", help="MariaDB veritabanı ve kullanıcı sil")
     p_dbdelete.add_argument("db")
     p_dbdelete.add_argument("user")
+
     def _dbdelete(args):
         require_root()
         db_delete(args.db, args.user)
+
     p_dbdelete.set_defaults(func=_dbdelete)
 
     # Etkileşimli menü
     p_menu = sub.add_parser("menu", help="İnteraktif menüyü başlat")
+
     def _menu(args):
         require_root()
         select_language()
         interactive_menu()
+
     p_menu.set_defaults(func=_menu)
 
     args = parser.parse_args()
@@ -3567,5 +3835,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
