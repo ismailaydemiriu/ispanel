@@ -9,9 +9,15 @@ enableGzip 1
 context / {{
   allowBrowse 1
   location $DOC_ROOT/
+  index index.php
   rewrite  {{
     RewriteFile .htaccess
   }}
+  addDefaultCharset off
+  
+  extraHeaders <<<END_extraHeaders
+X-Forwarded-Proto $scheme
+END_extraHeaders
 }}
 
 context /docs/ {{
@@ -40,6 +46,12 @@ context /cgi-bin/ {{
   allowBrowse 1
   location $VH_ROOT/cgi-bin/
   type cgi
+}}
+
+context /*.php {{
+  type script
+  handler lsphp{default_lsphp}
+  addDefaultCharset off
 }}
 
 expires {{
