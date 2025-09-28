@@ -59,7 +59,7 @@ def check_disk_space(min_gb: int = 1):
 
 
 def install_openlitespeed_and_php():
-    print("OpenLiteSpeed ve PHP 8.2 kuruluyor...")
+    print("OpenLiteSpeed ve PHP 8.3 kuruluyor...")
     wait_for_apt()
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
     ensure_cmd("curl", "curl")
@@ -154,7 +154,7 @@ def cmd_install(args: argparse.Namespace):
     install_symlink()
     
     print("\n=== Kurulum Tamamlandı ===")
-    print("✅ OpenLiteSpeed + PHP 8.2 + MariaDB kuruldu")
+    print("✅ OpenLiteSpeed + PHP 8.3 + MariaDB kuruldu")
     print("✅ Firewall ayarları yapıldı")
     print("✅ SSL/HTTPS desteği eklendi")
     print("✅ MariaDB güvenlik ayarları yapıldı")
@@ -878,8 +878,8 @@ def cron_backup_menu():
 def interactive_menu():
     while True:
         print("\n=== ispanel (Ubuntu 22+) ===")
-        print("1) Kurulum (OpenLiteSpeed + PHP 8.2 + MariaDB)")
-        print("2) Domain ekle")
+        print("1) Domain ekle")
+        print("2) Kurulum (OpenLiteSpeed + PHP 8.3 + MariaDB)")
         print("3) Domain sil")
         print("4) DB oluştur")
         print("5) DB sil")
@@ -900,10 +900,10 @@ def interactive_menu():
         print("0) Çıkış")
         choice = input("Seçim: ").strip()
         if choice == "1":
-            cmd_install(argparse.Namespace())
-        elif choice == "2":
             domain = input("Domain: ").strip()
             domain_add(domain)
+        elif choice == "2":
+            cmd_install(argparse.Namespace())
         elif choice == "3":
             domain = input("Domain: ").strip()
             domain_remove(domain)
