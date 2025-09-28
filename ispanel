@@ -4353,19 +4353,25 @@ def system_health_check():
     # Disk alanı kontrolü
     try:
         result = run("df -h /", check=True)
-        lines = result.stdout.strip().split('\n')
-        if len(lines) > 1:
-            usage_str = lines[1].split()[4].replace('%', '')
-            if usage_str.isdigit():
-                usage = int(usage_str)
-                if usage > 90:
-                    issues.append(f"⚠️ Disk alanı %{usage} dolu - kritik seviye")
-                elif usage > 80:
-                    issues.append(f"⚠️ Disk alanı %{usage} dolu - dikkat")
+        if result.stdout:
+            lines = result.stdout.strip().split('\n')
+            if len(lines) > 1:
+                usage_str = lines[1].split()[4].replace('%', '')
+                if usage_str.isdigit():
+                    usage = int(usage_str)
+                    if usage > 90:
+                        issues.append(f"⚠️ Disk alanı %{usage} dolu - kritik seviye")
+                    elif usage > 80:
+                        issues.append(f"⚠️ Disk alanı %{usage} dolu - dikkat")
+                    else:
+                        print(f"✅ Disk alanı: %{usage} kullanılmış")
                 else:
-                    print(f"✅ Disk alanı: %{usage} kullanılmış")
+                    print(f"✅ Disk alanı: {usage_str} kullanılmış")
             else:
-                print(f"✅ Disk alanı: {usage_str} kullanılmış")
+                print("✅ Disk bilgisi alındı")
+        else:
+            print("⚠️ Disk bilgisi alınamadı")
+            issues.append("❌ Disk alanı kontrol edilemedi")
     except Exception as e:
         print(f"⚠️ Disk alanı kontrol hatası: {e}")
         issues.append("❌ Disk alanı kontrol edilemedi")
@@ -4373,19 +4379,25 @@ def system_health_check():
     # RAM kullanımı kontrolü
     try:
         result = run("free -m", check=True)
-        lines = result.stdout.strip().split('\n')
-        if len(lines) > 1:
-            mem_info = lines[1].split()
-            if len(mem_info) >= 3:
-                total = int(mem_info[1])
-                used = int(mem_info[2])
-                usage_percent = (used / total) * 100
-                if usage_percent > 90:
-                    issues.append(f"⚠️ RAM kullanımı %{usage_percent:.1f} - kritik seviye")
+        if result.stdout:
+            lines = result.stdout.strip().split('\n')
+            if len(lines) > 1:
+                mem_info = lines[1].split()
+                if len(mem_info) >= 3:
+                    total = int(mem_info[1])
+                    used = int(mem_info[2])
+                    usage_percent = (used / total) * 100
+                    if usage_percent > 90:
+                        issues.append(f"⚠️ RAM kullanımı %{usage_percent:.1f} - kritik seviye")
+                    else:
+                        print(f"✅ RAM kullanımı: %{usage_percent:.1f}")
                 else:
-                    print(f"✅ RAM kullanımı: %{usage_percent:.1f}")
+                    print("✅ RAM bilgisi alındı")
             else:
                 print("✅ RAM bilgisi alındı")
+        else:
+            print("⚠️ RAM bilgisi alınamadı")
+            issues.append("❌ RAM kullanımı kontrol edilemedi")
     except Exception as e:
         print(f"⚠️ RAM kontrol hatası: {e}")
         issues.append("❌ RAM kullanımı kontrol edilemedi")
