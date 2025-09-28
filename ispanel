@@ -3489,21 +3489,21 @@ def update_ispanel():
             return
 
         # Mevcut branch'i kontrol et
-        result = run("git branch --show-current", check=False)
+        result = run("git branch --show-current", check=False, cwd=script_dir)
         current_branch = result.stdout.strip() if result.stdout else "unknown"
         print(f"Mevcut branch: {current_branch}")
 
         # Remote'dan son değişiklikleri çek
         print("GitHub'dan son değişiklikler çekiliyor...")
         try:
-            run("git fetch origin", check=True)
+            run("git fetch origin", check=True, cwd=script_dir)
         except Exception as e:
             print(f"❌ Git fetch hatası: {e}")
             print("💡 Git repository düzeltme gerekebilir.")
             return
 
         # Mevcut commit ile remote arasındaki farkı kontrol et
-        result = run("git log HEAD..origin/main --oneline", check=False)
+        result = run("git log HEAD..origin/main --oneline", check=False, cwd=script_dir)
         if result.stdout and result.stdout.strip():
             print("Yeni güncellemeler bulundu:")
             print(result.stdout.strip())
@@ -3521,7 +3521,7 @@ def update_ispanel():
                 print(f"Yedek oluşturuldu: {backup_path}")
 
                 # Pull yap
-                run("git pull origin main", check=True)
+                run("git pull origin main", check=True, cwd=script_dir)
 
                 # Bozuk symlink'i temizle ve yeniden oluştur
                 print("Symlink düzeltiliyor...")
