@@ -2,6 +2,20 @@
 
 ## Kurulum (Ubuntu 22+)
 
+### 🚀 Tek Tıkla Kurulum
+
+```bash
+curl -sSL https://raw.githubusercontent.com/ismailaydemiriu/ispanel/main/install.sh | sudo bash
+```
+
+veya
+
+```bash
+wget -qO- https://raw.githubusercontent.com/ismailaydemiriu/ispanel/main/install.sh | sudo bash
+```
+
+### 📋 Manuel Kurulum
+
 1) Python scripti kopyalayın ve çalıştırılabilir yapın
 
 ```bash
