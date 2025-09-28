@@ -9,6 +9,146 @@ import sys
 import time
 from pathlib import Path
 
+# Dil desteği için global değişken
+CURRENT_LANGUAGE = "en"  # Varsayılan dil İngilizce
+
+# Çok dilli metinler
+TEXTS = {
+    "en": {
+        # Ana menü
+        "main_menu_title": "isPanel - Web Hosting Management Panel",
+        "main_menu_options": [
+            "Installation (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)",
+            "Add Domain",
+            "Change Domain PHP Version",
+            "Domain List",
+            "Remove Domain", 
+            "Create Database",
+            "Database List",
+            "Delete Database",
+            "Fix Virtual Host Root",
+            "Fix Vhost Configuration",
+            "Backup Domain",
+            "Backup Database",
+            "List Backups",
+            "Reset OpenLiteSpeed Admin Password",
+            "Optimize OpenLiteSpeed",
+            "Update isPanel",
+            "Exit"
+        ],
+        "language_selection": "Select Language / Dil Seçin",
+        "language_options": ["English", "Türkçe"],
+        "invalid_choice": "Invalid choice. Please try again.",
+        "enter_choice": "Enter your choice",
+        "domain_prompt": "Enter domain name",
+        "db_name_prompt": "Enter database name",
+        "db_user_prompt": "Enter database username",
+        "db_pass_prompt": "Enter database password",
+        "success": "Operation completed successfully!",
+        "error": "An error occurred:",
+        "confirm_remove": "Are you sure you want to remove this domain? (y/n)",
+        "confirm_delete_db": "Are you sure you want to delete this database? (y/n)",
+        "php_version_prompt": "Select PHP version",
+        "php_versions": ["PHP 8.2", "PHP 8.3"],
+        "no_domains": "No domains found.",
+        "no_databases": "No databases found.",
+        "no_backups": "No backups found.",
+        "domain_added": "Domain added successfully!",
+        "domain_removed": "Domain removed successfully!",
+        "database_created": "Database created successfully!",
+        "database_deleted": "Database deleted successfully!",
+        "backup_created": "Backup created successfully!",
+        "password_reset": "OpenLiteSpeed admin password reset successfully!",
+        "optimization_complete": "OpenLiteSpeed optimization completed!",
+        "update_complete": "isPanel updated successfully!",
+        "press_enter": "Press Enter to continue...",
+        "goodbye": "Goodbye!"
+    },
+    "tr": {
+        # Ana menü
+        "main_menu_title": "isPanel - Web Hosting Yönetim Paneli",
+        "main_menu_options": [
+            "Kurulum (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)",
+            "Domain Ekle",
+            "Domain PHP Sürümü Değiştir",
+            "Domain Listesi",
+            "Domain Sil",
+            "Veritabanı Oluştur",
+            "Veritabanı Listesi", 
+            "Veritabanı Sil",
+            "Virtual Host Root Düzelt",
+            "Vhost Konfigürasyon Düzelt",
+            "Domain Yedekle",
+            "Veritabanı Yedekle",
+            "Yedekleri Listele",
+            "OpenLiteSpeed Admin Şifre Sıfırla",
+            "OpenLiteSpeed Optimize Et",
+            "isPanel Güncelle",
+            "Çıkış"
+        ],
+        "language_selection": "Select Language / Dil Seçin",
+        "language_options": ["English", "Türkçe"],
+        "invalid_choice": "Geçersiz seçim. Lütfen tekrar deneyin.",
+        "enter_choice": "Seçiminizi girin",
+        "domain_prompt": "Domain adını girin",
+        "db_name_prompt": "Veritabanı adını girin",
+        "db_user_prompt": "Veritabanı kullanıcı adını girin",
+        "db_pass_prompt": "Veritabanı şifresini girin",
+        "success": "İşlem başarıyla tamamlandı!",
+        "error": "Bir hata oluştu:",
+        "confirm_remove": "Bu domaini silmek istediğinizden emin misiniz? (e/h)",
+        "confirm_delete_db": "Bu veritabanını silmek istediğinizden emin misiniz? (e/h)",
+        "php_version_prompt": "PHP sürümünü seçin",
+        "php_versions": ["PHP 8.2", "PHP 8.3"],
+        "no_domains": "Domain bulunamadı.",
+        "no_databases": "Veritabanı bulunamadı.",
+        "no_backups": "Yedek bulunamadı.",
+        "domain_added": "Domain başarıyla eklendi!",
+        "domain_removed": "Domain başarıyla silindi!",
+        "database_created": "Veritabanı başarıyla oluşturuldu!",
+        "database_deleted": "Veritabanı başarıyla silindi!",
+        "backup_created": "Yedek başarıyla oluşturuldu!",
+        "password_reset": "OpenLiteSpeed admin şifresi başarıyla sıfırlandı!",
+        "optimization_complete": "OpenLiteSpeed optimizasyonu tamamlandı!",
+        "update_complete": "isPanel başarıyla güncellendi!",
+        "press_enter": "Devam etmek için Enter'a basın...",
+        "goodbye": "Hoşça kalın!"
+    }
+}
+
+def get_text(key: str) -> str:
+    """Mevcut dildeki metni döndür"""
+    return TEXTS[CURRENT_LANGUAGE].get(key, key)
+
+def select_language():
+    """Dil seçimi yap"""
+    global CURRENT_LANGUAGE
+    
+    print("\n" + "="*60)
+    print(f"🌍 {get_text('language_selection')}")
+    print("="*60)
+    
+    for i, lang in enumerate(get_text('language_options'), 1):
+        print(f"{i}) {lang}")
+    
+    while True:
+        try:
+            choice = input(f"\n{get_text('enter_choice')} (1-2): ").strip()
+            if choice == "1":
+                CURRENT_LANGUAGE = "en"
+                break
+            elif choice == "2":
+                CURRENT_LANGUAGE = "tr"
+                break
+            else:
+                print(get_text('invalid_choice'))
+        except KeyboardInterrupt:
+            print(f"\n{get_text('goodbye')}")
+            sys.exit(0)
+    
+    print(f"\n✅ Language selected: {get_text('language_options')[int(choice)-1]}")
+    print("="*60)
+
 try:
     from pwd import getpwuid  # type: ignore[attr-defined]
     from grp import getgrgid  # type: ignore[attr-defined]
@@ -111,7 +251,7 @@ def install_openlitespeed_and_php(lsphp_version: str = "83"):
     # Varsayılan PHP sürümünü ayarla
     global DEFAULT_LSPHP_VERSION
     DEFAULT_LSPHP_VERSION = lsphp_version
-    
+
     # Hizmetleri başlat/enable
     try:
         run("systemctl enable lsws", check=False)
@@ -362,15 +502,15 @@ def ensure_https_listener_mapping(domain: str):
         # İlkini koru, diğerlerini sil
         for match in ssl_listeners[1:]:
             content = content.replace(match.group(0), '')
-    
+
     # HTTPS listener kontrolü
     https_listener_pattern = r"listener\s+SSL\s*\{[^}]*address\s+\*:443[^}]*\}"
     m = re.search(https_listener_pattern, content, re.DOTALL)
     
-    ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
-    ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
+        ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
+        ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
     map_block = f"map                     {domain} {domain}"
-    
+        
     if not m:
         # HTTPS listener oluştur
         https_listener = f"""
@@ -1238,9 +1378,9 @@ expect eof
         run("/usr/local/lsws/bin/lswsctrl restart", check=True)
         
         print("✅ OpenLiteSpeed admin şifresi başarıyla sıfırlandı!")
-        print(f"Admin panel: https://SERVER_IP:7080")
-        print(f"Kullanıcı: admin")
-        print(f"Şifre: {new_password}")
+    print(f"Admin panel: https://SERVER_IP:7080")
+    print(f"Kullanıcı: admin")
+    print(f"Şifre: {new_password}")
         
     except subprocess.CalledProcessError as e:
         print(f"Şifre sıfırlama hatası: {e}")
@@ -1617,31 +1757,31 @@ opcache.enable_cli=1
 def backup_domain(domain: str):
     backup_dir = ISPANEL_BACKUP_DIR / "domains"
     backup_dir.mkdir(parents=True, exist_ok=True)
-
+    
     docroot = DOCROOT_BASE / domain
     if not docroot.exists():
         print(f"Domain docroot bulunamadı: {docroot}")
         return None
-
+    
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     backup_file = backup_dir / f"{domain}_{timestamp}.tar.gz"
-
-    run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
+    
+        run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
 
     checksum = run(f"sha256sum {backup_file}", check=True).stdout.strip().split()[0]
     verify = run(f"tar -tzf {backup_file} > /dev/null", check=True)
-    print(f"Domain yedeği alındı: {backup_file}")
+        print(f"Domain yedeği alındı: {backup_file}")
     print(f"SHA256: {checksum}")
-    return str(backup_file)
+        return str(backup_file)
 
 
 def backup_database(db_name: str):
     backup_dir = ISPANEL_BACKUP_DIR / "databases"
     backup_dir.mkdir(parents=True, exist_ok=True)
-
+    
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     backup_file = backup_dir / f"{db_name}_{timestamp}.sql"
-
+    
     run(f"mysqldump -uroot {db_name} > {backup_file}", check=True)
 
     checksum = run(f"sha256sum {backup_file}", check=True).stdout.strip().split()[0]
@@ -1656,7 +1796,7 @@ def restore_domain(backup_file: str):
     if not path.exists():
         print(f"Yedek dosyası bulunamadı: {backup_file}")
         return False
-
+    
     run(f"tar -xzf {path} -C {DOCROOT_BASE.parent}", check=True)
     print(f"Domain yedeği geri yüklendi: {path}")
     return True
@@ -1667,7 +1807,7 @@ def restore_database(backup_file: str, db_name: str):
     if not path.exists():
         print(f"Yedek dosyası bulunamadı: {backup_file}")
         return False
-
+    
     mysql_exec(f"CREATE DATABASE IF NOT EXISTS {db_name}")
     run(f"mysql -uroot {db_name} < {path}", check=True)
     print(f"Veritabanı yedeği geri yüklendi: {path}")
@@ -1699,7 +1839,7 @@ def fix_virtual_host_root(domain: str):
         content = content.replace(old_block, new_block)
         HTTPD_CONF.write_text(content, encoding="utf-8")
         print(f"✅ {domain} Virtual Host Root düzeltildi: {docroot}")
-        return True
+    return True
     else:
         print(f"❌ {domain} virtualHost bloğu bulunamadı")
         return False
@@ -2069,7 +2209,7 @@ def cron_backup_menu():
 
 def domain_php_version_menu():
     """Domain PHP sürümü değiştirme menüsü"""
-    print("\n=== Domain PHP Sürüm Yönetimi ===")
+    print(f"\n=== {get_text('php_version_prompt')} ===")
     
     # Mevcut domainleri listele
     domains = []
@@ -2089,17 +2229,17 @@ def domain_php_version_menu():
                     domains.append((vhost_dir.name, current_version))
     
     if not domains:
-        print("Henüz eklenmiş domain yok!")
-        input("Devam etmek için Enter'a basın...")
+        print(get_text('no_domains'))
+        input(get_text('press_enter'))
         return
     
-    print("\nMevcut Domainler:")
+    print(f"\n{get_text('main_menu_options')[3]}:")  # Domain List
     for i, (domain, version) in enumerate(domains, 1):
         print(f"{i}) {domain} (PHP {version[0]}.{version[1]})")
     
-    print("0) Geri dön")
+    print("0) " + get_text('main_menu_options')[-1])  # Exit/Çıkış
     
-    choice = input("\nDomain seçin: ").strip()
+    choice = input(f"\n{get_text('domain_prompt')}: ").strip()
     if choice == "0":
         return
     
@@ -2109,13 +2249,14 @@ def domain_php_version_menu():
             domain = domains[idx][0]
             current_version = domains[idx][1]
             
-            print(f"\n{domain} için yeni PHP sürümü seçin:")
-            print(f"Mevcut sürüm: PHP {current_version[0]}.{current_version[1]}")
-            print("1) PHP 8.2")
-            print("2) PHP 8.3")
-            print("0) İptal")
+            print(f"\n{domain} {get_text('php_version_prompt')}:")
+            print(f"Current: PHP {current_version[0]}.{current_version[1]}")
+            php_versions = get_text('php_versions')
+            for i, version in enumerate(php_versions, 1):
+                print(f"{i}) {version}")
+            print("0) " + get_text('main_menu_options')[-1])  # Exit/Çıkış
             
-            version_choice = input("Seçim: ").strip()
+            version_choice = input(f"{get_text('enter_choice')}: ").strip()
             
             if version_choice == "1":
                 set_domain_php_version(domain, "82")
@@ -2123,72 +2264,55 @@ def domain_php_version_menu():
             elif version_choice == "2":
                 set_domain_php_version(domain, "83")
                 print(f"✅ {domain} PHP 8.3'e geçirildi")
+            elif version_choice == "0":
+                return
             
-            input("Devam etmek için Enter'a basın...")
+            input(get_text('press_enter'))
     except:
-        print("Geçersiz seçim!")
-        input("Devam etmek için Enter'a basın...")
+        print(get_text('invalid_choice'))
+        input(get_text('press_enter'))
 
 
 def interactive_menu():
     while True:
-        print("\n=== ispanel (Ubuntu 22+) ===")
-        print("1) Kurulum (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)")
-        print("2) Domain ekle")
-        print("3) Domain PHP sürümü değiştir")
-        print("4) Domain Listesi")
-        print("5) Domain sil")
-        print("6) DB Listesi")
-        print("7) Virtual Host Root düzelt")
-        print("8) Vhost Konfigürasyon düzelt")
-        print("9) DB oluştur")
-        print("10) DB sil")
-        print("11) MySQL root şifre sıfırla")
-        print("12) OpenLiteSpeed admin şifre sıfırla")
-        print("13) Port kontrolü ve Firewall yönetimi")
-        print("14) SSL/HTTPS desteği kur")
-        print("15) MariaDB güvenlik ayarları")
-        print("16) OpenLiteSpeed performans optimizasyonu")
-        print("17) Dosya yedekleme menüsü")
-        print("18) Veritabanı yedekleme menüsü")
-        print("19) Yedekleri listele")
-        print("20) Cron backup ayarları")
-        print("21) Onarım araçları")
-        print("22) Cache sistemleri (Redis/Memcached)")
-        print("23) Sistem yönetimi")
-        print("24) OLS/PHP ayarları")
-        print("25) isPanel güncelle")
-        print("0) Çıkış")
-        choice = input("Seçim: ").strip()
+        print(f"\n=== {get_text('main_menu_title')} ===")
+        
+        # Menü seçeneklerini çok dilli olarak göster
+        menu_options = get_text('main_menu_options')
+        for i, option in enumerate(menu_options, 1):
+            print(f"{i}) {option}")
+        print("0) " + get_text('main_menu_options')[-1])  # Exit/Çıkış
+        
+        choice = input(f"\n{get_text('enter_choice')}: ").strip()
         if choice == "1":
             # Her iki PHP sürümü de kurulacak
             cmd_install(argparse.Namespace(php_version="83"))
         elif choice == "2":
-            domain = input("Domain: ").strip()
+            domain = input(f"{get_text('domain_prompt')}: ").strip()
             domain_add(domain)
         elif choice == "3":
             domain_php_version_menu()
         elif choice == "4":
             list_domains()
         elif choice == "5":
-            domain = input("Domain: ").strip()
+            domain = input(f"{get_text('domain_prompt')}: ").strip()
             domain_remove(domain)
         elif choice == "6":
             list_databases()
         elif choice == "7":
-            domain = input("Domain: ").strip()
+            domain = input(f"{get_text('domain_prompt')}: ").strip()
             fix_virtual_host_root(domain)
         elif choice == "8":
-            domain = input("Domain: ").strip()
+            domain = input(f"{get_text('domain_prompt')}: ").strip()
             fix_vhost_config(domain)
         elif choice == "9":
-            db = input("DB adı: ").strip()
-            user = input("Kullanıcı: ").strip()
-            password = input("Parola: ").strip()
+            db = input(f"{get_text('db_name_prompt')}: ").strip()
+            user = input(f"{get_text('db_user_prompt')}: ").strip()
+            password = input(f"{get_text('db_pass_prompt')}: ").strip()
             db_create(db, user, password)
         elif choice == "10":
-            db = input("DB adı: ").strip()
-            user = input("Kullanıcı: ").strip()
+            db = input(f"{get_text('db_name_prompt')}: ").strip()
+            user = input(f"{get_text('db_user_prompt')}: ").strip()
             db_delete(db, user)
         elif choice == "11":
             reset_mysql_root_password()
@@ -2557,6 +2681,7 @@ def main():
     p_menu = sub.add_parser("menu", help="İnteraktif menüyü başlat")
     def _menu(args):
         require_root()
+        select_language()
         interactive_menu()
     p_menu.set_defaults(func=_menu)
 
@@ -2564,6 +2689,8 @@ def main():
     if not hasattr(args, "func"):
         # Varsayılan olarak menüyü aç
         if os.geteuid() == 0:
+            # Dil seçimi yap
+            select_language()
             interactive_menu()
             return
         else:
