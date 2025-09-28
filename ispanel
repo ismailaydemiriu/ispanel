@@ -220,7 +220,17 @@ DEFAULT_LSPHP_VERSION = "83"  # Varsayılan lsphp sürümü (menu kurulum seçim
 LOG_FILE = Path(os.environ.get("ISPANEL_LOG_FILE", "/var/log/ispanel.log"))
 LOG_LEVEL = os.environ.get("ISPANEL_LOG_LEVEL", "INFO").upper()
 
-TEMPLATE_DIR = Path(os.environ.get("ISPANEL_TEMPLATE_DIR", Path(__file__).resolve().parent / "templates"))
+TEMPLATE_DIR = Path(os.environ.get("ISPANEL_TEMPLATE_DIR", "")).expanduser()
+if not TEMPLATE_DIR:
+    TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
+else:
+    TEMPLATE_DIR = TEMPLATE_DIR.resolve()
+
+if not TEMPLATE_DIR.exists():
+    alt_dir = Path(__file__).resolve().parent / "templates"
+    if alt_dir.exists():
+        TEMPLATE_DIR = alt_dir
+
 VHOST_TEMPLATE = TEMPLATE_DIR / "vhost.conf.j2"
 
 
@@ -331,8 +341,17 @@ listener SSL {{
 
 
 def load_template(template_path: Path) -> str:
-    if template_path.exists():
-        return template_path.read_text(encoding="utf-8")
+    candidates = [template_path]
+    repo_template = Path(__file__).resolve().parent / "templates" / template_path.name
+    if repo_template not in candidates:
+        candidates.append(repo_template)
+    alt = Path("/usr/local/lib/ispanel/templates") / template_path.name
+    if alt not in candidates:
+        candidates.append(alt)
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.read_text(encoding="utf-8")
     raise FileNotFoundError(f"Template bulunamadı: {template_path}")
 
 
