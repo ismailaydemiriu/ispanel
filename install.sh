@@ -49,6 +49,14 @@ git clone https://github.com/ismailaydemiriu/ispanel.git /tmp/ispanel
 
 # ispanel'i /usr/local/bin/ dizinine kopyala
 echo "ispanel kuruluyor..."
+
+# Bozuk symlink'i temizle
+if [ -L "/usr/local/bin/ispanel" ]; then
+    echo "Bozuk symlink temizleniyor..."
+    rm -f /usr/local/bin/ispanel
+fi
+
+# Dosyayı kopyala
 cp /tmp/ispanel/ispanel /usr/local/bin/
 chmod +x /usr/local/bin/ispanel
 
