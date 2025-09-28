@@ -4257,63 +4257,63 @@ def update_ispanel():
         original_cwd = os.getcwd()
         os.chdir(script_dir)
         
-        try:
-        # Mevcut branch'i kontrol et
-        result = run("git branch --show-current", check=False)
-            current_branch = result.stdout.strip() if result.stdout else "unknown"
-        print(f"Mevcut branch: {current_branch}")
+            try:
+               # Mevcut branch'i kontrol et
+               result = run("git branch --show-current", check=False)
+               current_branch = result.stdout.strip() if result.stdout else "unknown"
+               print(f"Mevcut branch: {current_branch}")
 
-        # Remote'dan son değişiklikleri çek
-        print("GitHub'dan son değişiklikler çekiliyor...")
-        try:
-        run("git fetch origin", check=True)
-        except Exception as e:
-            print(f"❌ Git fetch hatası: {e}")
-            print("💡 Git repository düzeltme gerekebilir.")
-            return
+               # Remote'dan son değişiklikleri çek
+               print("GitHub'dan son değişiklikler çekiliyor...")
+               try:
+                   run("git fetch origin", check=True)
+               except Exception as e:
+                   print(f"❌ Git fetch hatası: {e}")
+                   print("💡 Git repository düzeltme gerekebilir.")
+                   return
 
-        # Mevcut commit ile remote arasındaki farkı kontrol et
-        result = run("git log HEAD..origin/main --oneline", check=False)
-        if result.stdout and result.stdout.strip():
-            print("Yeni güncellemeler bulundu:")
-            print(result.stdout.strip())
+               # Mevcut commit ile remote arasındaki farkı kontrol et
+               result = run("git log HEAD..origin/main --oneline", check=False)
+               if result.stdout and result.stdout.strip():
+                   print("Yeni güncellemeler bulundu:")
+                   print(result.stdout.strip())
 
-            # Kullanıcıdan onay al
-            confirm = (
-                input("Güncellemeyi uygulamak istiyor musunuz? (y/N): ").strip().lower()
-            )
-            if confirm in ["y", "yes", "evet"]:
-                print("Güncelleme uygulanıyor...")
+                   # Kullanıcıdan onay al
+                   confirm = (
+                       input("Güncellemeyi uygulamak istiyor musunuz? (y/N): ").strip().lower()
+                   )
+                   if confirm in ["y", "yes", "evet"]:
+                       print("Güncelleme uygulanıyor...")
 
-                # Backup oluştur
-                backup_path = f"/tmp/ispanel_backup_{int(time.time())}.py"
-                run(f"cp {script_path} {backup_path}", check=False)
-                print(f"Yedek oluşturuldu: {backup_path}")
+                       # Backup oluştur
+                       backup_path = f"/tmp/ispanel_backup_{int(time.time())}.py"
+                       run(f"cp {script_path} {backup_path}", check=False)
+                       print(f"Yedek oluşturuldu: {backup_path}")
 
-                # Pull yap
-                run("git pull origin main", check=True)
+                       # Pull yap
+                       run("git pull origin main", check=True)
 
-                # Bozuk symlink'i temizle ve yeniden oluştur
-                print("Symlink düzeltiliyor...")
-                run("rm -f /usr/local/bin/ispanel", check=False)
-                install_symlink()
+                       # Bozuk symlink'i temizle ve yeniden oluştur
+                       print("Symlink düzeltiliyor...")
+                       run("rm -f /usr/local/bin/ispanel", check=False)
+                       install_symlink()
 
-                print("✅ isPanel başarıyla güncellendi!")
-                print("Değişiklikler:")
-                print(result.stdout.strip())
-                print("\nArtık 'ispanel' komutu çalışacak!")
+                       print("✅ isPanel başarıyla güncellendi!")
+                       print("Değişiklikler:")
+                       print(result.stdout.strip())
+                       print("\nArtık 'ispanel' komutu çalışacak!")
 
-                # Yedek dosyasını sil
-                run(f"rm -f {backup_path}", check=False)
+                       # Yedek dosyasını sil
+                       run(f"rm -f {backup_path}", check=False)
 
-            else:
-                print("Güncelleme iptal edildi.")
-        else:
-            print("✅ isPanel zaten güncel!")
-                
-        finally:
-            # Orijinal dizine geri dön
-            os.chdir(original_cwd)
+                   else:
+                       print("Güncelleme iptal edildi.")
+               else:
+                   print("✅ isPanel zaten güncel!")
+                   
+           finally:
+               # Orijinal dizine geri dön
+               os.chdir(original_cwd)
 
     except subprocess.CalledProcessError as e:
         print(f"Güncelleme hatası: {e}")
