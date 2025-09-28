@@ -302,9 +302,16 @@ def ensure_virtual_host_reference(domain: str):
         print(f"Bulunamadı: {HTTPD_CONF}", file=sys.stderr)
         sys.exit(1)
     content = HTTPD_CONF.read_text(encoding="utf-8")
+    
+    # Virtual Host Root'u da ekle
+    docroot = DOCROOT_BASE / domain
     vhost_ref = (
         f"virtualHost {domain} {{\n"
+        f"    vhRoot                  {docroot}\n"
         f"    configFile              conf/vhosts/{domain}/vhost.conf\n"
+        f"    allowSymbolLink         1\n"
+        f"    enableScript            1\n"
+        f"    restrained              1\n"
         f"}}\n"
     )
     # Zaten var mı kontrol et (virtualHost domain satırı baz alınır)
@@ -1011,6 +1018,37 @@ def restore_database(backup_file, db_name):
     return True
 
 
+def fix_virtual_host_root(domain: str):
+    """Mevcut domain'in Virtual Host Root'unu düzelt"""
+    if not HTTPD_CONF.exists():
+        print(f"Bulunamadı: {HTTPD_CONF}", file=sys.stderr)
+        return False
+    
+    content = HTTPD_CONF.read_text(encoding="utf-8")
+    docroot = DOCROOT_BASE / domain
+    
+    # Mevcut virtualHost bloğunu bul ve güncelle
+    pattern = rf"virtualHost\s+{re.escape(domain)}\s*\{{[^}}]*\}}"
+    match = re.search(pattern, content, re.DOTALL)
+    
+    if match:
+        old_block = match.group(0)
+        new_block = f"""virtualHost {domain} {{
+    vhRoot                  {docroot}
+    configFile              conf/vhosts/{domain}/vhost.conf
+    allowSymbolLink         1
+    enableScript            1
+    restrained              1
+}}"""
+        content = content.replace(old_block, new_block)
+        HTTPD_CONF.write_text(content, encoding="utf-8")
+        print(f"✅ {domain} Virtual Host Root düzeltildi: {docroot}")
+        return True
+    else:
+        print(f"❌ {domain} virtualHost bloğu bulunamadı")
+        return False
+
+
 def list_domains():
     """Aktif domainleri listele"""
     print("\n=== Aktif Domainler ===")
@@ -1045,6 +1083,10 @@ def list_domains():
     for info in domains:
         status = "✅ Aktif" if info["exists"] and info["vhost_exists"] else "❌ Hata"
         print(f"{info['domain']:<20} {info['docroot']:<30} {status:<10}")
+        
+        # Virtual Host Root kontrolü
+        if info["vhost_exists"]:
+            print(f"  🔧 Virtual Host Root düzeltmek için: python3 ispanel fix-vhost {info['domain']}")
 
 
 def list_databases():
@@ -1155,23 +1197,24 @@ def interactive_menu():
         print("4) Domain Listesi")
         print("5) Domain sil")
         print("6) DB Listesi")
-        print("7) DB oluştur")
-        print("8) DB sil")
-        print("9) MySQL root şifre sıfırla")
-        print("10) OpenLiteSpeed admin şifre sıfırla")
-        print("11) Port kontrolü ve Firewall yönetimi")
-        print("12) SSL/HTTPS desteği kur")
-        print("13) MariaDB güvenlik ayarları")
-        print("14) OpenLiteSpeed performans optimizasyonu")
-        print("15) Dosya yedekleme menüsü")
-        print("16) Veritabanı yedekleme menüsü")
-        print("17) Yedekleri listele")
-        print("18) Cron backup ayarları")
-        print("19) Onarım araçları")
-        print("20) Cache sistemleri (Redis/Memcached)")
-        print("21) Sistem yönetimi")
-        print("22) OLS/PHP ayarları")
-        print("23) isPanel güncelle")
+        print("7) Virtual Host Root düzelt")
+        print("8) DB oluştur")
+        print("9) DB sil")
+        print("10) MySQL root şifre sıfırla")
+        print("11) OpenLiteSpeed admin şifre sıfırla")
+        print("12) Port kontrolü ve Firewall yönetimi")
+        print("13) SSL/HTTPS desteği kur")
+        print("14) MariaDB güvenlik ayarları")
+        print("15) OpenLiteSpeed performans optimizasyonu")
+        print("16) Dosya yedekleme menüsü")
+        print("17) Veritabanı yedekleme menüsü")
+        print("18) Yedekleri listele")
+        print("19) Cron backup ayarları")
+        print("20) Onarım araçları")
+        print("21) Cache sistemleri (Redis/Memcached)")
+        print("22) Sistem yönetimi")
+        print("23) OLS/PHP ayarları")
+        print("24) isPanel güncelle")
         print("0) Çıkış")
         choice = input("Seçim: ").strip()
         if choice == "1":
@@ -1191,25 +1234,28 @@ def interactive_menu():
         elif choice == "6":
             list_databases()
         elif choice == "7":
+            domain = input("Domain: ").strip()
+            fix_virtual_host_root(domain)
+        elif choice == "8":
             db = input("DB adı: ").strip()
             user = input("Kullanıcı: ").strip()
             password = input("Parola: ").strip()
             db_create(db, user, password)
-        elif choice == "8":
+        elif choice == "9":
             db = input("DB adı: ").strip()
             user = input("Kullanıcı: ").strip()
             db_delete(db, user)
-        elif choice == "9":
-            reset_mysql_root_password()
         elif choice == "10":
-            reset_openlitespeed_admin_password()
+            reset_mysql_root_password()
         elif choice == "11":
-            manage_firewall()
+            reset_openlitespeed_admin_password()
         elif choice == "12":
-            install_ssl_support()
+            manage_firewall()
         elif choice == "13":
-            secure_mariadb()
+            install_ssl_support()
         elif choice == "14":
+            secure_mariadb()
+        elif choice == "15":
             while True:
                 print("\n--- Dosya Yedekleme ---")
                 print("1) Domain yedeği al")
@@ -1229,7 +1275,7 @@ def interactive_menu():
                     break
                 else:
                     print("Geçersiz seçim")
-        elif choice == "15":
+        elif choice == "16":
             while True:
                 print("\n--- Veritabanı Yedekleme ---")
                 print("1) DB yedeği al")
@@ -1253,19 +1299,19 @@ def interactive_menu():
                     break
                 else:
                     print("Geçersiz seçim")
-        elif choice == "16":
-            list_backups()
         elif choice == "17":
-            cron_backup_menu()
+            list_backups()
         elif choice == "18":
-            repair_menu()
+            cron_backup_menu()
         elif choice == "19":
-            cache_menu()
+            repair_menu()
         elif choice == "20":
-            system_management_menu()
+            cache_menu()
         elif choice == "21":
-            ols_php_menu()
+            system_management_menu()
         elif choice == "22":
+            ols_php_menu()
+        elif choice == "23":
             update_ispanel()
         elif choice == "0":
             break
