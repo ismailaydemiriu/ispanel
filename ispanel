@@ -4460,34 +4460,88 @@ def emergency_backup():
             run(f"cp -r {ols_config.parent} {backup_dir}/openlitespeed_config", check=True)
             print("✅ OpenLiteSpeed konfigürasyonu yedeklendi")
         
-        # MariaDB veritabanları
+        # MariaDB veritabanları - MySQL root şifresi ile
+        print("🗄️ MariaDB veritabanları yedekleniyor...")
         try:
-            run(f"mysqldump --all-databases --single-transaction --routines --triggers > {backup_dir}/all_databases.sql", check=True)
+            if MYSQL_ROOT_PASSWORD:
+                run(f"mysqldump --all-databases --single-transaction --routines --triggers --password={MYSQL_ROOT_PASSWORD} > {backup_dir}/all_databases.sql", check=True)
+            else:
+                run(f"mysqldump --all-databases --single-transaction --routines --triggers > {backup_dir}/all_databases.sql", check=True)
             print("✅ Tüm veritabanları yedeklendi")
-        except:
-            print("⚠️ Veritabanı yedekleme başarısız")
+        except Exception as e:
+            print(f"⚠️ Veritabanı yedekleme başarısız: {e}")
         
-        # Domain dosyaları
+        # Domain dosyaları ve web içerikleri
+        print("🌐 Domain dosyaları yedekleniyor...")
         if VHOSTS_DIR.exists():
             run(f"cp -r {VHOSTS_DIR} {backup_dir}/domains", check=True)
-            print("✅ Domain dosyaları yedeklendi")
+            print("✅ Domain konfigürasyonları yedeklendi")
         
-        # PHP konfigürasyonları
-        php_configs = ["/etc/php/8.2", "/etc/php/8.3"]
+        # Web içerikleri (domain klasörleri)
+        web_dirs = ["/var/www", "/usr/local/lsws/Example/html"]
+        for web_dir in web_dirs:
+            if Path(web_dir).exists():
+                run(f"cp -r {web_dir} {backup_dir}/web_content_{Path(web_dir).name}", check=True)
+                print(f"✅ Web içeriği yedeklendi: {web_dir}")
+        
+        # OpenLiteSpeed logları
+        ols_logs = Path("/usr/local/lsws/logs")
+        if ols_logs.exists():
+            run(f"cp -r {ols_logs} {backup_dir}/openlitespeed_logs", check=True)
+            print("✅ OpenLiteSpeed logları yedeklendi")
+        
+        # MariaDB logları
+        mysql_logs = Path("/var/log/mysql")
+        if mysql_logs.exists():
+            run(f"cp -r {mysql_logs} {backup_dir}/mysql_logs", check=True)
+            print("✅ MariaDB logları yedeklendi")
+        
+        # PHP konfigürasyonları (OpenLiteSpeed PHP)
+        php_configs = ["/usr/local/lsws/lsphp82", "/usr/local/lsws/lsphp83"]
         for php_config in php_configs:
             if Path(php_config).exists():
                 run(f"cp -r {php_config} {backup_dir}/", check=True)
                 print(f"✅ PHP konfigürasyonu yedeklendi: {php_config}")
         
+        # SSL sertifikaları
+        ssl_dirs = ["/usr/local/lsws/conf/cert", "/etc/letsencrypt"]
+        for ssl_dir in ssl_dirs:
+            if Path(ssl_dir).exists():
+                run(f"cp -r {ssl_dir} {backup_dir}/ssl_{Path(ssl_dir).name}", check=True)
+                print(f"✅ SSL sertifikaları yedeklendi: {ssl_dir}")
+        
         # Sistem bilgileri
+        print("📋 Sistem bilgileri kaydediliyor...")
         with open(backup_dir / "system_info.txt", "w") as f:
             f.write(f"Yedekleme tarihi: {datetime.now()}\n")
             f.write(f"Sistem: {run('uname -a', check=True).stdout.strip()}\n")
             f.write(f"Disk kullanımı:\n{run('df -h', check=True).stdout}\n")
             f.write(f"RAM kullanımı:\n{run('free -h', check=True).stdout}\n")
+            f.write(f"Servis durumları:\n")
+            f.write(f"OpenLiteSpeed: {run('systemctl is-active lshttpd', check=False).stdout.strip()}\n")
+            f.write(f"MariaDB: {run('systemctl is-active mariadb', check=False).stdout.strip()}\n")
+        
+        # Yedekleme özeti
+        print("📊 Yedekleme özeti oluşturuluyor...")
+        with open(backup_dir / "backup_summary.txt", "w") as f:
+            f.write(f"=== ACİL YEDEKLEME ÖZETİ ===\n")
+            f.write(f"Tarih: {datetime.now()}\n")
+            f.write(f"Yedek dizini: {backup_dir}\n\n")
+            f.write(f"Yedeklenen bileşenler:\n")
+            f.write(f"✅ OpenLiteSpeed konfigürasyonu\n")
+            f.write(f"✅ MariaDB veritabanları (all_databases.sql)\n")
+            f.write(f"✅ Domain konfigürasyonları\n")
+            f.write(f"✅ Web içerikleri\n")
+            f.write(f"✅ OpenLiteSpeed logları\n")
+            f.write(f"✅ MariaDB logları\n")
+            f.write(f"✅ PHP konfigürasyonları\n")
+            f.write(f"✅ SSL sertifikaları\n")
+            f.write(f"✅ Sistem bilgileri\n\n")
+            f.write(f"Geri yükleme için: ispanel -> Acil Durum Kurtarma -> Yedekten geri yükle\n")
         
         print(f"\n✅ Acil yedekleme tamamlandı: {backup_dir}")
         print(f"💾 Yedek boyutu: {run(f'du -sh {backup_dir}', check=True).stdout.strip()}")
+        print(f"📋 Yedekleme özeti: {backup_dir}/backup_summary.txt")
         
         return backup_dir
         
@@ -4694,6 +4748,13 @@ def restore_from_backup():
             backup_dir = backup_dirs[idx]
             print(f"🔄 {backup_dir.name} geri yükleniyor...")
             
+            # Yedekleme özetini göster
+            summary_file = backup_dir / "backup_summary.txt"
+            if summary_file.exists():
+                print("\n📋 Yedekleme özeti:")
+                with open(summary_file, 'r') as f:
+                    print(f.read())
+            
             # OpenLiteSpeed konfigürasyonu geri yükle
             ols_backup = backup_dir / "openlitespeed_config"
             if ols_backup.exists():
@@ -4703,20 +4764,63 @@ def restore_from_backup():
             # Veritabanları geri yükle
             db_backup = backup_dir / "all_databases.sql"
             if db_backup.exists():
-                run(f"mysql < {db_backup}", check=True)
+                if MYSQL_ROOT_PASSWORD:
+                    run(f"mysql --password={MYSQL_ROOT_PASSWORD} < {db_backup}", check=True)
+                else:
+                    run(f"mysql < {db_backup}", check=True)
                 print("✅ Veritabanları geri yüklendi")
             
             # Domain dosyaları geri yükle
             domains_backup = backup_dir / "domains"
             if domains_backup.exists():
                 run(f"cp -r {domains_backup}/* {VHOSTS_DIR}/", check=True)
-                print("✅ Domain dosyaları geri yüklendi")
+                print("✅ Domain konfigürasyonları geri yüklendi")
+            
+            # Web içerikleri geri yükle
+            web_content_dirs = ["web_content_www", "web_content_html"]
+            for web_dir in web_content_dirs:
+                web_backup = backup_dir / web_dir
+                if web_backup.exists():
+                    if "www" in web_dir:
+                        run(f"cp -r {web_backup}/* /var/www/", check=True)
+                        print("✅ Web içeriği geri yüklendi: /var/www")
+                    elif "html" in web_dir:
+                        run(f"cp -r {web_backup}/* /usr/local/lsws/Example/html/", check=True)
+                        print("✅ Web içeriği geri yüklendi: /usr/local/lsws/Example/html")
+            
+            # SSL sertifikaları geri yükle
+            ssl_dirs = ["ssl_cert", "ssl_letsencrypt"]
+            for ssl_dir in ssl_dirs:
+                ssl_backup = backup_dir / ssl_dir
+                if ssl_backup.exists():
+                    if "cert" in ssl_dir:
+                        run(f"cp -r {ssl_backup}/* /usr/local/lsws/conf/cert/", check=True)
+                        print("✅ SSL sertifikaları geri yüklendi: /usr/local/lsws/conf/cert")
+                    elif "letsencrypt" in ssl_dir:
+                        run(f"cp -r {ssl_backup}/* /etc/letsencrypt/", check=True)
+                        print("✅ Let's Encrypt sertifikaları geri yüklendi: /etc/letsencrypt")
+            
+            # PHP konfigürasyonları geri yükle
+            php_dirs = ["lsphp82", "lsphp83"]
+            for php_dir in php_dirs:
+                php_backup = backup_dir / php_dir
+                if php_backup.exists():
+                    run(f"cp -r {php_backup}/* /usr/local/lsws/{php_dir}/", check=True)
+                    print(f"✅ PHP konfigürasyonu geri yüklendi: {php_dir}")
             
             # Servisleri yeniden başlat
+            print("🔄 Servisler yeniden başlatılıyor...")
             run("systemctl restart lshttpd mariadb", check=True)
             print("✅ Servisler yeniden başlatıldı")
             
+            # Dosya izinlerini düzelt
+            print("🔧 Dosya izinleri düzeltiliyor...")
+            run("chown -R lsadm:lsadm /usr/local/lsws/", check=True)
+            run("chown -R mysql:mysql /var/lib/mysql/", check=True)
+            print("✅ Dosya izinleri düzeltildi")
+            
             print(f"\n✅ Geri yükleme tamamlandı: {backup_dir.name}")
+            print("💡 Sisteminizi test etmek için web sitelerinizi kontrol edin.")
         else:
             print("❌ Geçersiz seçim")
     
