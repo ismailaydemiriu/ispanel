@@ -9,6 +9,24 @@ import sys
 import time
 from pathlib import Path
 
+try:
+    from pwd import getpwuid  # type: ignore[attr-defined]
+    from grp import getgrgid  # type: ignore[attr-defined]
+except ImportError:  # Windows
+    class _PwdStruct:
+        def __init__(self, uid: int):
+            self.pw_name = f"uid:{uid}"
+
+    class _GrpStruct:
+        def __init__(self, gid: int):
+            self.gr_name = f"gid:{gid}"
+
+    def getpwuid(uid: int):  # type: ignore[redefined-outer-name]
+        return _PwdStruct(uid)
+
+    def getgrgid(gid: int):  # type: ignore[redefined-outer-name]
+        return _GrpStruct(gid)
+
 
 def run(cmd: str, check: bool = True) -> subprocess.CompletedProcess:
     logger.debug("Komut çalıştırılıyor: %s", cmd)
@@ -190,6 +208,9 @@ DEFAULT_LSPHP_VERSION = "83"  # Varsayılan lsphp sürümü (menu kurulum seçim
 LOG_FILE = Path(os.environ.get("ISPANEL_LOG_FILE", "/var/log/ispanel.log"))
 LOG_LEVEL = os.environ.get("ISPANEL_LOG_LEVEL", "INFO").upper()
 
+TEMPLATE_DIR = Path(os.environ.get("ISPANEL_TEMPLATE_DIR", Path(__file__).resolve().parent / "templates"))
+VHOST_TEMPLATE = TEMPLATE_DIR / "vhost.conf.j2"
+
 
 def configure_logging():
     if logging.getLogger().hasHandlers():
@@ -297,6 +318,12 @@ listener SSL {{
         HTTPD_CONF.write_text(new_content, encoding="utf-8")
 
 
+def load_template(template_path: Path) -> str:
+    if template_path.exists():
+        return template_path.read_text(encoding="utf-8")
+    raise FileNotFoundError(f"Template bulunamadı: {template_path}")
+
+
 def write_vhost_conf(domain: str, docroot: Path):
     vdir = VHOSTS_DIR / domain
     vdir.mkdir(parents=True, exist_ok=True)
@@ -304,7 +331,6 @@ def write_vhost_conf(domain: str, docroot: Path):
 
     vh_root = docroot.parent
 
-    # Gerekli dizinleri oluştur
     log_dir = vh_root / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     (log_dir / "access.log").touch(exist_ok=True)
@@ -318,132 +344,12 @@ def write_vhost_conf(domain: str, docroot: Path):
 
     awstats_dir = vh_root / "awstats"
     awstats_dir.mkdir(parents=True, exist_ok=True)
-    
-    conf = f"""docRoot $VH_ROOT/public_html/
-enableGzip 1
 
-context / {{
-  allowBrowse 1
-  location $DOC_ROOT/
-  rewrite  {{
-    RewriteFile .htaccess
-  }}
-}}
+    template = load_template(VHOST_TEMPLATE)
+    conf = template.format(domain=domain, docroot=str(docroot), default_lsphp=DEFAULT_LSPHP_VERSION)
 
-context /docs/{{
-  allowBrowse 1
-  location $SERVER_ROOT/docs/
-}}
-
-context /protected/{{
-  required user test
-  authName Protected
-  allowBrowse 1
-  location protected/
-  realm SampleProtectedArea
-
-  accessControl {{
-    deny 
-    allow *
-  }}
-}}
-
-context /blocked/{{
-  allowBrowse 0
-}}
-
-context /cgi-bin/{{
-  allowBrowse 1
-  location $VH_ROOT/cgi-bin/
-  type cgi
-}}
-
-expires {{
-  enableExpires 1
-}}
-
-index {{
-  autoIndexURI /_autoindex/default.php
-  indexFiles index.html, index.php
-  autoIndex 0
-  useServer 0
-}}
-
-errorPage 404{{
-  url /error404.html
-}}
-
-errorlog $VH_ROOT/logs/error.log{{
-  logLevel DEBUG
-  rollingSize 10M
-  useServer 1
-}}
-
-accessLog $VH_ROOT/logs/access.log{{
-  compressArchive 0
-  logReferer 1
-  keepDays 30
-  rollingSize 10M
-  logUserAgent 1
-  useServer 0
-}}
-
-awstats {{
-  updateInterval 86400
-  workingDir $VH_ROOT/awstats
-  updateOffset 0
-  siteDomain {domain}
-  siteAliases 127.0.0.1 localhost
-  updateMode 0
-  awstatsURI /awstats/
-}}
-
-rewrite {{
-  enable 0
-  logLevel 0
-}}
-
-hotlinkCtrl {{
-  suffixes gif, jpeg, jpg, png, css, js
-  allowedHosts
-  allowDirectAccess 1
-  enableHotlinkCtrl 0
-  onlySelf 1
-}}
-
-accessControl {{
-  deny
-  allow *
-}}
-
-realm SampleProtectedArea {{
-  userDB {{
-    cacheTimeout 60
-    maxCacheSize 200
-    location conf/vhosts/$VH_NAME/htpasswd
-  }}
-
-  groupDB {{
-    cacheTimeout 60
-    maxCacheSize 200
-    location conf/vhosts/$VH_NAME/htgroup
-  }}
-}}
-
-general {{
-  enableContextAC 0
-}}
-
-scriptHandler {{
-    add                    lsapi:lsphp{DEFAULT_LSPHP_VERSION} php
-}}
-
-phpIniOverride  {{
-}}
-""".strip()
     vconf.write_text(conf, encoding="utf-8")
-    
-    # Dizin izinlerini ayarla
+
     run(f"chown -R lsadm:nogroup {vdir}", check=True)
     run(f"chmod -R 755 {vdir}", check=True)
     run(f"chown -R lsadm:nogroup {vh_root}", check=False)
@@ -1115,60 +1021,63 @@ opcache.enable_cli=1
         print("PHP ini dosyası bulunamadı, OPcache manuel olarak yapılandırılmalı.")
 
 
-def backup_domain(domain):
-    """Domain yedeği alma"""
+def backup_domain(domain: str):
     backup_dir = Path("/home/backup/domains")
     backup_dir.mkdir(parents=True, exist_ok=True)
-    
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
-    backup_file = backup_dir / f"{domain}_{timestamp}.tar.gz"
-    
+
     docroot = DOCROOT_BASE / domain
-    if docroot.exists():
-        run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
-        print(f"Domain yedeği alındı: {backup_file}")
-        return str(backup_file)
-    else:
+    if not docroot.exists():
         print(f"Domain docroot bulunamadı: {docroot}")
         return None
 
-
-def backup_database(db_name):
-    """Veritabanı yedeği alma"""
-    backup_dir = Path("/home/backup/databases")
-    backup_dir.mkdir(parents=True, exist_ok=True)
-    
     timestamp = time.strftime("%Y%m%d_%H%M%S")
-    backup_file = backup_dir / f"{db_name}_{timestamp}.sql"
-    
-    run(f"mysqldump -uroot {db_name} > {backup_file}", check=True)
-    print(f"Veritabanı yedeği alındı: {backup_file}")
+    backup_file = backup_dir / f"{domain}_{timestamp}.tar.gz"
+
+    run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
+
+    checksum = run(f"sha256sum {backup_file}", check=True).stdout.strip().split()[0]
+    verify = run(f"tar -tzf {backup_file} > /dev/null", check=True)
+    print(f"Domain yedeği alındı: {backup_file}")
+    print(f"SHA256: {checksum}")
     return str(backup_file)
 
 
-def restore_domain(backup_file):
-    """Domain yedeği geri yükleme"""
-    if not Path(backup_file).exists():
+def backup_database(db_name: str):
+    backup_dir = Path("/home/backup/databases")
+    backup_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    backup_file = backup_dir / f"{db_name}_{timestamp}.sql"
+
+    run(f"mysqldump -uroot {db_name} > {backup_file}", check=True)
+
+    checksum = run(f"sha256sum {backup_file}", check=True).stdout.strip().split()[0]
+    verify = run(f"mysql -uroot -e \"USE {db_name}\"", check=False)
+    print(f"Veritabanı yedeği alındı: {backup_file}")
+    print(f"SHA256: {checksum}")
+    return str(backup_file)
+
+
+def restore_domain(backup_file: str):
+    path = Path(backup_file)
+    if not path.exists():
         print(f"Yedek dosyası bulunamadı: {backup_file}")
         return False
-    
-    run(f"tar -xzf {backup_file} -C {DOCROOT_BASE.parent}", check=True)
-    print(f"Domain yedeği geri yüklendi: {backup_file}")
+
+    run(f"tar -xzf {path} -C {DOCROOT_BASE.parent}", check=True)
+    print(f"Domain yedeği geri yüklendi: {path}")
     return True
 
 
-def restore_database(backup_file, db_name):
-    """Veritabanı yedeği geri yükleme"""
-    if not Path(backup_file).exists():
+def restore_database(backup_file: str, db_name: str):
+    path = Path(backup_file)
+    if not path.exists():
         print(f"Yedek dosyası bulunamadı: {backup_file}")
         return False
-    
-    # Veritabanını oluştur
+
     mysql_exec(f"CREATE DATABASE IF NOT EXISTS {db_name}")
-    
-    # Yedeği geri yükle
-    run(f"mysql -uroot {db_name} < {backup_file}", check=True)
-    print(f"Veritabanı yedeği geri yüklendi: {backup_file}")
+    run(f"mysql -uroot {db_name} < {path}", check=True)
+    print(f"Veritabanı yedeği geri yüklendi: {path}")
     return True
 
 
@@ -1369,97 +1278,149 @@ phpIniOverride  {{
     return True
 
 
+def _read_virtual_host_settings(domain: str, docroot: Path) -> tuple[str, str]:
+    """Return php version and ssl status."""
+    vconf = VHOSTS_DIR / domain / "vhost.conf"
+    php = "bilinmiyor"
+    if vconf.exists():
+        content = vconf.read_text(encoding="utf-8")
+        m = re.search(r"lsapi:lsphp(\d+)", content)
+        if m:
+            php = f"lsphp{m.group(1)}"
+    ssl_dir = Path(f"/etc/letsencrypt/live/{domain}")
+    ssl = "Var" if ssl_dir.exists() else "Yok"
+    return php, ssl
+
+
+def _get_owner_info(path: Path) -> tuple[str, str]:
+    try:
+        stat = path.stat()
+        owner = getpwuid(stat.st_uid).pw_name
+        group = getgrgid(stat.st_gid).gr_name
+        return owner, group
+    except Exception:
+        return "bilinmiyor", "bilinmiyor"
+
+
 def list_domains():
-    """Aktif domainleri listele"""
     print("\n=== Aktif Domainler ===")
-    
+
     if not VHOSTS_DIR.exists():
         print("Vhost dizini bulunamadı.")
         return
-    
-    domains = []
+
+    rows = []
     for domain_dir in VHOSTS_DIR.iterdir():
         if domain_dir.is_dir() and domain_dir.name != "Example":
             domain = domain_dir.name
             docroot = DOCROOT_BASE / domain / "public_html"
+            vh_root = docroot.parent
             vhost_conf = domain_dir / "vhost.conf"
-            
-            # Domain bilgilerini topla
-            info = {
-                "domain": domain,
-                "docroot": str(docroot),
-                "exists": docroot.exists(),
-                "vhost_exists": vhost_conf.exists()
-            }
-            domains.append(info)
-    
-    if not domains:
+            owner, group = _get_owner_info(vh_root) if vh_root.exists() else ("bilinmiyor", "bilinmiyor")
+            php, ssl = _read_virtual_host_settings(domain, docroot)
+            access_log = vh_root / "logs" / "access.log"
+            error_log = vh_root / "logs" / "error.log"
+            rows.append(
+                {
+                    "domain": domain,
+                    "docroot": str(docroot),
+                    "exists": docroot.exists(),
+                    "vhost_exists": vhost_conf.exists(),
+                    "owner": f"{owner}:{group}",
+                    "php": php,
+                    "ssl": ssl,
+                    "access_log": str(access_log),
+                    "error_log": str(error_log),
+                }
+            )
+
+    if not rows:
         print("Hiç domain bulunamadı.")
         return
-    
-    print(f"{'Domain':<20} {'Docroot':<30} {'Durum':<10}")
-    print("-" * 60)
-    
-    for info in domains:
-        status = "✅ Aktif" if info["exists"] and info["vhost_exists"] else "❌ Hata"
-        print(f"{info['domain']:<20} {info['docroot']:<30} {status:<10}")
-        
-        # Virtual Host Root kontrolü
+
+    header = f"{'Domain':<20} {'Docroot':<30} {'Sahip':<18} {'PHP':<10} {'SSL':<5}"
+    print(header)
+    print("-" * len(header))
+
+    for info in rows:
+        status = "✅" if info["exists"] and info["vhost_exists"] else "❌"
+        print(
+            f"{info['domain']:<20} {info['docroot']:<30} {info['owner']:<18} {info['php']:<10} {info['ssl']:<5} {status}"
+        )
+        print(f"  Access log: {info['access_log']}")
+        print(f"  Error log : {info['error_log']}")
         if info["vhost_exists"]:
-            print(f"  🔧 Virtual Host Root düzeltmek için: python3 ispanel fix-vhost {info['domain']}")
+            print(f"  🔧 Virtual Host Root düzelt: ispanel fix-vhost {info['domain']}")
 
 
 def list_databases():
-    """Veritabanlarını listele"""
     print("\n=== Veritabanları ===")
-    
+
     try:
-        # Veritabanlarını listele
         result = run("mysql -uroot -e 'SHOW DATABASES;'", check=False)
-        if result.returncode != 0:
+        if result.returncode != 0 or not result.stdout:
             print("MariaDB bağlantı hatası. Servis çalışıyor mu kontrol edin.")
             return
-        
+
         databases = []
         for line in result.stdout.strip().split('\n'):
             line = line.strip()
             if line and line not in ['Database', 'information_schema', 'performance_schema', 'mysql', 'sys']:
                 databases.append(line)
-        
+
         if not databases:
             print("Hiç veritabanı bulunamadı.")
             return
-        
-        print(f"{'Veritabanı':<20} {'Boyut':<15} {'Tarih':<20}")
-        print("-" * 55)
-        
+
+        print(f"{'Veritabanı':<20} {'Boyut (MB)':<12} {'Son Güncellenme':<22} {'Tablo Sayısı':<12}")
+        print("-" * 72)
+
         for db in databases:
-            # Veritabanı boyutunu al
-            size_result = run(f"mysql -uroot -e 'SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS \"DB Size in MB\" FROM information_schema.tables WHERE table_schema=\"{db}\";'", check=False)
-            size = size_result.stdout.strip().split('\n')[-1] if size_result.returncode == 0 else "N/A"
-            
-            # Son değişiklik tarihi
-            date_result = run(f"mysql -uroot -e 'SELECT MAX(update_time) FROM information_schema.tables WHERE table_schema=\"{db}\";'", check=False)
-            date = date_result.stdout.strip().split('\n')[-1] if date_result.returncode == 0 else "N/A"
-            
-            print(f"{db:<20} {size:<15} {date:<20}")
-            
+            size_query = (
+                "SELECT IFNULL(ROUND(SUM(data_length + index_length) / 1024 / 1024, 2), 0) "
+                "FROM information_schema.tables WHERE table_schema=\"%s\";" % db
+            )
+            count_query = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=\"%s\";" % db
+            date_query = (
+                "SELECT DATE_FORMAT(MAX(update_time), '%Y-%m-%d %H:%i:%s') "
+                "FROM information_schema.tables WHERE table_schema=\"%s\";" % db
+            )
+
+            size_result = run(f"mysql -uroot -e \"{size_query}\"", check=False)
+            size_value = size_result.stdout.strip().split('\n')[-1] if size_result.stdout else "0"
+
+            count_result = run(f"mysql -uroot -e \"{count_query}\"", check=False)
+            count_value = count_result.stdout.strip().split('\n')[-1] if count_result.stdout else "0"
+
+            date_result = run(f"mysql -uroot -e \"{date_query}\"", check=False)
+            date_value = date_result.stdout.strip().split('\n')[-1] if date_result.stdout else "N/A"
+
+            print(f"{db:<20} {size_value:<12} {date_value:<22} {count_value:<12}")
+
     except Exception as e:
         print(f"Veritabanı listesi alınamadı: {e}")
 
 
 def list_backups():
-    """Yedekleri listele"""
-    domain_backups = list(Path("/home/backup/domains").glob("*.tar.gz"))
-    db_backups = list(Path("/home/backup/databases").glob("*.sql"))
-    
-    print("\n=== Domain Yedekleri ===")
-    for backup in domain_backups:
-        print(f"- {backup.name}")
-    
-    print("\n=== Veritabanı Yedekleri ===")
-    for backup in db_backups:
-        print(f"- {backup.name}")
+    """Yedek özetlerini listele."""
+
+    def summarize(title: str, pattern: str, base: Path):
+        print(f"\n=== {title} ===")
+        if not base.exists():
+            print(f"Dizin bulunamadı: {base}")
+            return
+        backups = sorted(base.glob(pattern))
+        if not backups:
+            print("Henüz yedek yok.")
+            return
+        for backup in backups:
+            size_mb = backup.stat().st_size / (1024 * 1024)
+            checksum_file = backup.with_suffix(backup.suffix + ".sha256")
+            checksum = checksum_file.read_text(encoding="utf-8").strip() if checksum_file.exists() else "(hesaplanmadı)"
+            print(f"- {backup.name} ({size_mb:.2f} MB) | SHA256: {checksum}")
+
+    summarize("Domain Yedekleri", "*.tar.gz", Path("/home/backup/domains"))
+    summarize("Veritabanı Yedekleri", "*.sql", Path("/home/backup/databases"))
 
 
 def install_cron():

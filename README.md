@@ -41,7 +41,7 @@ sudo ln -s $(pwd)/ispanel /usr/local/bin/ispanel
 
 # 2) Menüden de onarabilirsiniz
 sudo ispanel  # açılırsa
-# 20) Sistem yönetimi → 7) ispanel komutunu onar
+# 25) isPanel güncelle → 1) ispanel komutunu onar
 ```
 
 Not: Python komutu `python3` olmalıdır. `python` yoksa şu şekilde çalıştırın:
@@ -69,23 +69,30 @@ sudo ispanel
 ```
 === ispanel (Ubuntu 22+) ===
 1) Kurulum (OpenLiteSpeed + PHP 8.2 + MariaDB)
-2) Domain ekle
-3) Domain sil
-4) DB oluştur
-5) DB sil
-6) MySQL root şifre sıfırla
-7) OpenLiteSpeed admin şifre sıfırla
-8) Port kontrolü ve Firewall yönetimi
-9) SSL/HTTPS desteği kur
-10) MariaDB güvenlik ayarları
-11) OpenLiteSpeed performans optimizasyonu
-12) Dosya yedekleme menüsü
-13) Veritabanı yedekleme menüsü
-14) Yedekleri listele
-17) Cron backup ayarları
-18) Onarım araçları
-19) Cache sistemleri (Redis/Memcached)
-20) Sistem yönetimi
+2) Kurulum (OpenLiteSpeed + PHP 8.3 + MariaDB)
+3) Domain ekle
+4) Domain Listesi
+5) Domain sil
+6) DB Listesi
+7) Virtual Host Root düzelt
+8) Vhost Konfigürasyon düzelt
+9) DB oluştur
+10) DB sil
+11) MySQL root şifre sıfırla
+12) OpenLiteSpeed admin şifre sıfırla
+13) Port kontrolü ve Firewall yönetimi
+14) SSL/HTTPS desteği kur
+15) MariaDB güvenlik ayarları
+16) OpenLiteSpeed performans optimizasyonu
+17) Dosya yedekleme menüsü
+18) Veritabanı yedekleme menüsü
+19) Yedekleri listele
+20) Cron backup ayarları
+21) Onarım araçları
+22) Cache sistemleri (Redis/Memcached)
+23) Sistem yönetimi
+24) OLS/PHP ayarları
+25) isPanel güncelle
 0) Çıkış
 ```
 
@@ -126,3 +133,19 @@ sudo ispanel
 - ✅ HTTPS listener konfigürasyonu
 - ✅ SSL güvenlik ayarları
 - ✅ HTTP/HTTPS yönlendirme
+
+## Test ve Geliştirme
+
+- Pytest tabanlı temel testler `tests/` dizininde yer alır.
+- Yeni geliştirmeler için `python -m pytest` ile testleri çalıştırabilirsiniz.
+- Testler, OpenLiteSpeed yapılandırmasını sahte bir dizine yönlendirecek şekilde izole edilmiştir.
+
+## Loglama
+
+- Tüm komut çağrıları `/var/log/ispanel.log` dosyasına kaydedilir (uzaktan konum `ISPANEL_LOG_FILE` ile değiştirilebilir).
+- Detay seviyesini `ISPANEL_LOG_LEVEL` ortam değişkeni (`INFO`, `DEBUG` vb.) ile ayarlayabilirsiniz.
+
+## Şablonlar
+
+- OpenLiteSpeed vhost yapılandırması `templates/vhost.conf.j2` şablonundan üretilir.
+- `ISPANEL_TEMPLATE_DIR` ortam değişkeni ile farklı bir şablon dizini kullanılabilir.
