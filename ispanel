@@ -1633,7 +1633,7 @@ def mysql_exec(sql: str):
         # --password= parametresi ile şifreyi güvenli şekilde geç
         run(f'mysql -uroot --password={MYSQL_ROOT_PASSWORD} -e "{sql}"', check=True)
     else:
-    run(f'mysql -uroot -e "{sql}"', check=True)
+        run(f'mysql -uroot -e "{sql}"', check=True)
 
 
 def db_create(db: str, user: str, password: str):
@@ -3475,7 +3475,6 @@ def domain_php_version_menu():
         print(get_text("invalid_choice"))
         input(get_text("press_enter"))
 
-
 def interactive_menu():
     while True:
         try:
@@ -3495,7 +3494,7 @@ def interactive_menu():
             RESET = '\033[0m'
             
             # Menü seçeneklerini kategorize et
-        menu_options = get_text("main_menu_options")
+            menu_options = get_text("main_menu_options")
             
             # 🚀 KURULUM SEÇENEKLERİ
             print(f"\n{BOLD}{CYAN}🚀 KURULUM SEÇENEKLERİ{RESET}")
@@ -3546,77 +3545,77 @@ def interactive_menu():
             print(f"\n{BOLD}{WHITE}0){RESET} {get_text('main_menu_options')[-1]}")
             print(f"{'='*60}")
 
-        choice = input(f"\n{get_text('enter_choice')}: ").strip()
+            choice = input(f"\n{get_text('enter_choice')}: ").strip()
             
-        if choice == "1":
-            # Her iki PHP sürümü de kurulacak
-            cmd_install(argparse.Namespace(php_version="83"))
-        elif choice == "2":
-            install_openlitespeed_only()
-        elif choice == "3":
-            install_mariadb_only()
-        elif choice == "4":
-            domain = input(f"{get_text('domain_prompt')}: ").strip()
-            domain_add(domain)
-        elif choice == "5":
-            domain_php_version_menu()
-        elif choice == "6":
-            list_domains()
-        elif choice == "7":
-            domain = input(f"{get_text('domain_prompt')}: ").strip()
-            domain_remove(domain)
-        elif choice == "8":
-            db = input(f"{get_text('db_name_prompt')}: ").strip()
-            user = input(f"{get_text('db_user_prompt')}: ").strip()
-            password = input(f"{get_text('db_pass_prompt')}: ").strip()
-            db_create(db, user, password)
-        elif choice == "9":
-            list_databases()
-        elif choice == "10":
-            db = input(f"{get_text('db_name_prompt')}: ").strip()
-            user = input(f"{get_text('db_user_prompt')}: ").strip()
-            db_delete(db, user)
-        elif choice == "11":
-            domain = input(f"{get_text('domain_prompt')}: ").strip()
-            fix_virtual_host_root(domain)
-        elif choice == "12":
-            domain = input(f"{get_text('domain_prompt')}: ").strip()
-            fix_vhost_config(domain)
-        elif choice == "13":
-            reset_mysql_root_password()
-        elif choice == "14":
-            reset_openlitespeed_admin_password()
-        elif choice == "15":
-            manage_firewall()
-        elif choice == "16":
-            install_ssl_support()
-        elif choice == "17":
-            secure_mariadb_menu()
-        elif choice == "18":
-            optimize_openlitespeed()
-        elif choice == "19":
-            backup_domain_menu()
-        elif choice == "20":
-            backup_database_menu()
-        elif choice == "21":
-            list_backups()
-        elif choice == "22":
-            cron_backup_menu()
-        elif choice == "23":
-            repair_menu()
-        elif choice == "24":
-            cache_menu()
-        elif choice == "25":
-            system_management_menu()
-        elif choice == "26":
-            ols_php_menu()
-        elif choice == "27":
-            update_ispanel()
-        elif choice == "0":
-            break
-        else:
-            print("Geçersiz seçim")
-            
+            if choice == "1":
+                # Her iki PHP sürümü de kurulacak
+                cmd_install(argparse.Namespace(php_version="83"))
+            elif choice == "2":
+                install_openlitespeed_only()
+            elif choice == "3":
+                install_mariadb_only()
+            elif choice == "4":
+                domain = input(f"{get_text('domain_prompt')}: ").strip()
+                domain_add(domain)
+            elif choice == "5":
+                domain_php_version_menu()
+            elif choice == "6":
+                list_domains()
+            elif choice == "7":
+                domain = input(f"{get_text('domain_prompt')}: ").strip()
+                domain_remove(domain)
+            elif choice == "8":
+                db = input(f"{get_text('db_name_prompt')}: ").strip()
+                user = input(f"{get_text('db_user_prompt')}: ").strip()
+                password = input(f"{get_text('db_pass_prompt')}: ").strip()
+                db_create(db, user, password)
+            elif choice == "9":
+                list_databases()
+            elif choice == "10":
+                db = input(f"{get_text('db_name_prompt')}: ").strip()
+                user = input(f"{get_text('db_user_prompt')}: ").strip()
+                db_delete(db, user)
+            elif choice == "11":
+                domain = input(f"{get_text('domain_prompt')}: ").strip()
+                fix_virtual_host_root(domain)
+            elif choice == "12":
+                domain = input(f"{get_text('domain_prompt')}: ").strip()
+                fix_vhost_config(domain)
+            elif choice == "13":
+                reset_mysql_root_password()
+            elif choice == "14":
+                reset_openlitespeed_admin_password()
+            elif choice == "15":
+                manage_firewall()
+            elif choice == "16":
+                install_ssl_support()
+            elif choice == "17":
+                secure_mariadb_menu()
+            elif choice == "18":
+                optimize_openlitespeed()
+            elif choice == "19":
+                backup_domain_menu()
+            elif choice == "20":
+                backup_database_menu()
+            elif choice == "21":
+                list_backups()
+            elif choice == "22":
+                cron_backup_menu()
+            elif choice == "23":
+                repair_menu()
+            elif choice == "24":
+                cache_menu()
+            elif choice == "25":
+                system_management_menu()
+            elif choice == "26":
+                ols_php_menu()
+            elif choice == "27":
+                update_ispanel()
+            elif choice == "0":
+                break
+            else:
+                print("Geçersiz seçim")
+                
         except KeyboardInterrupt:
             print(f"\n\n{'='*60}")
             print("👋 isPanel'den çıkıldı!")
@@ -3627,7 +3626,6 @@ def interactive_menu():
             print(f"\n❌ Beklenmeyen hata: {e}")
             print("💡 Lütfen tekrar deneyin veya sistem yöneticisine başvurun.")
             input("Devam etmek için Enter'a basın...")
-
 
 def backup_domain_menu():
     """Domain yedekleme menüsü"""
@@ -4173,7 +4171,6 @@ def optimize_kernel_parameters():
     
     print("Kernel parametreleri optimize edildi.")
 
-
 def update_ispanel():
     """isPanel otomatik güncelleme"""
     print("isPanel güncelleniyor...")
@@ -4243,58 +4240,58 @@ def update_ispanel():
         os.chdir(script_dir)
         
         try:
-        # Mevcut branch'i kontrol et
-        result = run("git branch --show-current", check=False)
+            # Mevcut branch'i kontrol et
+            result = run("git branch --show-current", check=False)
             current_branch = result.stdout.strip() if result.stdout else "unknown"
-        print(f"Mevcut branch: {current_branch}")
+            print(f"Mevcut branch: {current_branch}")
 
-        # Remote'dan son değişiklikleri çek
-        print("GitHub'dan son değişiklikler çekiliyor...")
+            # Remote'dan son değişiklikleri çek
+            print("GitHub'dan son değişiklikler çekiliyor...")
             try:
-        run("git fetch origin", check=True)
+                run("git fetch origin", check=True)
             except Exception as e:
                 print(f"❌ Git fetch hatası: {e}")
                 print("💡 Git repository düzeltme gerekebilir.")
                 return
 
-        # Mevcut commit ile remote arasındaki farkı kontrol et
-        result = run("git log HEAD..origin/main --oneline", check=False)
+            # Mevcut commit ile remote arasındaki farkı kontrol et
+            result = run("git log HEAD..origin/main --oneline", check=False)
             if result.stdout and result.stdout.strip():
-            print("Yeni güncellemeler bulundu:")
-            print(result.stdout.strip())
-
-            # Kullanıcıdan onay al
-            confirm = (
-                input("Güncellemeyi uygulamak istiyor musunuz? (y/N): ").strip().lower()
-            )
-            if confirm in ["y", "yes", "evet"]:
-                print("Güncelleme uygulanıyor...")
-
-                # Backup oluştur
-                backup_path = f"/tmp/ispanel_backup_{int(time.time())}.py"
-                run(f"cp {script_path} {backup_path}", check=False)
-                print(f"Yedek oluşturuldu: {backup_path}")
-
-                # Pull yap
-                run("git pull origin main", check=True)
-
-                # Bozuk symlink'i temizle ve yeniden oluştur
-                print("Symlink düzeltiliyor...")
-                run("rm -f /usr/local/bin/ispanel", check=False)
-                install_symlink()
-
-                print("✅ isPanel başarıyla güncellendi!")
-                print("Değişiklikler:")
+                print("Yeni güncellemeler bulundu:")
                 print(result.stdout.strip())
-                print("\nArtık 'ispanel' komutu çalışacak!")
 
-                # Yedek dosyasını sil
-                run(f"rm -f {backup_path}", check=False)
+                # Kullanıcıdan onay al
+                confirm = (
+                    input("Güncellemeyi uygulamak istiyor musunuz? (y/N): ").strip().lower()
+                )
+                if confirm in ["y", "yes", "evet"]:
+                    print("Güncelleme uygulanıyor...")
 
+                    # Backup oluştur
+                    backup_path = f"/tmp/ispanel_backup_{int(time.time())}.py"
+                    run(f"cp {script_path} {backup_path}", check=False)
+                    print(f"Yedek oluşturuldu: {backup_path}")
+
+                    # Pull yap
+                    run("git pull origin main", check=True)
+
+                    # Bozuk symlink'i temizle ve yeniden oluştur
+                    print("Symlink düzeltiliyor...")
+                    run("rm -f /usr/local/bin/ispanel", check=False)
+                    install_symlink()
+
+                    print("✅ isPanel başarıyla güncellendi!")
+                    print("Değişiklikler:")
+                    print(result.stdout.strip())
+                    print("\nArtık 'ispanel' komutu çalışacak!")
+
+                    # Yedek dosyasını sil
+                    run(f"rm -f {backup_path}", check=False)
+
+                else:
+                    print("Güncelleme iptal edildi.")
             else:
-                print("Güncelleme iptal edildi.")
-        else:
-            print("✅ isPanel zaten güncel!")
+                print("✅ isPanel zaten güncel!")
                 
         finally:
             # Orijinal dizine geri dön
@@ -4305,7 +4302,6 @@ def update_ispanel():
         print("Manuel güncelleme gerekebilir.")
     except Exception as e:
         print(f"Beklenmeyen hata: {e}")
-
 
 def system_management_menu():
     """Sistem yönetimi menüsü"""
