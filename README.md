@@ -125,7 +125,7 @@ sudo ispanel
 15) Port Control and Firewall Management
 16) Install SSL/HTTPS Support
 17) MariaDB Security Settings
-18) OpenLiteSpeed Performance Optimization
+18) OpenLiteSpeed + PHP + MySQL Performance Optimization
 19) File Backup Menu
 20) Database Backup Menu
 21) List Backups
@@ -320,7 +320,7 @@ sudo ispanel
 15) Port Kontrolü ve Firewall Yönetimi
 16) SSL/HTTPS Desteği Kur
 17) MariaDB Güvenlik Ayarları
-18) OpenLiteSpeed Performans Optimizasyonu
+18) OpenLiteSpeed + PHP + MySQL Performans Optimizasyonu
 19) Dosya Yedekleme Menüsü
 20) Veritabanı Yedekleme Menüsü
 21) Yedekleri Listele
