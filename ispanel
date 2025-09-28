@@ -3463,7 +3463,12 @@ def update_ispanel():
 
         # Remote'dan son değişiklikleri çek
         print("GitHub'dan son değişiklikler çekiliyor...")
-        run("git fetch origin", check=True)
+        try:
+            run("git fetch origin", check=True)
+        except Exception as e:
+            print(f"❌ Git fetch hatası: {e}")
+            print("💡 Git repository düzeltme gerekebilir.")
+            return
 
         # Mevcut commit ile remote arasındaki farkı kontrol et
         result = run("git log HEAD..origin/main --oneline", check=False)
