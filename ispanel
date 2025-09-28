@@ -2727,75 +2727,76 @@ def domain_php_version_menu():
 
 
 def interactive_menu():
-    while True:
-        print(f"\n{'='*60}")
-        print(f"🎯 {get_text('main_menu_title')}")
-        print(f"{'='*60}")
-        
-        # Renk kodları
-        RED = '\033[91m'
-        GREEN = '\033[92m'
-        YELLOW = '\033[93m'
-        BLUE = '\033[94m'
-        PURPLE = '\033[95m'
-        CYAN = '\033[96m'
-        WHITE = '\033[97m'
-        BOLD = '\033[1m'
-        RESET = '\033[0m'
-        
-        # Menü seçeneklerini kategorize et
-        menu_options = get_text("main_menu_options")
-        
-        # 🚀 KURULUM SEÇENEKLERİ
-        print(f"\n{BOLD}{CYAN}🚀 KURULUM SEÇENEKLERİ{RESET}")
-        print(f"{GREEN}1){RESET} {menu_options[0]}")
-        print(f"{GREEN}2){RESET} {menu_options[1]}")
-        print(f"{GREEN}3){RESET} {menu_options[2]}")
-        
-        # 🌐 DOMAIN YÖNETİMİ
-        print(f"\n{BOLD}{BLUE}🌐 DOMAIN YÖNETİMİ{RESET}")
-        print(f"{YELLOW}4){RESET} {menu_options[3]}")
-        print(f"{YELLOW}5){RESET} {menu_options[4]}")
-        print(f"{YELLOW}6){RESET} {menu_options[5]}")
-        print(f"{YELLOW}7){RESET} {menu_options[6]}")
-        
-        # 🗄️ VERİTABANI YÖNETİMİ
-        print(f"\n{BOLD}{PURPLE}🗄️ VERİTABANI YÖNETİMİ{RESET}")
-        print(f"{PURPLE}8){RESET} {menu_options[7]}")
-        print(f"{PURPLE}9){RESET} {menu_options[8]}")
-        print(f"{PURPLE}10){RESET} {menu_options[9]}")
-        
-        # 🔧 SİSTEM YÖNETİMİ
-        print(f"\n{BOLD}{RED}🔧 SİSTEM YÖNETİMİ{RESET}")
-        print(f"{RED}11){RESET} {menu_options[10]}")
-        print(f"{RED}12){RESET} {menu_options[11]}")
-        print(f"{RED}13){RESET} {menu_options[12]}")
-        print(f"{RED}14){RESET} {menu_options[13]}")
-        print(f"{RED}15){RESET} {menu_options[14]}")
-        print(f"{RED}16){RESET} {menu_options[15]}")
-        print(f"{RED}17){RESET} {menu_options[16]}")
-        print(f"{RED}18){RESET} {menu_options[17]}")
-        
-        # 💾 YEDEKLEME SİSTEMİ
-        print(f"\n{BOLD}{CYAN}💾 YEDEKLEME SİSTEMİ{RESET}")
-        print(f"{CYAN}19){RESET} {menu_options[18]}")
-        print(f"{CYAN}20){RESET} {menu_options[19]}")
-        print(f"{CYAN}21){RESET} {menu_options[20]}")
-        print(f"{CYAN}22){RESET} {menu_options[21]}")
-        
-        # 🛠️ ARAÇLAR
-        print(f"\n{BOLD}{YELLOW}🛠️ ARAÇLAR{RESET}")
-        print(f"{YELLOW}23){RESET} {menu_options[22]}")
-        print(f"{YELLOW}24){RESET} {menu_options[23]}")
-        print(f"{YELLOW}25){RESET} {menu_options[24]}")
-        print(f"{YELLOW}26){RESET} {menu_options[25]}")
-        print(f"{YELLOW}27){RESET} {menu_options[26]}")
-        
-        # ÇIKIŞ
-        print(f"\n{BOLD}{WHITE}0){RESET} {get_text('main_menu_options')[-1]}")
-        print(f"{'='*60}")
+    try:
+        while True:
+            print(f"\n{'='*60}")
+            print(f"🎯 {get_text('main_menu_title')}")
+            print(f"{'='*60}")
+            
+            # Renk kodları
+            RED = '\033[91m'
+            GREEN = '\033[92m'
+            YELLOW = '\033[93m'
+            BLUE = '\033[94m'
+            PURPLE = '\033[95m'
+            CYAN = '\033[96m'
+            WHITE = '\033[97m'
+            BOLD = '\033[1m'
+            RESET = '\033[0m'
+            
+            # Menü seçeneklerini kategorize et
+            menu_options = get_text("main_menu_options")
+            
+            # 🚀 KURULUM SEÇENEKLERİ
+            print(f"\n{BOLD}{CYAN}🚀 KURULUM SEÇENEKLERİ{RESET}")
+            print(f"{GREEN}1){RESET} {menu_options[0]}")
+            print(f"{GREEN}2){RESET} {menu_options[1]}")
+            print(f"{GREEN}3){RESET} {menu_options[2]}")
+            
+            # 🌐 DOMAIN YÖNETİMİ
+            print(f"\n{BOLD}{BLUE}🌐 DOMAIN YÖNETİMİ{RESET}")
+            print(f"{YELLOW}4){RESET} {menu_options[3]}")
+            print(f"{YELLOW}5){RESET} {menu_options[4]}")
+            print(f"{YELLOW}6){RESET} {menu_options[5]}")
+            print(f"{YELLOW}7){RESET} {menu_options[6]}")
+            
+            # 🗄️ VERİTABANI YÖNETİMİ
+            print(f"\n{BOLD}{PURPLE}🗄️ VERİTABANI YÖNETİMİ{RESET}")
+            print(f"{PURPLE}8){RESET} {menu_options[7]}")
+            print(f"{PURPLE}9){RESET} {menu_options[8]}")
+            print(f"{PURPLE}10){RESET} {menu_options[9]}")
+            
+            # 🔧 SİSTEM YÖNETİMİ
+            print(f"\n{BOLD}{RED}🔧 SİSTEM YÖNETİMİ{RESET}")
+            print(f"{RED}11){RESET} {menu_options[10]}")
+            print(f"{RED}12){RESET} {menu_options[11]}")
+            print(f"{RED}13){RESET} {menu_options[12]}")
+            print(f"{RED}14){RESET} {menu_options[13]}")
+            print(f"{RED}15){RESET} {menu_options[14]}")
+            print(f"{RED}16){RESET} {menu_options[15]}")
+            print(f"{RED}17){RESET} {menu_options[16]}")
+            print(f"{RED}18){RESET} {menu_options[17]}")
+            
+            # 💾 YEDEKLEME SİSTEMİ
+            print(f"\n{BOLD}{CYAN}💾 YEDEKLEME SİSTEMİ{RESET}")
+            print(f"{CYAN}19){RESET} {menu_options[18]}")
+            print(f"{CYAN}20){RESET} {menu_options[19]}")
+            print(f"{CYAN}21){RESET} {menu_options[20]}")
+            print(f"{CYAN}22){RESET} {menu_options[21]}")
+            
+            # 🛠️ ARAÇLAR
+            print(f"\n{BOLD}{YELLOW}🛠️ ARAÇLAR{RESET}")
+            print(f"{YELLOW}23){RESET} {menu_options[22]}")
+            print(f"{YELLOW}24){RESET} {menu_options[23]}")
+            print(f"{YELLOW}25){RESET} {menu_options[24]}")
+            print(f"{YELLOW}26){RESET} {menu_options[25]}")
+            print(f"{YELLOW}27){RESET} {menu_options[26]}")
+            
+            # ÇIKIŞ
+            print(f"\n{BOLD}{WHITE}0){RESET} {get_text('main_menu_options')[-1]}")
+            print(f"{'='*60}")
 
-        choice = input(f"\n{get_text('enter_choice')}: ").strip()
+            choice = input(f"\n{get_text('enter_choice')}: ").strip()
         if choice == "1":
             # Her iki PHP sürümü de kurulacak
             cmd_install(argparse.Namespace(php_version="83"))
@@ -2864,6 +2865,17 @@ def interactive_menu():
             break
         else:
             print("Geçersiz seçim")
+    
+    except KeyboardInterrupt:
+        print(f"\n\n{'='*60}")
+        print("👋 isPanel'den çıkıldı!")
+        print("💡 Tekrar giriş için: sudo ispanel")
+        print(f"{'='*60}")
+        return
+    except Exception as e:
+        print(f"\n❌ Beklenmeyen hata: {e}")
+        print("💡 Lütfen tekrar deneyin veya sistem yöneticisine başvurun.")
+        return
 
 
 def backup_domain_menu():
