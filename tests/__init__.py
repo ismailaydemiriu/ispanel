@@ -1,3 +1,0 @@
-"""isPanel test package."""
-
-
