@@ -3541,6 +3541,14 @@ def interactive_menu():
             print(f"{YELLOW}26){RESET} {menu_options[25]}")
             print(f"{YELLOW}27){RESET} {menu_options[26]}")
             
+            # 🚨 KURTARMA VE İZLEME
+            print(f"\n{BOLD}{RED}🚨 KURTARMA VE İZLEME{RESET}")
+            print(f"{RED}28){RESET} Acil Durum Kurtarma")
+            print(f"{RED}29){RESET} Sistem Sağlık Kontrolü")
+            print(f"{RED}30){RESET} Sistem İzleme")
+            print(f"{RED}31){RESET} Otomatik Yedekleme Sistemi")
+            print(f"{RED}32){RESET} isPanel Güncelle")
+            
             # ÇIKIŞ
             print(f"\n{BOLD}{WHITE}0){RESET} {get_text('main_menu_options')[-1]}")
             print(f"{'='*60}")
@@ -3610,6 +3618,16 @@ def interactive_menu():
             elif choice == "26":
                 ols_php_menu()
             elif choice == "27":
+                ols_php_menu()
+            elif choice == "28":
+                emergency_recovery()
+            elif choice == "29":
+                system_health_check()
+            elif choice == "30":
+                system_monitoring()
+            elif choice == "31":
+                auto_backup_system()
+            elif choice == "32":
                 update_ispanel()
             elif choice == "0":
                 break
@@ -4303,37 +4321,734 @@ def update_ispanel():
     except Exception as e:
         print(f"Beklenmeyen hata: {e}")
 
+
+# ---------- SİSTEM KURTARMA VE İZLEME ----------
+
+def system_health_check():
+    """Sistem sağlık kontrolü"""
+    print("🔍 Sistem sağlık kontrolü yapılıyor...")
+    
+    issues = []
+    
+    # OpenLiteSpeed kontrolü
+    try:
+        result = run("systemctl is-active lshttpd", check=False)
+        if result.returncode != 0:
+            issues.append("❌ OpenLiteSpeed servisi çalışmıyor")
+        else:
+            print("✅ OpenLiteSpeed servisi aktif")
+    except:
+        issues.append("❌ OpenLiteSpeed servisi kontrol edilemedi")
+    
+    # MariaDB kontrolü
+    try:
+        result = run("systemctl is-active mariadb", check=False)
+        if result.returncode != 0:
+            issues.append("❌ MariaDB servisi çalışmıyor")
+        else:
+            print("✅ MariaDB servisi aktif")
+    except:
+        issues.append("❌ MariaDB servisi kontrol edilemedi")
+    
+    # Disk alanı kontrolü
+    try:
+        result = run("df -h /", check=True)
+        lines = result.stdout.strip().split('\n')
+        if len(lines) > 1:
+            usage = lines[1].split()[4].replace('%', '')
+            if int(usage) > 90:
+                issues.append(f"⚠️ Disk alanı %{usage} dolu - kritik seviye")
+            elif int(usage) > 80:
+                issues.append(f"⚠️ Disk alanı %{usage} dolu - dikkat")
+            else:
+                print(f"✅ Disk alanı: %{usage} kullanılmış")
+    except:
+        issues.append("❌ Disk alanı kontrol edilemedi")
+    
+    # RAM kullanımı kontrolü
+    try:
+        result = run("free -m", check=True)
+        lines = result.stdout.strip().split('\n')
+        if len(lines) > 1:
+            mem_info = lines[1].split()
+            total = int(mem_info[1])
+            used = int(mem_info[2])
+            usage_percent = (used / total) * 100
+            if usage_percent > 90:
+                issues.append(f"⚠️ RAM kullanımı %{usage_percent:.1f} - kritik seviye")
+            else:
+                print(f"✅ RAM kullanımı: %{usage_percent:.1f}")
+    except:
+        issues.append("❌ RAM kullanımı kontrol edilemedi")
+    
+    # Konfigürasyon dosyaları kontrolü
+    config_files = [
+        "/usr/local/lsws/conf/httpd_config.conf",
+        "/etc/mysql/mariadb.conf.d/50-server.cnf",
+        "/etc/php/8.2/fpm/php.ini",
+        "/etc/php/8.3/fpm/php.ini"
+    ]
+    
+    for config_file in config_files:
+        if Path(config_file).exists():
+            print(f"✅ Konfigürasyon dosyası mevcut: {config_file}")
+        else:
+            issues.append(f"❌ Konfigürasyon dosyası eksik: {config_file}")
+    
+    if issues:
+        print("\n🚨 Tespit edilen sorunlar:")
+        for issue in issues:
+            print(f"  {issue}")
+        return False
+    else:
+        print("\n✅ Sistem sağlıklı - tüm kontroller başarılı!")
+        return True
+
+
+def emergency_backup():
+    """Acil durum yedekleme"""
+    print("🚨 Acil durum yedekleme başlatılıyor...")
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_dir = Path(f"/tmp/emergency_backup_{timestamp}")
+    backup_dir.mkdir(exist_ok=True)
+    
+    try:
+        # OpenLiteSpeed konfigürasyonu
+        ols_config = Path("/usr/local/lsws/conf/httpd_config.conf")
+        if ols_config.exists():
+            run(f"cp -r {ols_config.parent} {backup_dir}/openlitespeed_config", check=True)
+            print("✅ OpenLiteSpeed konfigürasyonu yedeklendi")
+        
+        # MariaDB veritabanları
+        try:
+            run(f"mysqldump --all-databases --single-transaction --routines --triggers > {backup_dir}/all_databases.sql", check=True)
+            print("✅ Tüm veritabanları yedeklendi")
+        except:
+            print("⚠️ Veritabanı yedekleme başarısız")
+        
+        # Domain dosyaları
+        if VHOSTS_DIR.exists():
+            run(f"cp -r {VHOSTS_DIR} {backup_dir}/domains", check=True)
+            print("✅ Domain dosyaları yedeklendi")
+        
+        # PHP konfigürasyonları
+        php_configs = ["/etc/php/8.2", "/etc/php/8.3"]
+        for php_config in php_configs:
+            if Path(php_config).exists():
+                run(f"cp -r {php_config} {backup_dir}/", check=True)
+                print(f"✅ PHP konfigürasyonu yedeklendi: {php_config}")
+        
+        # Sistem bilgileri
+        with open(backup_dir / "system_info.txt", "w") as f:
+            f.write(f"Yedekleme tarihi: {datetime.now()}\n")
+            f.write(f"Sistem: {run('uname -a', check=True).stdout.strip()}\n")
+            f.write(f"Disk kullanımı:\n{run('df -h', check=True).stdout}\n")
+            f.write(f"RAM kullanımı:\n{run('free -h', check=True).stdout}\n")
+        
+        print(f"\n✅ Acil yedekleme tamamlandı: {backup_dir}")
+        print(f"💾 Yedek boyutu: {run(f'du -sh {backup_dir}', check=True).stdout.strip()}")
+        
+        return backup_dir
+        
+    except Exception as e:
+        print(f"❌ Acil yedekleme hatası: {e}")
+        return None
+
+
+def emergency_recovery():
+    """Acil durum kurtarma"""
+    print("🚨 Acil durum kurtarma menüsü")
+    print("=" * 50)
+    print("1) Sistem sağlık kontrolü")
+    print("2) Acil yedekleme oluştur")
+    print("3) OpenLiteSpeed servisini yeniden başlat")
+    print("4) MariaDB servisini yeniden başlat")
+    print("5) Tüm servisleri yeniden başlat")
+    print("6) Konfigürasyon dosyalarını onar")
+    print("7) Veritabanı onarımı")
+    print("8) Sistem temizliği")
+    print("9) Yedekten geri yükle")
+    print("0) Ana menüye dön")
+    
+    choice = input("\nSeçiminizi girin: ").strip()
+    
+    if choice == "1":
+        system_health_check()
+    elif choice == "2":
+        emergency_backup()
+    elif choice == "3":
+        print("🔄 OpenLiteSpeed yeniden başlatılıyor...")
+        run("systemctl restart lshttpd", check=True)
+        print("✅ OpenLiteSpeed yeniden başlatıldı")
+    elif choice == "4":
+        print("🔄 MariaDB yeniden başlatılıyor...")
+        run("systemctl restart mariadb", check=True)
+        print("✅ MariaDB yeniden başlatıldı")
+    elif choice == "5":
+        print("🔄 Tüm servisler yeniden başlatılıyor...")
+        run("systemctl restart lshttpd mariadb", check=True)
+        print("✅ Tüm servisler yeniden başlatıldı")
+    elif choice == "6":
+        repair_configurations()
+    elif choice == "7":
+        repair_databases()
+    elif choice == "8":
+        system_cleanup()
+    elif choice == "9":
+        restore_from_backup()
+    elif choice == "0":
+        return
+    else:
+        print("Geçersiz seçim")
+    
+    input("\nDevam etmek için Enter'a basın...")
+
+
+def repair_configurations():
+    """Konfigürasyon dosyalarını onar"""
+    print("🔧 Konfigürasyon dosyaları onarılıyor...")
+    
+    try:
+        # OpenLiteSpeed konfigürasyonu onarımı
+        ols_conf = Path("/usr/local/lsws/conf/httpd_config.conf")
+        if not ols_conf.exists():
+            print("⚠️ OpenLiteSpeed konfigürasyonu eksik, yeniden oluşturuluyor...")
+            # Temel konfigürasyon oluştur
+            basic_config = """# OpenLiteSpeed Basic Configuration
+serverName localhost
+user nobody
+group nogroup
+chrootPath /usr/local/lsws/
+enableChroot 0
+priority 0
+autoLoadHtaccess 1
+
+listener HTTP {
+    address *:80
+    secure 0
+    map * *
+}
+
+listener HTTPS {
+    address *:443
+    secure 1
+    keyFile /usr/local/lsws/conf/cert/server.key
+    certFile /usr/local/lsws/conf/cert/server.crt
+    map * *
+}
+
+virtualHost Default {
+    vhRoot /usr/local/lsws/Example/html/
+    configFile /usr/local/lsws/conf/vhosts/Example/vhconf.conf
+    allowSymbolLink 1
+    enableScript 1
+    restrained 1
+    setUIDMode 0
+    chrootPath /usr/local/lsws/Example/
+    enableChroot 0
+}
+"""
+            ols_conf.write_text(basic_config, encoding="utf-8")
+            print("✅ OpenLiteSpeed temel konfigürasyonu oluşturuldu")
+        
+        # MariaDB konfigürasyonu kontrolü
+        mysql_conf = Path("/etc/mysql/mariadb.conf.d/50-server.cnf")
+        if not mysql_conf.exists():
+            print("⚠️ MariaDB konfigürasyonu eksik, varsayılan ayarlar uygulanıyor...")
+            run("systemctl stop mariadb", check=False)
+            run("rm -rf /var/lib/mysql", check=False)
+            run("mysql_install_db --user=mysql --basedir=/usr --datadir=/var/lib/mysql", check=True)
+            run("systemctl start mariadb", check=True)
+            print("✅ MariaDB konfigürasyonu onarıldı")
+        
+        # PHP konfigürasyonları
+        php_versions = ["8.2", "8.3"]
+        for version in php_versions:
+            php_ini = Path(f"/etc/php/{version}/fpm/php.ini")
+            if not php_ini.exists():
+                print(f"⚠️ PHP {version} konfigürasyonu eksik, varsayılan ayarlar uygulanıyor...")
+                run(f"apt-get install -y php{version}-fpm", check=True)
+                print(f"✅ PHP {version} konfigürasyonu onarıldı")
+        
+        print("✅ Tüm konfigürasyonlar onarıldı")
+        
+    except Exception as e:
+        print(f"❌ Konfigürasyon onarım hatası: {e}")
+
+
+def repair_databases():
+    """Veritabanı onarımı"""
+    print("🔧 Veritabanı onarımı başlatılıyor...")
+    
+    try:
+        # MariaDB servisini başlat
+        run("systemctl start mariadb", check=True)
+        print("✅ MariaDB servisi başlatıldı")
+        
+        # Veritabanı onarımı
+        print("🔄 Veritabanları onarılıyor...")
+        run("mysqlcheck --all-databases --auto-repair --optimize", check=True)
+        print("✅ Veritabanları onarıldı")
+        
+        # Kullanıcı izinlerini kontrol et
+        print("🔄 Kullanıcı izinleri kontrol ediliyor...")
+        run("mysql -e 'FLUSH PRIVILEGES;'", check=True)
+        print("✅ Kullanıcı izinleri güncellendi")
+        
+    except Exception as e:
+        print(f"❌ Veritabanı onarım hatası: {e}")
+
+
+def system_cleanup():
+    """Sistem temizliği"""
+    print("🧹 Sistem temizliği başlatılıyor...")
+    
+    try:
+        # Geçici dosyaları temizle
+        run("rm -rf /tmp/*", check=False)
+        print("✅ Geçici dosyalar temizlendi")
+        
+        # Log dosyalarını temizle (eski olanları)
+        run("find /var/log -name '*.log' -mtime +7 -delete", check=False)
+        print("✅ Eski log dosyaları temizlendi")
+        
+        # APT cache temizliği
+        run("apt-get clean", check=True)
+        print("✅ APT cache temizlendi")
+        
+        # Disk alanı kontrolü
+        result = run("df -h /", check=True)
+        print(f"💾 Disk kullanımı:\n{result.stdout}")
+        
+    except Exception as e:
+        print(f"❌ Sistem temizlik hatası: {e}")
+
+
+def restore_from_backup():
+    """Yedekten geri yükleme"""
+    print("📦 Yedekten geri yükleme menüsü")
+    
+    # Mevcut yedekleri listele
+    backup_dirs = []
+    for item in Path("/tmp").iterdir():
+        if item.is_dir() and item.name.startswith("emergency_backup_"):
+            backup_dirs.append(item)
+    
+    if not backup_dirs:
+        print("❌ Acil yedek bulunamadı")
+        return
+    
+    print("\nMevcut yedekler:")
+    for i, backup_dir in enumerate(backup_dirs, 1):
+        print(f"{i}) {backup_dir.name}")
+    
+    choice = input("\nGeri yüklenecek yedek numarasını girin (0=İptal): ").strip()
+    
+    if choice == "0":
+        return
+    
+    try:
+        idx = int(choice) - 1
+        if 0 <= idx < len(backup_dirs):
+            backup_dir = backup_dirs[idx]
+            print(f"🔄 {backup_dir.name} geri yükleniyor...")
+            
+            # OpenLiteSpeed konfigürasyonu geri yükle
+            ols_backup = backup_dir / "openlitespeed_config"
+            if ols_backup.exists():
+                run(f"cp -r {ols_backup}/* /usr/local/lsws/conf/", check=True)
+                print("✅ OpenLiteSpeed konfigürasyonu geri yüklendi")
+            
+            # Veritabanları geri yükle
+            db_backup = backup_dir / "all_databases.sql"
+            if db_backup.exists():
+                run(f"mysql < {db_backup}", check=True)
+                print("✅ Veritabanları geri yüklendi")
+            
+            # Domain dosyaları geri yükle
+            domains_backup = backup_dir / "domains"
+            if domains_backup.exists():
+                run(f"cp -r {domains_backup}/* {VHOSTS_DIR}/", check=True)
+                print("✅ Domain dosyaları geri yüklendi")
+            
+            # Servisleri yeniden başlat
+            run("systemctl restart lshttpd mariadb", check=True)
+            print("✅ Servisler yeniden başlatıldı")
+            
+            print(f"\n✅ Geri yükleme tamamlandı: {backup_dir.name}")
+        else:
+            print("❌ Geçersiz seçim")
+    
+    except Exception as e:
+        print(f"❌ Geri yükleme hatası: {e}")
+
+
+def auto_backup_system():
+    """Otomatik yedekleme sistemi"""
+    print("🤖 Otomatik yedekleme sistemi kuruluyor...")
+    
+    try:
+        # Cron job oluştur
+        cron_job = "0 2 * * * /usr/local/bin/ispanel --auto-backup >/dev/null 2>&1"
+        
+        # Mevcut cron jobs'ı kontrol et
+        result = run("crontab -l", check=False)
+        if result.returncode == 0 and "ispanel --auto-backup" not in result.stdout:
+            # Yeni cron job ekle
+            current_cron = result.stdout if result.stdout else ""
+            new_cron = current_cron + "\n" + cron_job + "\n"
+            run(f"echo '{new_cron}' | crontab -", check=True)
+            print("✅ Otomatik yedekleme cron job'ı eklendi")
+        else:
+            print("ℹ️ Otomatik yedekleme zaten aktif")
+        
+        # Yedekleme dizini oluştur
+        backup_dir = Path("/var/backups/ispanel")
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        print(f"✅ Yedekleme dizini oluşturuldu: {backup_dir}")
+        
+        print("\n📋 Otomatik yedekleme ayarları:")
+        print("• Yedekleme zamanı: Her gün saat 02:00")
+        print("• Yedekleme dizini: /var/backups/ispanel")
+        print("• Saklama süresi: 30 gün")
+        
+    except Exception as e:
+        print(f"❌ Otomatik yedekleme kurulum hatası: {e}")
+
+
+def system_monitoring():
+    """Sistem izleme"""
+    print("📊 Sistem izleme başlatılıyor...")
+    
+    while True:
+        print("\n" + "="*50)
+        print("📊 SİSTEM İZLEME PANELİ")
+        print("="*50)
+        print("1) Anlık sistem durumu")
+        print("2) Servis durumları")
+        print("3) Disk kullanımı")
+        print("4) RAM kullanımı")
+        print("5) Ağ bağlantıları")
+        print("6) Log dosyaları")
+        print("7) Sürekli izleme (5 saniye)")
+        print("0) Ana menüye dön")
+        
+        choice = input("\nSeçiminizi girin: ").strip()
+        
+        if choice == "1":
+            system_health_check()
+        elif choice == "2":
+            show_service_status()
+        elif choice == "3":
+            show_disk_usage()
+        elif choice == "4":
+            show_memory_usage()
+        elif choice == "5":
+            show_network_connections()
+        elif choice == "6":
+            show_log_files()
+        elif choice == "7":
+            continuous_monitoring()
+        elif choice == "0":
+            break
+        else:
+            print("Geçersiz seçim")
+        
+        if choice != "7":
+            input("\nDevam etmek için Enter'a basın...")
+
+
+def show_service_status():
+    """Servis durumlarını göster"""
+    print("🔍 Servis durumları kontrol ediliyor...")
+    
+    services = ["lshttpd", "mariadb", "php8.2-fpm", "php8.3-fpm"]
+    
+    for service in services:
+        try:
+            result = run(f"systemctl is-active {service}", check=False)
+            status = "✅ Aktif" if result.returncode == 0 else "❌ Pasif"
+            print(f"{service}: {status}")
+        except:
+            print(f"{service}: ❓ Bilinmiyor")
+
+
+def show_disk_usage():
+    """Disk kullanımını göster"""
+    print("💾 Disk kullanımı:")
+    run("df -h", check=True)
+
+
+def show_memory_usage():
+    """RAM kullanımını göster"""
+    print("🧠 RAM kullanımı:")
+    run("free -h", check=True)
+
+
+def show_network_connections():
+    """Ağ bağlantılarını göster"""
+    print("🌐 Ağ bağlantıları:")
+    run("netstat -tulpn | grep -E ':(80|443|3306)'", check=True)
+
+
+def show_log_files():
+    """Log dosyalarını göster"""
+    print("📋 Son log kayıtları:")
+    print("\nOpenLiteSpeed logları:")
+    run("tail -10 /usr/local/lsws/logs/error.log", check=False)
+    print("\nMariaDB logları:")
+    run("tail -10 /var/log/mysql/error.log", check=False)
+
+
+def continuous_monitoring():
+    """Sürekli izleme"""
+    print("🔄 Sürekli izleme başlatıldı (Ctrl+C ile çıkış)")
+    
+    try:
+        while True:
+            print("\n" + "="*50)
+            print(f"📊 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            print("="*50)
+            
+            # Sistem durumu
+            system_health_check()
+            
+            # 5 saniye bekle
+            time.sleep(5)
+            
+    except KeyboardInterrupt:
+        print("\n🛑 İzleme durduruldu")
+
 def system_management_menu():
     """Sistem yönetimi menüsü"""
     while True:
         print("\n--- Sistem Yönetimi ---")
-        print("1) Sistem paketlerini güncelle")
-        print("2) Yedek rotasyonu kur")
-        print("3) Log rotasyonu kur")
-        print("4) Kernel parametrelerini optimize et")
-        print("5) Sistem durumu")
-        print("6) Disk kullanımı")
-        print("7) ispanel komutunu onar (/usr/local/bin/ispanel)")
-        print("0) Geri")
-        sub = input("Seçim: ").strip()
-        if sub == "1":
-            auto_update_system()
-        elif sub == "2":
-            setup_backup_rotation()
-        elif sub == "3":
-            setup_log_rotation()
-        elif sub == "4":
-            optimize_kernel_parameters()
-        elif sub == "5":
-            run("systemctl status lsws mariadb redis-server memcached", check=False)
-        elif sub == "6":
-            run("df -h", check=False)
-        elif sub == "7":
-            install_symlink()
-        elif sub == "0":
+        print("1) Sistem bilgileri")
+        print("2) Servis durumları")
+        print("3) Disk kullanımı")
+        print("4) RAM kullanımı")
+        print("5) Ağ bağlantıları")
+        print("6) Log dosyaları")
+        print("7) Sistem temizliği")
+        print("8) Otomatik yedekleme kurulumu")
+        print("0) Ana menüye dön")
+        
+        choice = input("\nSeçiminizi girin: ").strip()
+        
+        if choice == "1":
+            show_system_info()
+        elif choice == "2":
+            show_service_status()
+        elif choice == "3":
+            show_disk_usage()
+        elif choice == "4":
+            show_memory_usage()
+        elif choice == "5":
+            show_network_connections()
+        elif choice == "6":
+            show_log_files()
+        elif choice == "7":
+            system_cleanup()
+        elif choice == "8":
+            auto_backup_system()
+        elif choice == "0":
             break
         else:
             print("Geçersiz seçim")
+        
+        if choice != "0":
+            input("\nDevam etmek için Enter'a basın...")
+
+
+def show_system_info():
+    """Sistem bilgilerini göster"""
+    print("💻 Sistem Bilgileri:")
+    print(f"Sistem: {run('uname -a', check=True).stdout.strip()}")
+    print(f"Çalışma süresi: {run('uptime', check=True).stdout.strip()}")
+    print(f"Yükleme: {run('cat /proc/loadavg', check=True).stdout.strip()}")
+    print(f"Disk kullanımı:\n{run('df -h', check=True).stdout}")
+    print(f"RAM kullanımı:\n{run('free -h', check=True).stdout}")
+
+
+def ols_php_menu():
+    """OpenLiteSpeed PHP yönetimi menüsü"""
+    print("\n--- OpenLiteSpeed PHP Yönetimi ---")
+    print("1) PHP sürümlerini listele")
+    print("2) PHP sürümü değiştir")
+    print("3) PHP modüllerini listele")
+    print("4) PHP konfigürasyonunu düzenle")
+    print("0) Ana menüye dön")
+    
+    choice = input("\nSeçiminizi girin: ").strip()
+    
+    if choice == "1":
+        list_php_versions()
+    elif choice == "2":
+        change_php_version()
+    elif choice == "3":
+        list_php_modules()
+    elif choice == "4":
+        edit_php_config()
+    elif choice == "0":
+        return
+    else:
+        print("Geçersiz seçim")
+
+
+def list_php_versions():
+    """PHP sürümlerini listele"""
+    print("📋 Mevcut PHP sürümleri:")
+    run("ls -la /usr/local/lsws/lsphp*", check=True)
+
+
+def change_php_version():
+    """PHP sürümü değiştir"""
+    print("🔄 PHP sürümü değiştirme")
+    print("1) PHP 8.2")
+    print("2) PHP 8.3")
+    
+    choice = input("Seçiminizi girin: ").strip()
+    
+    if choice == "1":
+        run("ln -sf /usr/local/lsws/lsphp82/bin/lsphp /usr/local/lsws/fcgi-bin/lsphp", check=True)
+        print("✅ PHP 8.2 aktif edildi")
+    elif choice == "2":
+        run("ln -sf /usr/local/lsws/lsphp83/bin/lsphp /usr/local/lsws/fcgi-bin/lsphp", check=True)
+        print("✅ PHP 8.3 aktif edildi")
+    else:
+        print("Geçersiz seçim")
+
+
+def list_php_modules():
+    """PHP modüllerini listele"""
+    print("📋 PHP modülleri:")
+    run("php -m", check=True)
+
+
+def edit_php_config():
+    """PHP konfigürasyonunu düzenle"""
+    print("📝 PHP konfigürasyonu düzenleme")
+    print("1) PHP 8.2 konfigürasyonu")
+    print("2) PHP 8.3 konfigürasyonu")
+    
+    choice = input("Seçiminizi girin: ").strip()
+    
+    if choice == "1":
+        run("nano /etc/php/8.2/fpm/php.ini", check=True)
+    elif choice == "2":
+        run("nano /etc/php/8.3/fpm/php.ini", check=True)
+    else:
+        print("Geçersiz seçim")
+
+
+def cache_menu():
+    """Cache yönetimi menüsü"""
+    print("\n--- Cache Yönetimi ---")
+    print("1) OpenLiteSpeed cache temizle")
+    print("2) PHP OPcache temizle")
+    print("3) Tüm cache'leri temizle")
+    print("4) Cache durumunu kontrol et")
+    print("0) Ana menüye dön")
+    
+    choice = input("\nSeçiminizi girin: ").strip()
+    
+    if choice == "1":
+        clear_ols_cache()
+    elif choice == "2":
+        clear_php_cache()
+    elif choice == "3":
+        clear_all_cache()
+    elif choice == "4":
+        check_cache_status()
+    elif choice == "0":
+        return
+    else:
+        print("Geçersiz seçim")
+
+
+def clear_ols_cache():
+    """OpenLiteSpeed cache temizle"""
+    print("🧹 OpenLiteSpeed cache temizleniyor...")
+    run("rm -rf /usr/local/lsws/cachedata/*", check=True)
+    run("systemctl reload lshttpd", check=True)
+    print("✅ OpenLiteSpeed cache temizlendi")
+
+
+def clear_php_cache():
+    """PHP cache temizle"""
+    print("🧹 PHP cache temizleniyor...")
+    run("systemctl reload php8.2-fpm php8.3-fpm", check=True)
+    print("✅ PHP cache temizlendi")
+
+
+def clear_all_cache():
+    """Tüm cache'leri temizle"""
+    print("🧹 Tüm cache'ler temizleniyor...")
+    clear_ols_cache()
+    clear_php_cache()
+    print("✅ Tüm cache'ler temizlendi")
+
+
+def check_cache_status():
+    """Cache durumunu kontrol et"""
+    print("📊 Cache durumu:")
+    print("OpenLiteSpeed cache dizini:")
+    run("ls -la /usr/local/lsws/cachedata/", check=True)
+    print("\nPHP OPcache durumu:")
+    run("php -r 'echo phpinfo();' | grep -i opcache", check=True)
+
+
+def repair_menu():
+    """Onarım menüsü"""
+    print("\n--- Sistem Onarımı ---")
+    print("1) Konfigürasyon dosyalarını onar")
+    print("2) Veritabanı onarımı")
+    print("3) Servisleri yeniden başlat")
+    print("4) Dosya izinlerini düzelt")
+    print("5) Symlink'leri düzelt")
+    print("0) Ana menüye dön")
+    
+    choice = input("\nSeçiminizi girin: ").strip()
+    
+    if choice == "1":
+        repair_configurations()
+    elif choice == "2":
+        repair_databases()
+    elif choice == "3":
+        restart_services()
+    elif choice == "4":
+        fix_permissions()
+    elif choice == "5":
+        fix_symlinks()
+    elif choice == "0":
+        return
+    else:
+        print("Geçersiz seçim")
+
+
+def restart_services():
+    """Servisleri yeniden başlat"""
+    print("🔄 Servisler yeniden başlatılıyor...")
+    run("systemctl restart lshttpd mariadb php8.2-fpm php8.3-fpm", check=True)
+    print("✅ Tüm servisler yeniden başlatıldı")
+
+
+def fix_permissions():
+    """Dosya izinlerini düzelt"""
+    print("🔧 Dosya izinleri düzeltiliyor...")
+    run("chown -R lsadm:lsadm /usr/local/lsws/", check=True)
+    run("chmod -R 755 /usr/local/lsws/", check=True)
+    run("chown -R mysql:mysql /var/lib/mysql/", check=True)
+    print("✅ Dosya izinleri düzeltildi")
+
+
+def fix_symlinks():
+    """Symlink'leri düzelt"""
+    print("🔧 Symlink'ler düzeltiliyor...")
+    run("rm -f /usr/local/bin/ispanel", check=False)
+    install_symlink()
+    print("✅ Symlink'ler düzeltildi")
 
 
 def main():
