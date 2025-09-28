@@ -53,8 +53,6 @@ sudo ispanel
 3) Domain sil
 4) DB oluştur
 5) DB sil
-6) MySQL root şifre sıfırla
-7) OpenLiteSpeed admin şifre sıfırla
 8) Port kontrolü ve Firewall yönetimi
 9) SSL/HTTPS desteği kur
 10) MariaDB güvenlik ayarları
@@ -62,6 +60,8 @@ sudo ispanel
 12) Dosya yedekleme menüsü
 13) Veritabanı yedekleme menüsü
 14) Yedekleri listele
+15) MySQL root şifre sıfırla
+16) OpenLiteSpeed admin şifre sıfırla
 0) Çıkış
 ```
 
