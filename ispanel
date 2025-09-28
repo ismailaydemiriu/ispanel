@@ -2345,68 +2345,68 @@ def interactive_menu():
         elif choice == "16":
             optimize_openlitespeed()
         elif choice == "17":
-            while True:
-                print("\n--- Dosya Yedekleme ---")
-                print("1) Domain yedeği al")
-                print("2) Domain yedeği geri yükle")
-                print("3) Docroot taban klasörünü göster")
-                print("0) Geri")
-                sub = input("Seçim: ").strip()
-                if sub == "1":
-                    domain = input("Domain: ").strip()
-                    backup_domain(domain)
-                elif sub == "2":
-                    backup_file = input("Yedek dosyası yolu: ").strip()
-                    restore_domain(backup_file)
-                elif sub == "3":
-                    print(f"Docroot base: {DOCROOT_BASE}")
-                elif sub == "0":
-                    break
-                else:
-                    print("Geçersiz seçim")
-        elif choice == "17":
-            while True:
-                print("\n--- Veritabanı Yedekleme ---")
-                print("1) DB yedeği al")
-                print("2) DB yedeği geri yükle")
-                print("3) DB kullanıcısı oluştur")
-                print("0) Geri")
-                sub = input("Seçim: ").strip()
-                if sub == "1":
-                    db = input("DB adı: ").strip()
-                    backup_database(db)
-                elif sub == "2":
-                    backup_file = input("Yedek dosyası yolu: ").strip()
-                    db_name = input("Hedef DB adı: ").strip()
-                    restore_database(backup_file, db_name)
-                elif sub == "3":
-                    user = input("Kullanıcı adı: ").strip()
-                    password = input("Parola: ").strip()
-                    host = input("Host (varsayılan %): ").strip() or "%"
-                    db_user_create(user, password, host)
-                elif sub == "0":
-                    break
-                else:
-                    print("Geçersiz seçim")
+            backup_domain_menu()
         elif choice == "18":
-            list_backups()
+            backup_database_menu()
         elif choice == "19":
-            cron_backup_menu()
+            list_backups()
         elif choice == "20":
-            repair_menu()
+            cron_backup_menu()
         elif choice == "21":
-            cache_menu()
+            repair_menu()
         elif choice == "22":
-            system_management_menu()
+            cache_menu()
         elif choice == "23":
-            ols_php_menu()
+            system_management_menu()
         elif choice == "24":
+            ols_php_menu()
+        elif choice == "25":
             update_ispanel()
         elif choice == "0":
             break
         else:
             print("Geçersiz seçim")
 
+
+def backup_domain_menu():
+    """Domain yedekleme menüsü"""
+    while True:
+        print(f"\n=== {get_text('main_menu_options')[16]} ===")  # File Backup Menu
+        print("1) " + get_text('domain_prompt'))
+        print("2) " + get_text('main_menu_options')[18])  # List Backups
+        print("0) " + get_text('main_menu_options')[-1])  # Exit
+        
+        choice = input(f"{get_text('enter_choice')}: ").strip()
+        
+        if choice == "1":
+            domain = input(f"{get_text('domain_prompt')}: ").strip()
+            backup_domain(domain)
+        elif choice == "2":
+            list_backups()
+        elif choice == "0":
+            break
+        else:
+            print(get_text('invalid_choice'))
+
+def backup_database_menu():
+    """Veritabanı yedekleme menüsü"""
+    while True:
+        print(f"\n=== {get_text('main_menu_options')[17]} ===")  # Database Backup Menu
+        print("1) " + get_text('db_name_prompt'))
+        print("2) " + get_text('main_menu_options')[18])  # List Backups
+        print("0) " + get_text('main_menu_options')[-1])  # Exit
+        
+        choice = input(f"{get_text('enter_choice')}: ").strip()
+        
+        if choice == "1":
+            db_name = input(f"{get_text('db_name_prompt')}: ").strip()
+            backup_database(db_name)
+        elif choice == "2":
+            list_backups()
+        elif choice == "0":
+            break
+        else:
+            print(get_text('invalid_choice'))
 
 def repair_menu():
     """Onarım araçları menüsü"""
