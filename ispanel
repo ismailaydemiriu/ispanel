@@ -987,6 +987,81 @@ def restore_database(backup_file, db_name):
     return True
 
 
+def list_domains():
+    """Aktif domainleri listele"""
+    print("\n=== Aktif Domainler ===")
+    
+    if not VHOSTS_DIR.exists():
+        print("Vhost dizini bulunamadı.")
+        return
+    
+    domains = []
+    for domain_dir in VHOSTS_DIR.iterdir():
+        if domain_dir.is_dir() and domain_dir.name != "Example":
+            domain = domain_dir.name
+            docroot = DOCROOT_BASE / domain / "public_html"
+            vhost_conf = domain_dir / "vhost.conf"
+            
+            # Domain bilgilerini topla
+            info = {
+                "domain": domain,
+                "docroot": str(docroot),
+                "exists": docroot.exists(),
+                "vhost_exists": vhost_conf.exists()
+            }
+            domains.append(info)
+    
+    if not domains:
+        print("Hiç domain bulunamadı.")
+        return
+    
+    print(f"{'Domain':<20} {'Docroot':<30} {'Durum':<10}")
+    print("-" * 60)
+    
+    for info in domains:
+        status = "✅ Aktif" if info["exists"] and info["vhost_exists"] else "❌ Hata"
+        print(f"{info['domain']:<20} {info['docroot']:<30} {status:<10}")
+
+
+def list_databases():
+    """Veritabanlarını listele"""
+    print("\n=== Veritabanları ===")
+    
+    try:
+        # Veritabanlarını listele
+        result = run("mysql -uroot -e 'SHOW DATABASES;'", check=False)
+        if result.returncode != 0:
+            print("MariaDB bağlantı hatası. Servis çalışıyor mu kontrol edin.")
+            return
+        
+        databases = []
+        for line in result.stdout.strip().split('\n'):
+            line = line.strip()
+            if line and line not in ['Database', 'information_schema', 'performance_schema', 'mysql', 'sys']:
+                databases.append(line)
+        
+        if not databases:
+            print("Hiç veritabanı bulunamadı.")
+            return
+        
+        print(f"{'Veritabanı':<20} {'Boyut':<15} {'Tarih':<20}")
+        print("-" * 55)
+        
+        for db in databases:
+            # Veritabanı boyutunu al
+            size_result = run(f"mysql -uroot -e 'SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS \"DB Size in MB\" FROM information_schema.tables WHERE table_schema=\"{db}\";'", check=False)
+            size = size_result.stdout.strip().split('\n')[-1] if size_result.returncode == 0 else "N/A"
+            
+            # Son değişiklik tarihi
+            date_result = run(f"mysql -uroot -e 'SELECT MAX(update_time) FROM information_schema.tables WHERE table_schema=\"{db}\";'", check=False)
+            date = date_result.stdout.strip().split('\n')[-1] if date_result.returncode == 0 else "N/A"
+            
+            print(f"{db:<20} {size:<15} {date:<20}")
+            
+    except Exception as e:
+        print(f"Veritabanı listesi alınamadı: {e}")
+
+
 def list_backups():
     """Yedekleri listele"""
     domain_backups = list(Path("/home/backup/domains").glob("*.tar.gz"))
@@ -1053,24 +1128,26 @@ def interactive_menu():
         print("1) Kurulum (OpenLiteSpeed + PHP 8.2 + MariaDB)")
         print("2) Kurulum (OpenLiteSpeed + PHP 8.3 + MariaDB)")
         print("3) Domain ekle")
-        print("4) Domain sil")
-        print("5) DB oluştur")
-        print("6) DB sil")
-        print("7) MySQL root şifre sıfırla")
-        print("8) OpenLiteSpeed admin şifre sıfırla")
-        print("9) Port kontrolü ve Firewall yönetimi")
-        print("10) SSL/HTTPS desteği kur")
-        print("11) MariaDB güvenlik ayarları")
-        print("12) OpenLiteSpeed performans optimizasyonu")
-        print("13) Dosya yedekleme menüsü")
-        print("14) Veritabanı yedekleme menüsü")
-        print("15) Yedekleri listele")
-        print("17) Cron backup ayarları")
-        print("18) Onarım araçları")
-        print("19) Cache sistemleri (Redis/Memcached)")
-        print("20) Sistem yönetimi")
-        print("21) OLS/PHP ayarları")
-        print("22) isPanel güncelle")
+        print("4) Domain Listesi")
+        print("5) Domain sil")
+        print("6) DB Listesi")
+        print("7) DB oluştur")
+        print("8) DB sil")
+        print("9) MySQL root şifre sıfırla")
+        print("10) OpenLiteSpeed admin şifre sıfırla")
+        print("11) Port kontrolü ve Firewall yönetimi")
+        print("12) SSL/HTTPS desteği kur")
+        print("13) MariaDB güvenlik ayarları")
+        print("14) OpenLiteSpeed performans optimizasyonu")
+        print("15) Dosya yedekleme menüsü")
+        print("16) Veritabanı yedekleme menüsü")
+        print("17) Yedekleri listele")
+        print("18) Cron backup ayarları")
+        print("19) Onarım araçları")
+        print("20) Cache sistemleri (Redis/Memcached)")
+        print("21) Sistem yönetimi")
+        print("22) OLS/PHP ayarları")
+        print("23) isPanel güncelle")
         print("0) Çıkış")
         choice = input("Seçim: ").strip()
         if choice == "1":
@@ -1083,28 +1160,32 @@ def interactive_menu():
             domain = input("Domain: ").strip()
             domain_add(domain)
         elif choice == "4":
+            list_domains()
+        elif choice == "5":
             domain = input("Domain: ").strip()
             domain_remove(domain)
-        elif choice == "5":
+        elif choice == "6":
+            list_databases()
+        elif choice == "7":
             db = input("DB adı: ").strip()
             user = input("Kullanıcı: ").strip()
             password = input("Parola: ").strip()
             db_create(db, user, password)
-        elif choice == "6":
+        elif choice == "8":
             db = input("DB adı: ").strip()
             user = input("Kullanıcı: ").strip()
             db_delete(db, user)
-        elif choice == "7":
-            reset_mysql_root_password()
-        elif choice == "8":
-            reset_openlitespeed_admin_password()
         elif choice == "9":
-            manage_firewall()
+            reset_mysql_root_password()
         elif choice == "10":
-            install_ssl_support()
+            reset_openlitespeed_admin_password()
         elif choice == "11":
-            secure_mariadb()
+            manage_firewall()
         elif choice == "12":
+            install_ssl_support()
+        elif choice == "13":
+            secure_mariadb()
+        elif choice == "14":
             while True:
                 print("\n--- Dosya Yedekleme ---")
                 print("1) Domain yedeği al")
@@ -1124,7 +1205,7 @@ def interactive_menu():
                     break
                 else:
                     print("Geçersiz seçim")
-        elif choice == "13":
+        elif choice == "15":
             while True:
                 print("\n--- Veritabanı Yedekleme ---")
                 print("1) DB yedeği al")
@@ -1148,7 +1229,7 @@ def interactive_menu():
                     break
                 else:
                     print("Geçersiz seçim")
-        elif choice == "14":
+        elif choice == "16":
             list_backups()
         elif choice == "17":
             cron_backup_menu()
