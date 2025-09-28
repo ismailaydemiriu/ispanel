@@ -167,7 +167,11 @@ def select_language():
             print(f"\n{get_text('goodbye')}")
             sys.exit(0)
 
-    print(f"\n✅ Language selected: {get_text('language_options')[int(choice) - 1]}")
+    print(
+    f"\n✅ Language selected: {
+        get_text('language_options')[
+            int(choice) -
+             1]}")
     print("=" * 60)
 
 
@@ -230,9 +234,13 @@ def wait_for_apt(max_retries: int = 30, delay: int = 10):
         if not cp.stdout.strip():
             return
         retries += 1
-        logger.info("apt kullanımda, %s/%s bekleniyor...", retries, max_retries)
+        logger.info(
+    "apt kullanımda, %s/%s bekleniyor...",
+    retries,
+     max_retries)
         time.sleep(delay)
-    logger.error("apt kilitli görünüyor. Lütfen diğer apt işlemlerini kapatın.")
+    logger.error(
+        "apt kilitli görünüyor. Lütfen diğer apt işlemlerini kapatın.")
     sys.exit(1)
 
 
@@ -416,7 +424,7 @@ password={root_password}
         print(f"MariaDB şifre ayarlama hatası: {e}")
         # Fallback: Şifresiz bağlan ve ayarla
         try:
-            run("systemctl restart mariadb", check=True)
+    run("systemctl restart mariadb", check=True)
             # Şifresiz dene
             run(
                 f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';\"",
@@ -496,7 +504,7 @@ def cmd_install(args: argparse.Namespace):
         osr = f.read()
     if "Ubuntu" not in osr:
         print("Bu kurulum Ubuntu 22+ için tasarlanmıştır.", file=sys.stderr)
-
+    
     print("=== ispanel Kurulum Başlıyor ===")
 
     # Kurulum tipine göre PHP sürümünü belirle
@@ -504,11 +512,11 @@ def cmd_install(args: argparse.Namespace):
 
     # Port çakışmalarını kontrol et
     check_port_conflicts()
-
+    
     # Temel kurulum
     install_openlitespeed_and_php(php_version)
     install_mariadb()
-
+    
     # Güvenlik ve performans ayarları
     print("\n=== Güvenlik ve Performans Ayarları ===")
     manage_firewall()
@@ -516,17 +524,17 @@ def cmd_install(args: argparse.Namespace):
     secure_mariadb()
     optimize_openlitespeed()
     cleanup_default_listeners()  # Varsayılan 8088 listener'ını temizle
-
+    
     # PHP OPcache konfigürasyonu
     configure_php_opcache()
-
+    
     # Yedek dizinleri oluştur
     (ISPANEL_BACKUP_DIR / "domains").mkdir(parents=True, exist_ok=True)
     (ISPANEL_BACKUP_DIR / "databases").mkdir(parents=True, exist_ok=True)
-
+    
     # Symlink oluştur
     install_symlink()
-
+    
     print("\n=== Kurulum Tamamlandı ===")
     print(
         f"✅ OpenLiteSpeed + PHP {DEFAULT_LSPHP_VERSION[0]}.{DEFAULT_LSPHP_VERSION[1]} + MariaDB kuruldu"
@@ -758,10 +766,10 @@ def ensure_https_listener_mapping(domain: str):
     # HTTPS listener kontrolü
     https_listener_pattern = r"listener\s+SSL\s*\{[^}]*address\s+\*:443[^}]*\}"
     m = re.search(https_listener_pattern, content, re.DOTALL)
-    ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
-    ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
+        ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
+        ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
     map_block = f"map                     {domain} {domain}"
-
+        
     if not m:
         # HTTPS listener oluştur
         https_listener = f"""
@@ -1351,18 +1359,18 @@ def domain_add(domain: str):
     if not LSWS_CONF_DIR.exists():
         print("OpenLiteSpeed kurulu değil gibi görünüyor.", file=sys.stderr)
         sys.exit(1)
-
+    
     # Nginx çakışmasını kontrol et ve durdur
     stop_nginx_if_running()
 
     # PHP handler'ları kontrol et
     ensure_php_handlers()
-
+    
     docroot = ensure_docroot(domain)
     write_vhost_conf(domain, docroot)
     ensure_virtual_host_reference(domain)
     ensure_http_listener_mapping(domain)
-
+    
     # SSL sertifikası oluştur (Let's Encrypt)
     if shutil.which("certbot") and os.environ.get("ISPANEL_SKIP_CERTBOT") != "1":
         try:
@@ -1371,18 +1379,18 @@ def domain_add(domain: str):
                 f"certbot certonly --standalone -d {domain} --non-interactive --agree-tos --email admin@{domain}",
                 check=False,
             )
-
+            
             # SSL konfigürasyonunu OpenLiteSpeed'e ekle
             ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
             ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
-
+            
             if Path(ssl_cert).exists() and Path(ssl_key).exists():
                 # HTTPS listener ekle
                 ensure_https_listener_mapping(domain)
                 print(f"SSL sertifikası başarıyla oluşturuldu: {domain}")
         except BaseException:
             print(f"SSL sertifikası oluşturulamadı: {domain}")
-
+    
     # PHP test dosyası oluştur
     test_file = docroot / "test.php"
     test_content = """<?php
@@ -1396,7 +1404,7 @@ phpinfo();
 ?>"""
     test_file.write_text(test_content, encoding="utf-8")
     run(f"chmod 644 {test_file}", check=False)
-
+    
     reload_lsws()
     print(f"✅ Domain eklendi: {domain}")
     print(f"   Document root: {docroot}")
@@ -1438,8 +1446,7 @@ def toggle_http3_brotli(enable: bool):
     # HTTP/3 QUIC ayarı listener SSL içinde enableQuic 1/0
     content = re.sub(
         r"enableQuic\s+\d",
-        f"enableQuic              {
-            '1' if enable else '0'}",
+        f"enableQuic              {'1' if enable else '0'}",
         content,
     )
     HTTPD_CONF.write_text(content, encoding="utf-8")
@@ -1581,23 +1588,23 @@ def reset_mysql_root_password():
     if not new_password:
         print("Şifre boş olamaz!")
         return
-
+    
     # MySQL servisini durdur
     run("systemctl stop mariadb", check=False)
-
+    
     # Güvenli modda MySQL başlat
     run("mysqld_safe --skip-grant-tables --skip-networking &", check=False)
     time.sleep(3)
-
+    
     # Root şifresini sıfırla
     sql = f"ALTER USER 'root'@'localhost' IDENTIFIED BY '{new_password}';"
     run(f'mysql -u root -e "{sql}"', check=True)
-
+    
     # MySQL'i normal modda yeniden başlat
     run("pkill mysqld", check=False)
     time.sleep(2)
     run("systemctl start mariadb", check=True)
-
+    
     print("MySQL root şifresi başarıyla sıfırlandı!")
 
 
@@ -1607,11 +1614,11 @@ def reset_openlitespeed_admin_password():
     if not new_password:
         print("Şifre boş olamaz!")
         return
-
+    
     if len(new_password) < 6:
         print("Şifre en az 6 karakter olmalı!")
         return
-
+    
     # OpenLiteSpeed admin şifresini sıfırla
     admin_script = "/usr/local/lsws/admin/misc/admpass.sh"
     if not Path(admin_script).exists():
@@ -1659,9 +1666,9 @@ def reset_openlitespeed_admin_password():
         run("/usr/local/lsws/bin/lswsctrl restart", check=True)
 
         print("✅ OpenLiteSpeed admin şifresi başarıyla sıfırlandı!")
-        print(f"Admin panel: https://SERVER_IP:7080")
-        print(f"Kullanıcı: admin")
-        print(f"Şifre: {new_password}")
+    print(f"Admin panel: https://SERVER_IP:7080")
+    print(f"Kullanıcı: admin")
+    print(f"Şifre: {new_password}")
 
     except subprocess.CalledProcessError as e:
         print(f"Şifre sıfırlama hatası: {e}")
@@ -1683,7 +1690,7 @@ def check_port(port):
 def manage_firewall():
     """Firewall yönetimi"""
     print("Firewall yönetimi...")
-
+    
     # UFW kontrolü
     if shutil.which("ufw"):
         print("UFW firewall yönetiliyor...")
@@ -1707,7 +1714,7 @@ def install_ssl_support():
     """SSL/HTTPS desteği kurulumu"""
     print("SSL/HTTPS desteği kuruluyor...")
     wait_for_apt()
-
+    
     # Certbot kurulumu (OpenLiteSpeed için)
     run("DEBIAN_FRONTEND=noninteractive apt-get install -y certbot", check=True)
 
@@ -1731,11 +1738,11 @@ enabled = true
     jail_path.write_text(jail_local, encoding="utf-8")
     run("systemctl enable fail2ban", check=False)
     run("systemctl restart fail2ban", check=False)
-
+    
     # OpenLiteSpeed için SSL konfigürasyonu
     ssl_dir = Path("/usr/local/lsws/conf/cert")
     ssl_dir.mkdir(exist_ok=True)
-
+    
     print(
         "SSL ve Fail2Ban desteği kuruldu. Let's Encrypt sertifikaları domain ekleme sırasında otomatik oluşturulacak."
     )
@@ -1744,23 +1751,23 @@ enabled = true
 def secure_mariadb():
     """MariaDB güvenlik ayarları"""
     print("MariaDB güvenlik ayarları yapılıyor...")
-
+    
     # mysql_secure_installation benzeri işlemler
     # Root şifresi zaten install_mariadb'de ayarlandı
     try:
         # Güvenlik komutlarını doğrudan çalıştır
-        sql_commands = [
-            "DELETE FROM mysql.user WHERE User='';",
-            "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');",
-            "DROP DATABASE IF EXISTS test;",
-            "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';",
+    sql_commands = [
+        "DELETE FROM mysql.user WHERE User='';",
+        "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');",
+        "DROP DATABASE IF EXISTS test;",
+        "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';",
             "FLUSH PRIVILEGES;",
-        ]
+    ]
 
         # Root şifresi ile bağlan
         password = MYSQL_ROOT_PASSWORD if MYSQL_ROOT_PASSWORD else ""
-
-        for sql in sql_commands:
+    
+    for sql in sql_commands:
             if password:
                 run(f'mysql -uroot -p{password} -e "{sql}"', check=False)
             else:
@@ -1898,11 +1905,11 @@ scriptHandler {
 def optimize_openlitespeed():
     """OpenLiteSpeed performans optimizasyonu"""
     print("OpenLiteSpeed performans optimizasyonu yapılıyor...")
-
+    
     # Konfigürasyon dosyası optimizasyonları
     if HTTPD_CONF.exists():
         content = HTTPD_CONF.read_text(encoding="utf-8")
-
+        
         # Performans ayarları
         optimizations = {
             "maxConnections": "10000",
@@ -1924,23 +1931,23 @@ def optimize_openlitespeed():
 
     # PHP handler'ları kontrol et
     ensure_php_handlers()
-
+    
     print("OpenLiteSpeed performans optimizasyonu tamamlandı.")
 
 
 def repair_mariadb():
     """MariaDB onarım işlemleri"""
     print("MariaDB onarım işlemleri yapılıyor...")
-
+    
     # MySQL servisini durdur
     run("systemctl stop mariadb", check=False)
-
+    
     # Repair işlemleri
     try:
         # MySQL'i güvenli modda başlat
         run("mysqld_safe --skip-grant-tables --skip-networking &", check=False)
         time.sleep(3)
-
+        
         # Repair komutları
         repair_commands = [
             "REPAIR TABLE mysql.user;",
@@ -1949,18 +1956,18 @@ def repair_mariadb():
             "REPAIR TABLE mysql.columns_priv;",
             "FLUSH PRIVILEGES;",
         ]
-
+        
         for cmd in repair_commands:
             try:
                 run(f'mysql -u root -e "{cmd}"', check=True)
             except BaseException:
                 pass
-
+        
         # MySQL'i normal modda yeniden başlat
         run("pkill mysqld", check=False)
         time.sleep(2)
         run("systemctl start mariadb", check=True)
-
+        
         print("MariaDB onarım işlemleri tamamlandı.")
     except Exception as e:
         print(f"MariaDB onarım hatası: {e}")
@@ -1970,29 +1977,29 @@ def repair_mariadb():
 def repair_openlitespeed():
     """OpenLiteSpeed onarım işlemleri"""
     print("OpenLiteSpeed onarım işlemleri yapılıyor...")
-
+    
     try:
         # Konfigürasyon dosyalarını kontrol et
         config_files = [
             "/usr/local/lsws/conf/httpd_config.conf",
             "/usr/local/lsws/conf/vhosts",
         ]
-
+        
         for config_file in config_files:
             if Path(config_file).exists():
                 # Dosya izinlerini düzelt
                 run(f"chown -R lsadm:lsadm {config_file}", check=False)
                 run(f"chmod -R 755 {config_file}", check=False)
-
+        
         # OpenLiteSpeed'i yeniden başlat
         run("systemctl restart lsws", check=False)
-
+        
         # Alternatif restart
         try:
             run("/usr/local/lsws/bin/lswsctrl restart", check=True)
         except BaseException:
             pass
-
+            
         print("OpenLiteSpeed onarım işlemleri tamamlandı.")
     except Exception as e:
         print(f"OpenLiteSpeed onarım hatası: {e}")
@@ -2021,7 +2028,7 @@ def install_memcached():
 def configure_php_opcache():
     """PHP OPcache konfigürasyonu"""
     print("PHP OPcache konfigürasyonu yapılıyor...")
-
+    
     # OPcache ayarları
     opcache_config = """
 [opcache]
@@ -2033,7 +2040,7 @@ opcache.revalidate_freq=2
 opcache.fast_shutdown=1
 opcache.enable_cli=1
 """
-
+    
     # PHP ini dosyasına ekle
     candidates = [
         "/usr/local/lsws/lsphp81/etc/php/8.1/litespeed/php.ini",
@@ -2055,29 +2062,29 @@ opcache.enable_cli=1
 def backup_domain(domain: str):
     backup_dir = ISPANEL_BACKUP_DIR / "domains"
     backup_dir.mkdir(parents=True, exist_ok=True)
-
+    
     docroot = DOCROOT_BASE / domain
     if not docroot.exists():
         print(f"Domain docroot bulunamadı: {docroot}")
         return None
-
+    
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     backup_file = backup_dir / f"{domain}_{timestamp}.tar.gz"
-    run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
+        run(f"tar -czf {backup_file} -C {docroot.parent} {domain}", check=True)
     checksum = run(f"sha256sum {backup_file}", check=True).stdout.strip().split()[0]
     verify = run(f"tar -tzf {backup_file} > /dev/null", check=True)
-    print(f"Domain yedeği alındı: {backup_file}")
+        print(f"Domain yedeği alındı: {backup_file}")
     print(f"SHA256: {checksum}")
-    return str(backup_file)
+        return str(backup_file)
 
 
 def backup_database(db_name: str):
     backup_dir = ISPANEL_BACKUP_DIR / "databases"
     backup_dir.mkdir(parents=True, exist_ok=True)
-
+    
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     backup_file = backup_dir / f"{db_name}_{timestamp}.sql"
-
+    
     run(f"mysqldump -uroot {db_name} > {backup_file}", check=True)
 
     checksum = run(f"sha256sum {backup_file}", check=True).stdout.strip().split()[0]
@@ -2092,7 +2099,7 @@ def restore_domain(backup_file: str):
     if not path.exists():
         print(f"Yedek dosyası bulunamadı: {backup_file}")
         return False
-
+    
     run(f"tar -xzf {path} -C {DOCROOT_BASE.parent}", check=True)
     print(f"Domain yedeği geri yüklendi: {path}")
     return True
@@ -2103,7 +2110,7 @@ def restore_database(backup_file: str, db_name: str):
     if not path.exists():
         print(f"Yedek dosyası bulunamadı: {backup_file}")
         return False
-
+    
     mysql_exec(f"CREATE DATABASE IF NOT EXISTS {db_name}")
     run(f"mysql -uroot {db_name} < {path}", check=True)
     print(f"Veritabanı yedeği geri yüklendi: {path}")
@@ -2135,7 +2142,7 @@ def fix_virtual_host_root(domain: str):
         content = content.replace(old_block, new_block)
         HTTPD_CONF.write_text(content, encoding="utf-8")
         print(f"✅ {domain} Virtual Host Root düzeltildi: {docroot}")
-        return True
+    return True
     else:
         print(f"❌ {domain} virtualHost bloğu bulunamadı")
         return False
@@ -3551,43 +3558,43 @@ def auto_update_system():
     """Otomatik sistem güncellemeleri"""
     print("Sistem paketleri güncelleniyor...")
     wait_for_apt()
-
+    
     # Güncelleme işlemleri
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y", check=True)
     run("DEBIAN_FRONTEND=noninteractive apt-get upgrade -y", check=True)
     run("DEBIAN_FRONTEND=noninteractive apt-get autoremove -y", check=True)
     run("DEBIAN_FRONTEND=noninteractive apt-get autoclean", check=True)
-
+    
     print("Sistem güncellemeleri tamamlandı.")
 
 
 def setup_backup_rotation():
     """Yedek rotasyonu kurulumu"""
     print("Yedek rotasyonu ayarlanıyor...")
-
+    
     # Yedek rotasyon scripti
     rotation_script = f"""#!/bin/bash
 # 30 günden eski domain yedeklerini sil
 find {ISPANEL_BACKUP_DIR}/domains -name "*.tar.gz" -mtime +30 -delete
-# 30 günden eski DB yedeklerini sil
+# 30 günden eski DB yedeklerini sil  
 find {ISPANEL_BACKUP_DIR}/databases -name "*.sql" -mtime +30 -delete
 echo "$(date): Backup rotation completed" >> /var/log/backup_rotation.log
 """
-
+    
     script_path = "/usr/local/bin/backup_rotation.sh"
     Path(script_path).write_text(rotation_script, encoding="utf-8")
     run(f"chmod +x {script_path}", check=True)
-
+    
     # Cron job ekle (haftalık)
     cron_add("0 4 * * 0 /usr/local/bin/backup_rotation.sh")
-
+    
     print("Yedek rotasyonu kuruldu (30 günlük).")
 
 
 def setup_log_rotation():
     """Log rotasyonu kurulumu"""
     print("Log rotasyonu ayarlanıyor...")
-
+    
     # Logrotate konfigürasyonu
     logrotate_config = """
 /var/log/*.log {
@@ -3610,17 +3617,17 @@ def setup_log_rotation():
     create 644 lsadm lsadm
 }
 """
-
+    
     config_path = "/etc/logrotate.d/ispanel"
     Path(config_path).write_text(logrotate_config, encoding="utf-8")
-
+    
     print("Log rotasyonu kuruldu.")
 
 
 def optimize_kernel_parameters():
     """Kernel parametrelerini optimize et"""
     print("Kernel parametreleri optimize ediliyor...")
-
+    
     # sysctl optimizasyonları
     optimizations = {
         "net.core.rmem_max": "16777216",
@@ -3633,16 +3640,16 @@ def optimize_kernel_parameters():
         "vm.dirty_ratio": "15",
         "vm.dirty_background_ratio": "5",
     }
-
+    
     sysctl_config = ""
     for param, value in optimizations.items():
         sysctl_config += f"{param} = {value}\n"
         # Geçici olarak uygula
         run(f"sysctl -w {param}={value}", check=False)
-
+    
     # Kalıcı konfigürasyon
     Path("/etc/sysctl.d/99-ispanel.conf").write_text(sysctl_config, encoding="utf-8")
-
+    
     print("Kernel parametreleri optimize edildi.")
 
 
