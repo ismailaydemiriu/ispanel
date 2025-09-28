@@ -3422,7 +3422,7 @@ def update_ispanel():
 
         print("Git durumu kontrol ediliyor...")
 
-        # Git repository kontrolü
+        # Git repository kontrolü ve düzeltme
         if not (script_dir / ".git").exists():
             print("❌ Git repository bulunamadı.")
             print("🔧 Otomatik düzeltme seçenekleri:")
