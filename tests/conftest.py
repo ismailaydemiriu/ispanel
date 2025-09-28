@@ -19,7 +19,7 @@ def load_ispanel_module():
     loader = SourceFileLoader("ispanel_module", path)
     spec = importlib.util.spec_from_loader("ispanel_module", loader)
     if spec is None:
-        raise RuntimeError("ispanel modülü yüklenemedi")
+        raise RuntimeError("ispanel module could not be loaded")
     module = importlib.util.module_from_spec(spec)
     loader.exec_module(module)
     sys.modules["ispanel_module"] = module
