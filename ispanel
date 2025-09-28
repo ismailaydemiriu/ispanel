@@ -3494,7 +3494,7 @@ def interactive_menu():
             RESET = '\033[0m'
             
             # Menü seçeneklerini kategorize et
-        menu_options = get_text("main_menu_options")
+            menu_options = get_text("main_menu_options")
             
             # 🚀 KURULUM SEÇENEKLERİ
             print(f"\n{BOLD}{CYAN}🚀 KURULUM SEÇENEKLERİ{RESET}")
