@@ -4355,14 +4355,19 @@ def system_health_check():
         result = run("df -h /", check=True)
         lines = result.stdout.strip().split('\n')
         if len(lines) > 1:
-            usage = lines[1].split()[4].replace('%', '')
-            if int(usage) > 90:
-                issues.append(f"⚠️ Disk alanı %{usage} dolu - kritik seviye")
-            elif int(usage) > 80:
-                issues.append(f"⚠️ Disk alanı %{usage} dolu - dikkat")
+            usage_str = lines[1].split()[4].replace('%', '')
+            if usage_str.isdigit():
+                usage = int(usage_str)
+                if usage > 90:
+                    issues.append(f"⚠️ Disk alanı %{usage} dolu - kritik seviye")
+                elif usage > 80:
+                    issues.append(f"⚠️ Disk alanı %{usage} dolu - dikkat")
+                else:
+                    print(f"✅ Disk alanı: %{usage} kullanılmış")
             else:
-                print(f"✅ Disk alanı: %{usage} kullanılmış")
-    except:
+                print(f"✅ Disk alanı: {usage_str} kullanılmış")
+    except Exception as e:
+        print(f"⚠️ Disk alanı kontrol hatası: {e}")
         issues.append("❌ Disk alanı kontrol edilemedi")
     
     # RAM kullanımı kontrolü
@@ -4371,23 +4376,46 @@ def system_health_check():
         lines = result.stdout.strip().split('\n')
         if len(lines) > 1:
             mem_info = lines[1].split()
-            total = int(mem_info[1])
-            used = int(mem_info[2])
-            usage_percent = (used / total) * 100
-            if usage_percent > 90:
-                issues.append(f"⚠️ RAM kullanımı %{usage_percent:.1f} - kritik seviye")
+            if len(mem_info) >= 3:
+                total = int(mem_info[1])
+                used = int(mem_info[2])
+                usage_percent = (used / total) * 100
+                if usage_percent > 90:
+                    issues.append(f"⚠️ RAM kullanımı %{usage_percent:.1f} - kritik seviye")
+                else:
+                    print(f"✅ RAM kullanımı: %{usage_percent:.1f}")
             else:
-                print(f"✅ RAM kullanımı: %{usage_percent:.1f}")
-    except:
+                print("✅ RAM bilgisi alındı")
+    except Exception as e:
+        print(f"⚠️ RAM kontrol hatası: {e}")
         issues.append("❌ RAM kullanımı kontrol edilemedi")
     
     # Konfigürasyon dosyaları kontrolü
     config_files = [
         "/usr/local/lsws/conf/httpd_config.conf",
-        "/etc/mysql/mariadb.conf.d/50-server.cnf",
-        "/etc/php/8.2/fpm/php.ini",
-        "/etc/php/8.3/fpm/php.ini"
+        "/etc/mysql/mariadb.conf.d/50-server.cnf"
     ]
+    
+    # PHP konfigürasyon dosyalarını kontrol et (sadece kurulu olanları)
+    php_versions = ["8.2", "8.3"]
+    for version in php_versions:
+        php_ini = f"/etc/php/{version}/fpm/php.ini"
+        if Path(php_ini).exists():
+            config_files.append(php_ini)
+        else:
+            # PHP kurulu değilse, alternatif yolları kontrol et
+            alt_paths = [
+                f"/usr/local/lsws/lsphp{version.replace('.', '')}/etc/php.ini",
+                f"/etc/php/{version}/cli/php.ini"
+            ]
+            found = False
+            for alt_path in alt_paths:
+                if Path(alt_path).exists():
+                    config_files.append(alt_path)
+                    found = True
+                    break
+            if not found:
+                print(f"ℹ️ PHP {version} konfigürasyonu bulunamadı (kurulu olmayabilir)")
     
     for config_file in config_files:
         if Path(config_file).exists():
