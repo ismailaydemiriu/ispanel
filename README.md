@@ -59,17 +59,15 @@ sudo ispanel
 9) SSL/HTTPS desteği kur
 10) MariaDB güvenlik ayarları
 11) OpenLiteSpeed performans optimizasyonu
-12) Domain yedeği al
-13) Veritabanı yedeği al
-14) Domain yedeği geri yükle
-15) Veritabanı yedeği geri yükle
-16) Yedekleri listele
+12) Dosya yedekleme menüsü
+13) Veritabanı yedekleme menüsü
+14) Yedekleri listele
 0) Çıkış
 ```
 
 ## Notlar
 
-- **Domain docroot:** `/var/www/<domain>/public_html`
+- **Domain docroot:** `/home/<domain>/public_html`
 - **OpenLiteSpeed listener** `Default` içine `map <domain>:80 <domain>` satırı eklenir.
 - **MariaDB root parolası** yok varsayılmıştır; farklı ise `mysql -uroot -p` ile erişim gerektirir.
 - **OpenLiteSpeed admin panel:** `https://SERVER_IP:7080` (kullanıcı: admin)

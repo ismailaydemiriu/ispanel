@@ -153,7 +153,7 @@ def cmd_install(args: argparse.Namespace):
 LSWS_CONF_DIR = Path("/usr/local/lsws/conf")
 VHOSTS_DIR = LSWS_CONF_DIR / "vhosts"
 HTTPD_CONF = LSWS_CONF_DIR / "httpd_config.conf"
-DOCROOT_BASE = Path("/var/www")
+DOCROOT_BASE = Path("/home")
 
 
 def reload_lsws():
@@ -355,6 +355,18 @@ def db_delete(db: str, user: str):
     )
     mysql_exec(sql)
     print(f"DB silindi: {db}, kullanıcı: {user}")
+
+
+def db_user_create(user: str, password: str, host: str = "%"):
+    if not re.match(r"^[A-Za-z0-9_]+$", user):
+        print("Geçersiz kullanıcı adı.", file=sys.stderr)
+        sys.exit(1)
+    sql = (
+        f"CREATE USER IF NOT EXISTS '{user}'@'{host}' IDENTIFIED BY '{password}'; "
+        f"FLUSH PRIVILEGES;"
+    )
+    mysql_exec(sql)
+    print(f"Kullanıcı oluşturuldu: {user}@{host}")
 
 
 def reset_mysql_root_password():
@@ -585,11 +597,9 @@ def interactive_menu():
         print("9) SSL/HTTPS desteği kur")
         print("10) MariaDB güvenlik ayarları")
         print("11) OpenLiteSpeed performans optimizasyonu")
-        print("12) Domain yedeği al")
-        print("13) Veritabanı yedeği al")
-        print("14) Domain yedeği geri yükle")
-        print("15) Veritabanı yedeği geri yükle")
-        print("16) Yedekleri listele")
+        print("12) Dosya yedekleme menüsü")
+        print("13) Veritabanı yedekleme menüsü")
+        print("14) Yedekleri listele")
         print("0) Çıkış")
         choice = input("Seçim: ").strip()
         if choice == "1":
@@ -622,19 +632,50 @@ def interactive_menu():
         elif choice == "11":
             optimize_openlitespeed()
         elif choice == "12":
-            domain = input("Domain: ").strip()
-            backup_domain(domain)
+            while True:
+                print("\n--- Dosya Yedekleme ---")
+                print("1) Domain yedeği al")
+                print("2) Domain yedeği geri yükle")
+                print("3) Docroot taban klasörünü göster")
+                print("0) Geri")
+                sub = input("Seçim: ").strip()
+                if sub == "1":
+                    domain = input("Domain: ").strip()
+                    backup_domain(domain)
+                elif sub == "2":
+                    backup_file = input("Yedek dosyası yolu: ").strip()
+                    restore_domain(backup_file)
+                elif sub == "3":
+                    print(f"Docroot base: {DOCROOT_BASE}")
+                elif sub == "0":
+                    break
+                else:
+                    print("Geçersiz seçim")
         elif choice == "13":
-            db = input("DB adı: ").strip()
-            backup_database(db)
+            while True:
+                print("\n--- Veritabanı Yedekleme ---")
+                print("1) DB yedeği al")
+                print("2) DB yedeği geri yükle")
+                print("3) DB kullanıcısı oluştur")
+                print("0) Geri")
+                sub = input("Seçim: ").strip()
+                if sub == "1":
+                    db = input("DB adı: ").strip()
+                    backup_database(db)
+                elif sub == "2":
+                    backup_file = input("Yedek dosyası yolu: ").strip()
+                    db_name = input("Hedef DB adı: ").strip()
+                    restore_database(backup_file, db_name)
+                elif sub == "3":
+                    user = input("Kullanıcı adı: ").strip()
+                    password = input("Parola: ").strip()
+                    host = input("Host (varsayılan %): ").strip() or "%"
+                    db_user_create(user, password, host)
+                elif sub == "0":
+                    break
+                else:
+                    print("Geçersiz seçim")
         elif choice == "14":
-            backup_file = input("Yedek dosyası yolu: ").strip()
-            restore_domain(backup_file)
-        elif choice == "15":
-            backup_file = input("Yedek dosyası yolu: ").strip()
-            db_name = input("Hedef DB adı: ").strip()
-            restore_database(backup_file, db_name)
-        elif choice == "16":
             list_backups()
         elif choice == "0":
             break
