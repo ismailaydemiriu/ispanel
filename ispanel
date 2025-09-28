@@ -754,6 +754,8 @@ def interactive_menu():
         print("3) Domain sil")
         print("4) DB oluştur")
         print("5) DB sil")
+        print("6) MySQL root şifre sıfırla")
+        print("7) OpenLiteSpeed admin şifre sıfırla")
         print("8) Port kontrolü ve Firewall yönetimi")
         print("9) SSL/HTTPS desteği kur")
         print("10) MariaDB güvenlik ayarları")
@@ -765,8 +767,6 @@ def interactive_menu():
         print("18) Onarım araçları")
         print("19) Cache sistemleri (Redis/Memcached)")
         print("20) Sistem yönetimi")
-        print("15) MySQL root şifre sıfırla")
-        print("16) OpenLiteSpeed admin şifre sıfırla")
         print("0) Çıkış")
         choice = input("Seçim: ").strip()
         if choice == "1":
@@ -786,6 +786,10 @@ def interactive_menu():
             db = input("DB adı: ").strip()
             user = input("Kullanıcı: ").strip()
             db_delete(db, user)
+        elif choice == "6":
+            reset_mysql_root_password()
+        elif choice == "7":
+            reset_openlitespeed_admin_password()
         elif choice == "8":
             manage_firewall()
         elif choice == "9":
@@ -848,10 +852,6 @@ def interactive_menu():
             cache_menu()
         elif choice == "20":
             system_management_menu()
-        elif choice == "15":
-            reset_mysql_root_password()
-        elif choice == "16":
-            reset_openlitespeed_admin_password()
         elif choice == "0":
             break
         else:
