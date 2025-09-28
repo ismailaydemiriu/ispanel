@@ -4803,7 +4803,7 @@ def show_service_status():
     """Servis durumlarını göster"""
     print("🔍 Servis durumları kontrol ediliyor...")
     
-    services = ["lshttpd", "mariadb", "php8.2-fpm", "php8.3-fpm"]
+    services = ["lshttpd", "mariadb"]
     
     for service in services:
         try:
@@ -4812,6 +4812,20 @@ def show_service_status():
             print(f"{service}: {status}")
         except:
             print(f"{service}: ❓ Bilinmiyor")
+    
+    # OpenLiteSpeed PHP durumunu kontrol et
+    print("\n🔍 OpenLiteSpeed PHP durumu:")
+    try:
+        result = run("ls -la /usr/local/lsws/lsphp*", check=False)
+        if result.stdout:
+            print("✅ OpenLiteSpeed PHP sürümleri:")
+            for line in result.stdout.strip().split('\n'):
+                if 'lsphp' in line:
+                    print(f"  {line}")
+        else:
+            print("⚠️ OpenLiteSpeed PHP sürümleri bulunamadı")
+    except:
+        print("❓ OpenLiteSpeed PHP durumu kontrol edilemedi")
 
 
 def show_disk_usage():
@@ -5018,8 +5032,10 @@ def clear_ols_cache():
 def clear_php_cache():
     """PHP cache temizle"""
     print("🧹 PHP cache temizleniyor...")
-    run("systemctl reload php8.2-fpm php8.3-fpm", check=True)
-    print("✅ PHP cache temizlendi")
+    # OpenLiteSpeed PHP cache temizleme
+    run("rm -rf /usr/local/lsws/cachedata/*", check=False)
+    run("systemctl reload lshttpd", check=True)
+    print("✅ OpenLiteSpeed PHP cache temizlendi")
 
 
 def clear_all_cache():
@@ -5070,7 +5086,7 @@ def repair_menu():
 def restart_services():
     """Servisleri yeniden başlat"""
     print("🔄 Servisler yeniden başlatılıyor...")
-    run("systemctl restart lshttpd mariadb php8.2-fpm php8.3-fpm", check=True)
+    run("systemctl restart lshttpd mariadb", check=True)
     print("✅ Tüm servisler yeniden başlatıldı")
 
 
