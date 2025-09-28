@@ -81,36 +81,36 @@ sudo ispanel
 - **Create DB:** `sudo python3 ispanel db-create dbname dbuser strongpass`
 - **Delete DB:** `sudo python3 ispanel db-delete dbname dbuser`
 
-## Menü Seçenekleri
+## Menu Options
 
 ```
-=== ispanel (Ubuntu 22+) ===
-1) Kurulum (OpenLiteSpeed + PHP 8.2 + MariaDB)
-2) Kurulum (OpenLiteSpeed + PHP 8.3 + MariaDB)
-3) Domain ekle
-4) Domain Listesi
-5) Domain sil
-6) DB Listesi
-7) Virtual Host Root düzelt
-8) Vhost Konfigürasyon düzelt
-9) DB oluştur
-10) DB sil
-11) MySQL root şifre sıfırla
-12) OpenLiteSpeed admin şifre sıfırla
-13) Port kontrolü ve Firewall yönetimi
-14) SSL/HTTPS desteği kur
-15) MariaDB güvenlik ayarları
-16) OpenLiteSpeed performans optimizasyonu
-17) Dosya yedekleme menüsü
-18) Veritabanı yedekleme menüsü
-19) Yedekleri listele
-20) Cron backup ayarları
-21) Onarım araçları
-22) Cache sistemleri (Redis/Memcached)
-23) Sistem yönetimi
-24) OLS/PHP ayarları
-25) isPanel güncelle
-0) Çıkış
+=== isPanel - Web Hosting Management Panel ===
+1) Installation (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)
+2) Add Domain
+3) Change Domain PHP Version
+4) Domain List
+5) Remove Domain
+6) Create Database
+7) Database List
+8) Delete Database
+9) Fix Virtual Host Root
+10) Fix Vhost Configuration
+11) Reset MySQL Root Password
+12) Reset OpenLiteSpeed Admin Password
+13) Port Control and Firewall Management
+14) Install SSL/HTTPS Support
+15) MariaDB Security Settings
+16) OpenLiteSpeed Performance Optimization
+17) File Backup Menu
+18) Database Backup Menu
+19) List Backups
+20) Cron Backup Settings
+21) Repair Tools
+22) Cache Systems (Redis/Memcached)
+23) System Management
+24) OLS/PHP Settings
+25) Update isPanel
+0) Exit
 ```
 
 ## Notlar
