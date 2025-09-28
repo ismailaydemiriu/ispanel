@@ -46,6 +46,12 @@ cp -f ispanel "$ISPANEL_HOME/"
 cp -f README.md "$ISPANEL_HOME/"
 cp -f install.sh "$ISPANEL_HOME/"
 
+# Git repository'sini kopyala (güncelleme için gerekli)
+if [ -d ".git" ]; then
+    cp -r .git "$ISPANEL_HOME/"
+    echo -e "${GREEN}Git repository kopyalandı${NC}"
+fi
+
 # Templates dizinini kopyala
 if [ -d "templates" ]; then
     cp -r templates "$ISPANEL_HOME/"
