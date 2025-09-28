@@ -74,12 +74,28 @@ python3 $ISPANEL_HOME/ispanel install-symlink
 
 # Test et
 if command -v ispanel &> /dev/null; then
-    echo -e "${GREEN}isPanel başarıyla kuruldu!${NC}"
-    echo -e "${GREEN}Kullanım: ispanel${NC}"
+    echo -e "${GREEN}✅ isPanel successfully installed!${NC}"
+    echo ""
+    echo -e "${CYAN}📋 Available Installation Options:${NC}"
+    echo -e "${YELLOW}  1) Full Installation (OpenLiteSpeed + PHP 8.2/8.3 + MariaDB)${NC}"
+    echo -e "${YELLOW}  2) Install OpenLiteSpeed Only (Web Server + PHP)${NC}"
+    echo -e "${YELLOW}  3) Install MariaDB Only (Database Server)${NC}"
+    echo ""
+    echo -e "${CYAN}🚀 Quick Start:${NC}"
+    echo -e "${GREEN}  • Run: ${YELLOW}ispanel${NC} ${GREEN}to open the interactive menu${NC}"
+    echo -e "${GREEN}  • Language: English (default) / Türkçe${NC}"
+    echo -e "${GREEN}  • Installation directory: /usr/local/ispanel${NC}"
+    echo -e "${GREEN}  • Command: /usr/local/bin/ispanel${NC}"
+    echo ""
+    echo -e "${CYAN}📖 Next Steps:${NC}"
+    echo -e "${WHITE}  1. Run 'ispanel' to start the installation wizard${NC}"
+    echo -e "${WHITE}  2. Choose your installation type (Full/OpenLiteSpeed/MariaDB)${NC}"
+    echo -e "${WHITE}  3. Follow the on-screen instructions${NC}"
+    echo ""
 else
-    echo -e "${RED}isPanel kurulumu başarısız!${NC}"
+    echo -e "${RED}❌ isPanel installation failed!${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}Kurulum tamamlandı!${NC}"
-echo -e "${YELLOW}isPanel menüsünü açmak için: ispanel${NC}"
+echo -e "${GREEN}🎉 Installation completed successfully!${NC}"
+echo -e "${YELLOW}💡 To open isPanel menu: ${CYAN}ispanel${NC}"
