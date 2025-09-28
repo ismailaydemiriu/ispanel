@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import logging
 import os
 import re
 import shutil
@@ -10,12 +11,28 @@ from pathlib import Path
 
 
 def run(cmd: str, check: bool = True) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, shell=True, check=check, text=True)
+    logger.debug("Komut çalıştırılıyor: %s", cmd)
+    try:
+        result = subprocess.run(cmd, shell=True, check=check, text=True)
+        if result.stdout:
+            logger.debug("stdout: %s", result.stdout.strip())
+        if result.stderr:
+            logger.debug("stderr: %s", result.stderr.strip())
+        return result
+    except subprocess.CalledProcessError as exc:
+        message = f"Komut başarısız oldu: {cmd}"
+        if exc.stdout:
+            logger.error("%s | stdout: %s", message, exc.stdout.strip())
+        if exc.stderr:
+            logger.error("%s | stderr: %s", message, exc.stderr.strip())
+        if not exc.stdout and not exc.stderr:
+            logger.error(message)
+        raise
 
 
 def require_root():
     if os.geteuid() != 0:
-        print("Bu komutları root olarak çalıştırın (sudo kullanın).", file=sys.stderr)
+        logger.error("Bu komutları root olarak çalıştırın (sudo kullanın).")
         sys.exit(1)
 
 
@@ -32,9 +49,9 @@ def wait_for_apt(max_retries: int = 30, delay: int = 10):
         if not cp.stdout.strip():
             return
         retries += 1
-        print(f"apt kullanımda, {retries}/{max_retries} bekleniyor...", flush=True)
+        logger.info("apt kullanımda, %s/%s bekleniyor...", retries, max_retries)
         time.sleep(delay)
-    print("HATA: apt kilitli görünüyor. Lütfen diğer apt işlemlerini kapatın.", file=sys.stderr)
+    logger.error("apt kilitli görünüyor. Lütfen diğer apt işlemlerini kapatın.")
     sys.exit(1)
 
 
@@ -45,21 +62,21 @@ def ensure_cmd(cmd: str, pkg: str):
     run(f"DEBIAN_FRONTEND=noninteractive apt-get update -y")
     run(f"DEBIAN_FRONTEND=noninteractive apt-get install -y {pkg}")
     if not shutil.which(cmd):
-        print(f"Gerekli komut bulunamadı: {cmd} (paket: {pkg})", file=sys.stderr)
+        logger.error("Gerekli komut bulunamadı: %s (paket: %s)", cmd, pkg)
         sys.exit(1)
 
 
 def check_disk_space(min_gb: int = 1):
     df = shutil.disk_usage("/")
     available_gb = df.free // (1024 * 1024 * 1024)
-    print(f"Boş disk alanı: {available_gb} GB")
+    logger.info("Boş disk alanı: %s GB", available_gb)
     if available_gb < min_gb:
-        print("En az 1GB boş alan gerekli.", file=sys.stderr)
+        logger.error("En az %sGB boş alan gerekli.", min_gb)
         sys.exit(1)
 
 
 def install_openlitespeed_and_php(lsphp_version: str = "83"):
-    print(f"OpenLiteSpeed ve PHP {lsphp_version[0]}.{lsphp_version[1]} kuruluyor...")
+    logger.info("OpenLiteSpeed ve PHP %s.%s kuruluyor...", lsphp_version[0], lsphp_version[1])
     wait_for_apt()
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
     ensure_cmd("curl", "curl")
@@ -83,7 +100,7 @@ def install_openlitespeed_and_php(lsphp_version: str = "83"):
 
 
 def install_mariadb():
-    print("MariaDB kuruluyor...")
+    logger.info("MariaDB kuruluyor...")
     wait_for_apt()
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
     run("DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server", check=True)
@@ -92,7 +109,8 @@ def install_mariadb():
 
 
 def install_symlink():
-    target = Path("/usr/local/bin/ispanel")
+    target_path = os.environ.get("ISPANEL_SYMLINK_TARGET", "/usr/local/bin/ispanel")
+    target = Path(target_path)
     me = Path(__file__).resolve()
 
     try:
@@ -169,6 +187,30 @@ VHOSTS_DIR = LSWS_CONF_DIR / "vhosts"
 HTTPD_CONF = LSWS_CONF_DIR / "httpd_config.conf"
 DOCROOT_BASE = Path("/home")
 DEFAULT_LSPHP_VERSION = "83"  # Varsayılan lsphp sürümü (menu kurulum seçimine göre güncellenir)
+LOG_FILE = Path(os.environ.get("ISPANEL_LOG_FILE", "/var/log/ispanel.log"))
+LOG_LEVEL = os.environ.get("ISPANEL_LOG_LEVEL", "INFO").upper()
+
+
+def configure_logging():
+    if logging.getLogger().hasHandlers():
+        return
+
+    handlers = []
+    try:
+        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        handlers.append(logging.FileHandler(LOG_FILE, encoding="utf-8"))
+    except OSError as exc:
+        print(f"Log dosyasına yazılamadı: {LOG_FILE} ({exc})", file=sys.stderr)
+
+    log_level = getattr(logging, LOG_LEVEL, logging.INFO)
+    if handlers:
+        logging.basicConfig(level=log_level, format="%(asctime)s [%(levelname)s] %(message)s", handlers=handlers)
+    else:
+        logging.basicConfig(level=log_level, format="%(asctime)s [%(levelname)s] %(message)s")
+
+
+configure_logging()
+logger = logging.getLogger("ispanel")
 
 
 def reload_lsws():
@@ -626,7 +668,7 @@ def domain_add(domain: str):
     ensure_http_listener_mapping(domain)
     
     # SSL sertifikası oluştur (Let's Encrypt)
-    if shutil.which("certbot"):
+    if shutil.which("certbot") and os.environ.get("ISPANEL_SKIP_CERTBOT") != "1":
         try:
             print(f"SSL sertifikası oluşturuluyor: {domain}")
             run(f"certbot certonly --standalone -d {domain} --non-interactive --agree-tos --email admin@{domain}", check=False)
