@@ -2103,12 +2103,16 @@ def optimize_openlitespeed():
     # Sistem seviyesi optimizasyonlar
     optimize_system_level(total_mem_gb, cpu_cores)
     
+    # MySQL/MariaDB optimizasyonu
+    optimize_mysql_performance(total_mem_gb, cpu_cores)
+    
     print("✅ OpenLiteSpeed performans optimizasyonu tamamlandı.")
     print(f"📊 Optimizasyon özeti:")
     print(f"   - PHP Children: {php_children}")
     print(f"   - Avoid Fork: {avoid_fork}")
     print(f"   - Max Connections: {max_conn}")
     print(f"   - PHP OPcache: Optimized")
+    print(f"   - MySQL/MariaDB: Optimized")
     print(f"   - System Level: Optimized")
 
 
@@ -2380,6 +2384,174 @@ root hard nofile 65535
         
     except Exception as e:
         print(f"⚠️  Sistem optimizasyon hatası: {e}")
+
+
+def optimize_mysql_performance(total_mem_gb: float, cpu_cores: int):
+    """MySQL/MariaDB performans optimizasyonu"""
+    print("🗄️  MySQL/MariaDB performans optimizasyonu yapılıyor...")
+    
+    try:
+        # MySQL konfigürasyon dosyalarını bul
+        mysql_config_files = [
+            "/etc/mysql/mariadb.conf.d/50-server.cnf",
+            "/etc/mysql/my.cnf",
+            "/etc/mysql/mysql.conf.d/mysqld.cnf",
+            "/etc/my.cnf",
+        ]
+        
+        # En uygun konfigürasyon dosyasını bul
+        config_file = None
+        for file_path in mysql_config_files:
+            if Path(file_path).exists():
+                config_file = file_path
+                break
+        
+        if not config_file:
+            # Varsayılan konfigürasyon dosyası oluştur
+            config_file = "/etc/mysql/mariadb.conf.d/50-server.cnf"
+            Path(config_file).parent.mkdir(parents=True, exist_ok=True)
+        
+        # MySQL ayarlarını hesapla
+        if total_mem_gb >= 16:
+            innodb_buffer_pool = "8G"
+            max_connections = "500"
+            query_cache_size = "256M"
+            tmp_table_size = "256M"
+            max_heap_table_size = "256M"
+        elif total_mem_gb >= 8:
+            innodb_buffer_pool = "4G"
+            max_connections = "300"
+            query_cache_size = "128M"
+            tmp_table_size = "128M"
+            max_heap_table_size = "128M"
+        elif total_mem_gb >= 4:
+            innodb_buffer_pool = "2G"
+            max_connections = "200"
+            query_cache_size = "64M"
+            tmp_table_size = "64M"
+            max_heap_table_size = "64M"
+        else:
+            innodb_buffer_pool = "1G"
+            max_connections = "100"
+            query_cache_size = "32M"
+            tmp_table_size = "32M"
+            max_heap_table_size = "32M"
+        
+        print(f"⚙️  InnoDB Buffer Pool: {innodb_buffer_pool}")
+        print(f"⚙️  Max Connections: {max_connections}")
+        print(f"⚙️  Query Cache: {query_cache_size}")
+        
+        # MySQL optimizasyon ayarları
+        mysql_optimizations = {
+            # InnoDB ayarları
+            "innodb_buffer_pool_size": innodb_buffer_pool,
+            "innodb_log_file_size": "256M",
+            "innodb_log_buffer_size": "64M",
+            "innodb_flush_log_at_trx_commit": "2",
+            "innodb_flush_method": "O_DIRECT",
+            "innodb_file_per_table": "1",
+            "innodb_open_files": "4000",
+            "innodb_io_capacity": "2000",
+            "innodb_io_capacity_max": "4000",
+            "innodb_read_io_threads": str(min(cpu_cores, 8)),
+            "innodb_write_io_threads": str(min(cpu_cores, 8)),
+            "innodb_thread_concurrency": str(cpu_cores * 2),
+            "innodb_buffer_pool_instances": str(min(cpu_cores, 8)),
+            
+            # Genel ayarlar
+            "max_connections": max_connections,
+            "max_user_connections": "0",
+            "max_allowed_packet": "64M",
+            "thread_cache_size": "16",
+            "table_open_cache": "4000",
+            "table_definition_cache": "2000",
+            
+            # Query Cache
+            "query_cache_type": "1",
+            "query_cache_size": query_cache_size,
+            "query_cache_limit": "2M",
+            
+            # Temp tables
+            "tmp_table_size": tmp_table_size,
+            "max_heap_table_size": max_heap_table_size,
+            "tmpdir": "/tmp",
+            
+            # MyISAM
+            "key_buffer_size": "256M",
+            "myisam_sort_buffer_size": "64M",
+            "myisam_max_sort_file_size": "10G",
+            
+            # Logging
+            "slow_query_log": "1",
+            "slow_query_log_file": "/var/log/mysql/slow.log",
+            "long_query_time": "2",
+            "log_queries_not_using_indexes": "1",
+            
+            # Binary logging
+            "log_bin": "/var/log/mysql/mysql-bin.log",
+            "expire_logs_days": "7",
+            "max_binlog_size": "100M",
+            
+            # Performance
+            "sort_buffer_size": "2M",
+            "read_buffer_size": "2M",
+            "read_rnd_buffer_size": "8M",
+            "join_buffer_size": "2M",
+            "bulk_insert_buffer_size": "64M",
+        }
+        
+        # Konfigürasyon dosyasını oku veya oluştur
+        if Path(config_file).exists():
+            content = Path(config_file).read_text(encoding="utf-8")
+        else:
+            content = f"""# isPanel MySQL Optimization
+[mysqld]
+# Basic settings
+port = 3306
+socket = /var/run/mysqld/mysqld.sock
+datadir = /var/lib/mysql
+pid-file = /var/run/mysqld/mysqld.pid
+user = mysql
+
+# Performance optimizations
+"""
+        
+        # [mysqld] bölümünü bul veya oluştur
+        if "[mysqld]" not in content:
+            content += "\n[mysqld]\n"
+        
+        # Her optimizasyonu ekle/güncelle
+        for setting, value in mysql_optimizations.items():
+            pattern = rf"{re.escape(setting)}\s*=\s*[^\n]*"
+            replacement = f"{setting} = {value}"
+            
+            if re.search(pattern, content):
+                content = re.sub(pattern, replacement, content)
+            else:
+                # [mysqld] bölümüne ekle
+                content = re.sub(
+                    r"(\[mysqld\])",
+                    f"\\1\n{setting} = {value}",
+                    content
+                )
+        
+        # Konfigürasyon dosyasını kaydet
+        Path(config_file).write_text(content, encoding="utf-8")
+        
+        # MySQL servisini yeniden başlat
+        print("🔄 MySQL servisi yeniden başlatılıyor...")
+        run("systemctl restart mariadb", check=False)
+        run("systemctl restart mysql", check=False)
+        
+        # MySQL servisinin çalıştığını kontrol et
+        result = run("systemctl is-active mariadb mysql", check=False)
+        if result.returncode == 0:
+            print("✅ MySQL/MariaDB optimizasyonu tamamlandı")
+        else:
+            print("⚠️  MySQL servisi yeniden başlatılamadı, manuel kontrol gerekebilir")
+        
+    except Exception as e:
+        print(f"⚠️  MySQL optimizasyon hatası: {e}")
 
 
 def repair_mariadb():
