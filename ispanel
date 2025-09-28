@@ -262,28 +262,136 @@ def write_vhost_conf(domain: str, docroot: Path):
     vdir = VHOSTS_DIR / domain
     vdir.mkdir(parents=True, exist_ok=True)
     vconf = vdir / "vhost.conf"
-    accesslog = Path("/usr/local/lsws/logs") / f"{domain}.access.log"
-    errorlog = Path("/usr/local/lsws/logs") / f"{domain}.error.log"
-    # Not: Bu dosya yalnızca vhost içeriğini barındırır. httpd_config.conf içine
-    # ayrı bir 'virtualHost {domain} { configFile ... }' referansı eklenecektir.
-    conf = f"""
-vhDomain                  {domain}
-docRoot                   {docroot}
-index                     index.php,index.html
-
-errorlog {errorlog} {{
-    useServer              0
-    logLevel               ERROR
-}}
-
-accesslog {accesslog} {{
-    useServer              0
-    logFormat              "%h %l %u %t \"%r\" %>s %b"
-}}
+    
+    # Log dizinlerini oluştur
+    log_dir = vdir / "logs"
+    log_dir.mkdir(exist_ok=True)
+    
+    # CGI-bin dizinini oluştur
+    cgi_dir = docroot.parent / "cgi-bin"
+    cgi_dir.mkdir(exist_ok=True)
+    
+    # Protected dizinini oluştur
+    protected_dir = docroot / "protected"
+    protected_dir.mkdir(exist_ok=True)
+    
+    # Awstats dizinini oluştur
+    awstats_dir = vdir / "awstats"
+    awstats_dir.mkdir(exist_ok=True)
+    
+    conf = f"""docRoot $VH_ROOT/public_html/
+enableGzip 1
 
 context / {{
-    location               {docroot}
-    allowBrowse            1
+  allowBrowse 1
+  location $DOC_ROOT/
+  rewrite  {{
+    RewriteFile .htaccess
+  }}
+}}
+
+context /docs/{{
+  allowBrowse 1
+  location $SERVER_ROOT/docs/
+}}
+
+context /protected/{{
+  required user test
+  authName Protected
+  allowBrowse 1
+  location protected/
+  realm SampleProtectedArea
+
+  accessControl {{
+    deny 
+    allow *
+  }}
+}}
+
+context /blocked/{{
+  allowBrowse 0
+}}
+
+context /cgi-bin/{{
+  allowBrowse 1
+  location $VH_ROOT/cgi-bin/
+  type cgi
+}}
+
+expires {{
+  enableExpires 1
+}}
+
+index {{
+  autoIndexURI /_autoindex/default.php
+  indexFiles index.html, index.php
+  autoIndex 0
+  useServer 0
+}}
+
+errorPage 404{{
+  url /error404.html
+}}
+
+errorlog $VH_ROOT/logs/error.log{{
+  logLevel DEBUG
+  rollingSize 10M
+  useServer 1
+}}
+
+accessLog $VH_ROOT/logs/access.log{{
+  compressArchive 0
+  logReferer 1
+  keepDays 30
+  rollingSize 10M
+  logUserAgent 1
+  useServer 0
+}}
+
+awstats {{
+  updateInterval 86400
+  workingDir $VH_ROOT/awstats
+  updateOffset 0
+  siteDomain {domain}
+  siteAliases 127.0.0.1 localhost
+  updateMode 0
+  awstatsURI /awstats/
+}}
+
+rewrite {{
+  enable 0
+  logLevel 0
+}}
+
+hotlinkCtrl {{
+  suffixes gif, jpeg, jpg, png, css, js
+  allowedHosts
+  allowDirectAccess 1
+  enableHotlinkCtrl 0
+  onlySelf 1
+}}
+
+accessControl {{
+  deny
+  allow *
+}}
+
+realm SampleProtectedArea {{
+  userDB {{
+    cacheTimeout 60
+    maxCacheSize 200
+    location conf/vhosts/$VH_NAME/htpasswd
+  }}
+
+  groupDB {{
+    cacheTimeout 60
+    maxCacheSize 200
+    location conf/vhosts/$VH_NAME/htgroup
+  }}
+}}
+
+general {{
+  enableContextAC 0
 }}
 
 scriptHandler {{
@@ -294,6 +402,10 @@ phpIniOverride  {{
 }}
 """.strip()
     vconf.write_text(conf, encoding="utf-8")
+    
+    # Dizin izinlerini ayarla
+    run(f"chown -R lsadm:nogroup {vdir}", check=True)
+    run(f"chmod -R 755 {vdir}", check=True)
 
 
 def ensure_virtual_host_reference(domain: str):
@@ -1049,6 +1161,170 @@ def fix_virtual_host_root(domain: str):
         return False
 
 
+def fix_vhost_config(domain: str):
+    """Mevcut domain'in vhost konfigürasyonunu standart yapıya güncelle"""
+    vdir = VHOSTS_DIR / domain
+    if not vdir.exists():
+        print(f"❌ {domain} vhost dizini bulunamadı")
+        return False
+    
+    vconf = vdir / "vhost.conf"
+    if not vconf.exists():
+        print(f"❌ {domain} vhost.conf bulunamadı")
+        return False
+    
+    # Yeni standart konfigürasyonu oluştur
+    docroot = DOCROOT_BASE / domain / "public_html"
+    
+    # Log dizinlerini oluştur
+    log_dir = vdir / "logs"
+    log_dir.mkdir(exist_ok=True)
+    
+    # CGI-bin dizinini oluştur
+    cgi_dir = docroot.parent / "cgi-bin"
+    cgi_dir.mkdir(exist_ok=True)
+    
+    # Protected dizinini oluştur
+    protected_dir = docroot / "protected"
+    protected_dir.mkdir(exist_ok=True)
+    
+    # Awstats dizinini oluştur
+    awstats_dir = vdir / "awstats"
+    awstats_dir.mkdir(exist_ok=True)
+    
+    conf = f"""docRoot $VH_ROOT/public_html/
+enableGzip 1
+
+context / {{
+  allowBrowse 1
+  location $DOC_ROOT/
+  rewrite  {{
+    RewriteFile .htaccess
+  }}
+}}
+
+context /docs/{{
+  allowBrowse 1
+  location $SERVER_ROOT/docs/
+}}
+
+context /protected/{{
+  required user test
+  authName Protected
+  allowBrowse 1
+  location protected/
+  realm SampleProtectedArea
+
+  accessControl {{
+    deny 
+    allow *
+  }}
+}}
+
+context /blocked/{{
+  allowBrowse 0
+}}
+
+context /cgi-bin/{{
+  allowBrowse 1
+  location $VH_ROOT/cgi-bin/
+  type cgi
+}}
+
+expires {{
+  enableExpires 1
+}}
+
+index {{
+  autoIndexURI /_autoindex/default.php
+  indexFiles index.html, index.php
+  autoIndex 0
+  useServer 0
+}}
+
+errorPage 404{{
+  url /error404.html
+}}
+
+errorlog $VH_ROOT/logs/error.log{{
+  logLevel DEBUG
+  rollingSize 10M
+  useServer 1
+}}
+
+accessLog $VH_ROOT/logs/access.log{{
+  compressArchive 0
+  logReferer 1
+  keepDays 30
+  rollingSize 10M
+  logUserAgent 1
+  useServer 0
+}}
+
+awstats {{
+  updateInterval 86400
+  workingDir $VH_ROOT/awstats
+  updateOffset 0
+  siteDomain {domain}
+  siteAliases 127.0.0.1 localhost
+  updateMode 0
+  awstatsURI /awstats/
+}}
+
+rewrite {{
+  enable 0
+  logLevel 0
+}}
+
+hotlinkCtrl {{
+  suffixes gif, jpeg, jpg, png, css, js
+  allowedHosts
+  allowDirectAccess 1
+  enableHotlinkCtrl 0
+  onlySelf 1
+}}
+
+accessControl {{
+  deny
+  allow *
+}}
+
+realm SampleProtectedArea {{
+  userDB {{
+    cacheTimeout 60
+    maxCacheSize 200
+    location conf/vhosts/$VH_NAME/htpasswd
+  }}
+
+  groupDB {{
+    cacheTimeout 60
+    maxCacheSize 200
+    location conf/vhosts/$VH_NAME/htgroup
+  }}
+}}
+
+general {{
+  enableContextAC 0
+}}
+
+scriptHandler {{
+    add                    lsapi:lsphp{DEFAULT_LSPHP_VERSION} php
+}}
+
+phpIniOverride  {{
+}}
+""".strip()
+    
+    vconf.write_text(conf, encoding="utf-8")
+    
+    # Dizin izinlerini ayarla
+    run(f"chown -R lsadm:nogroup {vdir}", check=True)
+    run(f"chmod -R 755 {vdir}", check=True)
+    
+    print(f"✅ {domain} vhost konfigürasyonu standart yapıya güncellendi")
+    return True
+
+
 def list_domains():
     """Aktif domainleri listele"""
     print("\n=== Aktif Domainler ===")
@@ -1198,23 +1474,24 @@ def interactive_menu():
         print("5) Domain sil")
         print("6) DB Listesi")
         print("7) Virtual Host Root düzelt")
-        print("8) DB oluştur")
-        print("9) DB sil")
-        print("10) MySQL root şifre sıfırla")
-        print("11) OpenLiteSpeed admin şifre sıfırla")
-        print("12) Port kontrolü ve Firewall yönetimi")
-        print("13) SSL/HTTPS desteği kur")
-        print("14) MariaDB güvenlik ayarları")
-        print("15) OpenLiteSpeed performans optimizasyonu")
-        print("16) Dosya yedekleme menüsü")
-        print("17) Veritabanı yedekleme menüsü")
-        print("18) Yedekleri listele")
-        print("19) Cron backup ayarları")
-        print("20) Onarım araçları")
-        print("21) Cache sistemleri (Redis/Memcached)")
-        print("22) Sistem yönetimi")
-        print("23) OLS/PHP ayarları")
-        print("24) isPanel güncelle")
+        print("8) Vhost Konfigürasyon düzelt")
+        print("9) DB oluştur")
+        print("10) DB sil")
+        print("11) MySQL root şifre sıfırla")
+        print("12) OpenLiteSpeed admin şifre sıfırla")
+        print("13) Port kontrolü ve Firewall yönetimi")
+        print("14) SSL/HTTPS desteği kur")
+        print("15) MariaDB güvenlik ayarları")
+        print("16) OpenLiteSpeed performans optimizasyonu")
+        print("17) Dosya yedekleme menüsü")
+        print("18) Veritabanı yedekleme menüsü")
+        print("19) Yedekleri listele")
+        print("20) Cron backup ayarları")
+        print("21) Onarım araçları")
+        print("22) Cache sistemleri (Redis/Memcached)")
+        print("23) Sistem yönetimi")
+        print("24) OLS/PHP ayarları")
+        print("25) isPanel güncelle")
         print("0) Çıkış")
         choice = input("Seçim: ").strip()
         if choice == "1":
@@ -1237,25 +1514,28 @@ def interactive_menu():
             domain = input("Domain: ").strip()
             fix_virtual_host_root(domain)
         elif choice == "8":
+            domain = input("Domain: ").strip()
+            fix_vhost_config(domain)
+        elif choice == "9":
             db = input("DB adı: ").strip()
             user = input("Kullanıcı: ").strip()
             password = input("Parola: ").strip()
             db_create(db, user, password)
-        elif choice == "9":
+        elif choice == "10":
             db = input("DB adı: ").strip()
             user = input("Kullanıcı: ").strip()
             db_delete(db, user)
-        elif choice == "10":
-            reset_mysql_root_password()
         elif choice == "11":
-            reset_openlitespeed_admin_password()
+            reset_mysql_root_password()
         elif choice == "12":
-            manage_firewall()
+            reset_openlitespeed_admin_password()
         elif choice == "13":
-            install_ssl_support()
+            manage_firewall()
         elif choice == "14":
-            secure_mariadb()
+            install_ssl_support()
         elif choice == "15":
+            secure_mariadb()
+        elif choice == "16":
             while True:
                 print("\n--- Dosya Yedekleme ---")
                 print("1) Domain yedeği al")
@@ -1275,7 +1555,7 @@ def interactive_menu():
                     break
                 else:
                     print("Geçersiz seçim")
-        elif choice == "16":
+        elif choice == "17":
             while True:
                 print("\n--- Veritabanı Yedekleme ---")
                 print("1) DB yedeği al")
@@ -1299,19 +1579,19 @@ def interactive_menu():
                     break
                 else:
                     print("Geçersiz seçim")
-        elif choice == "17":
-            list_backups()
         elif choice == "18":
-            cron_backup_menu()
+            list_backups()
         elif choice == "19":
-            repair_menu()
+            cron_backup_menu()
         elif choice == "20":
-            cache_menu()
+            repair_menu()
         elif choice == "21":
-            system_management_menu()
+            cache_menu()
         elif choice == "22":
-            ols_php_menu()
+            system_management_menu()
         elif choice == "23":
+            ols_php_menu()
+        elif choice == "24":
             update_ispanel()
         elif choice == "0":
             break
