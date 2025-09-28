@@ -1004,8 +1004,8 @@ def ensure_docroot(domain: str) -> Path:
             border-radius: 16px;
             box-shadow: 0 20px 25px -5px var(--shadow-lg), 0 10px 10px -5px var(--shadow);
             padding: 4rem;
-            max-width: 800px;
-            width: 90%;
+            max-width: 1024px;
+            width: 95%;
             position: relative;
         }
 
