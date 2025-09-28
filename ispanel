@@ -764,6 +764,7 @@ def interactive_menu():
         print("17) Cron backup ayarları")
         print("18) Onarım araçları")
         print("19) Cache sistemleri (Redis/Memcached)")
+        print("20) Sistem yönetimi")
         print("15) MySQL root şifre sıfırla")
         print("16) OpenLiteSpeed admin şifre sıfırla")
         print("0) Çıkış")
@@ -845,6 +846,8 @@ def interactive_menu():
             repair_menu()
         elif choice == "19":
             cache_menu()
+        elif choice == "20":
+            system_management_menu()
         elif choice == "15":
             reset_mysql_root_password()
         elif choice == "16":
@@ -894,6 +897,135 @@ def cache_menu():
             run("systemctl status redis-server", check=False)
         elif sub == "4":
             run("systemctl status memcached", check=False)
+        elif sub == "0":
+            break
+        else:
+            print("Geçersiz seçim")
+
+
+def auto_update_system():
+    """Otomatik sistem güncellemeleri"""
+    print("Sistem paketleri güncelleniyor...")
+    wait_for_apt()
+    
+    # Güncelleme işlemleri
+    run("DEBIAN_FRONTEND=noninteractive apt-get update -y", check=True)
+    run("DEBIAN_FRONTEND=noninteractive apt-get upgrade -y", check=True)
+    run("DEBIAN_FRONTEND=noninteractive apt-get autoremove -y", check=True)
+    run("DEBIAN_FRONTEND=noninteractive apt-get autoclean", check=True)
+    
+    print("Sistem güncellemeleri tamamlandı.")
+
+
+def setup_backup_rotation():
+    """Yedek rotasyonu kurulumu"""
+    print("Yedek rotasyonu ayarlanıyor...")
+    
+    # Yedek rotasyon scripti
+    rotation_script = """#!/bin/bash
+# 30 günden eski domain yedeklerini sil
+find /www/backup/domains -name "*.tar.gz" -mtime +30 -delete
+# 30 günden eski DB yedeklerini sil  
+find /www/backup/databases -name "*.sql" -mtime +30 -delete
+echo "$(date): Backup rotation completed" >> /var/log/backup_rotation.log
+"""
+    
+    script_path = "/usr/local/bin/backup_rotation.sh"
+    Path(script_path).write_text(rotation_script, encoding="utf-8")
+    run(f"chmod +x {script_path}", check=True)
+    
+    # Cron job ekle (haftalık)
+    cron_add("0 4 * * 0 /usr/local/bin/backup_rotation.sh")
+    
+    print("Yedek rotasyonu kuruldu (30 günlük).")
+
+
+def setup_log_rotation():
+    """Log rotasyonu kurulumu"""
+    print("Log rotasyonu ayarlanıyor...")
+    
+    # Logrotate konfigürasyonu
+    logrotate_config = """
+/var/log/*.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    create 644 root root
+}
+
+/usr/local/lsws/logs/*.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    create 644 lsadm lsadm
+}
+"""
+    
+    config_path = "/etc/logrotate.d/ispanel"
+    Path(config_path).write_text(logrotate_config, encoding="utf-8")
+    
+    print("Log rotasyonu kuruldu.")
+
+
+def optimize_kernel_parameters():
+    """Kernel parametrelerini optimize et"""
+    print("Kernel parametreleri optimize ediliyor...")
+    
+    # sysctl optimizasyonları
+    optimizations = {
+        "net.core.rmem_max": "16777216",
+        "net.core.wmem_max": "16777216",
+        "net.ipv4.tcp_rmem": "4096 65536 16777216",
+        "net.ipv4.tcp_wmem": "4096 65536 16777216",
+        "net.core.netdev_max_backlog": "5000",
+        "net.ipv4.tcp_congestion_control": "bbr",
+        "vm.swappiness": "10",
+        "vm.dirty_ratio": "15",
+        "vm.dirty_background_ratio": "5"
+    }
+    
+    sysctl_config = ""
+    for param, value in optimizations.items():
+        sysctl_config += f"{param} = {value}\n"
+        # Geçici olarak uygula
+        run(f"sysctl -w {param}={value}", check=False)
+    
+    # Kalıcı konfigürasyon
+    Path("/etc/sysctl.d/99-ispanel.conf").write_text(sysctl_config, encoding="utf-8")
+    
+    print("Kernel parametreleri optimize edildi.")
+
+
+def system_management_menu():
+    """Sistem yönetimi menüsü"""
+    while True:
+        print("\n--- Sistem Yönetimi ---")
+        print("1) Sistem paketlerini güncelle")
+        print("2) Yedek rotasyonu kur")
+        print("3) Log rotasyonu kur")
+        print("4) Kernel parametrelerini optimize et")
+        print("5) Sistem durumu")
+        print("6) Disk kullanımı")
+        print("0) Geri")
+        sub = input("Seçim: ").strip()
+        if sub == "1":
+            auto_update_system()
+        elif sub == "2":
+            setup_backup_rotation()
+        elif sub == "3":
+            setup_log_rotation()
+        elif sub == "4":
+            optimize_kernel_parameters()
+        elif sub == "5":
+            run("systemctl status lsws mariadb redis-server memcached", check=False)
+        elif sub == "6":
+            run("df -h", check=False)
         elif sub == "0":
             break
         else:

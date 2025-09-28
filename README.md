@@ -63,6 +63,7 @@ sudo ispanel
 17) Cron backup ayarları
 18) Onarım araçları
 19) Cache sistemleri (Redis/Memcached)
+20) Sistem yönetimi
 15) MySQL root şifre sıfırla
 16) OpenLiteSpeed admin şifre sıfırla
 0) Çıkış
