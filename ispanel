@@ -3578,25 +3578,25 @@ def interactive_menu():
             password = input(f"{get_text('db_pass_prompt')}: ").strip()
             db_create(db, user, password)
             elif choice == "9":
-                list_databases()
+            list_databases()
             elif choice == "10":
-                db = input(f"{get_text('db_name_prompt')}: ").strip()
-                user = input(f"{get_text('db_user_prompt')}: ").strip()
-                db_delete(db, user)
+            db = input(f"{get_text('db_name_prompt')}: ").strip()
+            user = input(f"{get_text('db_user_prompt')}: ").strip()
+            db_delete(db, user)
             elif choice == "11":
-                domain = input(f"{get_text('domain_prompt')}: ").strip()
-                fix_virtual_host_root(domain)
+            domain = input(f"{get_text('domain_prompt')}: ").strip()
+            fix_virtual_host_root(domain)
             elif choice == "12":
-                domain = input(f"{get_text('domain_prompt')}: ").strip()
-                fix_vhost_config(domain)
+            domain = input(f"{get_text('domain_prompt')}: ").strip()
+            fix_vhost_config(domain)
             elif choice == "13":
-                reset_mysql_root_password()
+            reset_mysql_root_password()
             elif choice == "14":
-                reset_openlitespeed_admin_password()
+            reset_openlitespeed_admin_password()
             elif choice == "15":
-                manage_firewall()
+            manage_firewall()
             elif choice == "16":
-                install_ssl_support()
+            install_ssl_support()
             elif choice == "17":
             secure_mariadb_menu()
             elif choice == "18":
@@ -4258,15 +4258,15 @@ def update_ispanel():
         os.chdir(script_dir)
         
         try:
-            # Mevcut branch'i kontrol et
-            result = run("git branch --show-current", check=False)
+        # Mevcut branch'i kontrol et
+        result = run("git branch --show-current", check=False)
             current_branch = result.stdout.strip() if result.stdout else "unknown"
-            print(f"Mevcut branch: {current_branch}")
+        print(f"Mevcut branch: {current_branch}")
 
         # Remote'dan son değişiklikleri çek
         print("GitHub'dan son değişiklikler çekiliyor...")
         try:
-            run("git fetch origin", check=True)
+        run("git fetch origin", check=True)
         except Exception as e:
             print(f"❌ Git fetch hatası: {e}")
             print("💡 Git repository düzeltme gerekebilir.")
