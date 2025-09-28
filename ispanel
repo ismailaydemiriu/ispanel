@@ -242,18 +242,29 @@ DEFAULT_LSPHP_VERSION = "83"  # Varsayılan lsphp sürümü (menu kurulum seçim
 LOG_FILE = Path(os.environ.get("ISPANEL_LOG_FILE", "/var/log/ispanel.log"))
 LOG_LEVEL = os.environ.get("ISPANEL_LOG_LEVEL", "INFO").upper()
 
-TEMPLATE_DIR = Path(os.environ.get("ISPANEL_TEMPLATE_DIR", "")).expanduser()
-if not TEMPLATE_DIR:
-    TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
+# Template dizinini belirle
+template_env = os.environ.get("ISPANEL_TEMPLATE_DIR", "")
+if template_env:
+    TEMPLATE_DIR = Path(template_env).expanduser().resolve()
 else:
-    TEMPLATE_DIR = TEMPLATE_DIR.resolve()
+    # Varsayılan olarak script dizinindeki templates klasörünü kullan
+    try:
+        TEMPLATE_DIR = Path(os.path.realpath(__file__)).parent / "templates"
+    except:
+        TEMPLATE_DIR = Path(__file__).parent / "templates"
 
+# Template dizini yoksa alternatif konumları dene
 if not TEMPLATE_DIR.exists():
-    alt_dir = Path(__file__).resolve().parent / "templates"
-    if alt_dir.exists():
-        TEMPLATE_DIR = alt_dir
+    for alt_path in [
+        Path("/root/ispanel/templates"),
+        Path("/usr/local/lib/ispanel/templates"),
+        Path(__file__).parent / "templates"
+    ]:
+        if alt_path.exists():
+            TEMPLATE_DIR = alt_path
+            break
 
-VHOST_TEMPLATE = TEMPLATE_DIR / "vhost.conf.j2"
+VHOST_TEMPLATE = Path("vhost.conf.j2")  # load_template fonksiyonu kendi path'ini bulacak
 
 
 def configure_logging():
