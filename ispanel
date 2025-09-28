@@ -3439,7 +3439,18 @@ def update_ispanel():
         git_exists = (script_dir / ".git").exists()
         print(f"🔍 Git directory check: {script_dir}/.git exists = {git_exists}")
         
-        if not git_exists:
+        # Git repository'nin çalışır durumda olup olmadığını kontrol et
+        git_working = False
+        if git_exists:
+            try:
+                result = run("git status", check=False, cwd=script_dir)
+                git_working = result.returncode == 0
+                print(f"🔍 Git working check: {git_working}")
+            except:
+                git_working = False
+                print(f"🔍 Git working check: {git_working}")
+        
+        if not git_exists or not git_working:
             print("❌ Git repository bulunamadı.")
             print("🔧 Otomatik düzeltme seçenekleri:")
             print("1) Otomatik düzelt (önerilen)")
