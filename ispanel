@@ -262,6 +262,17 @@ def stop_nginx_if_running():
             run("systemctl stop nginx", check=False)
             run("systemctl disable nginx", check=False)
             print("✅ Nginx durduruldu ve devre dışı bırakıldı")
+        
+        # Nginx process'lerini zorla sonlandır
+        run("pkill -f nginx", check=False)
+        run("killall nginx", check=False)
+        
+        # Nginx konfigürasyonunu yedekle ve devre dışı bırak
+        nginx_conf = Path("/etc/nginx/sites-enabled/default")
+        if nginx_conf.exists():
+            run(f"mv {nginx_conf} {nginx_conf}.backup", check=False)
+            print("✅ Nginx default site devre dışı bırakıldı")
+            
     except:
         pass  # Nginx yoksa hata verme
 
@@ -589,13 +600,15 @@ def check_port_conflicts():
             print("⚠️  Port 80 kullanımda:")
             print(result.stdout.strip())
             
-            # Nginx kontrolü
+            # Nginx kontrolü ve tamamen durdur
             nginx_result = run("systemctl is-active nginx", check=False)
             if nginx_result.returncode == 0:
                 print("Nginx çalışıyor, durduruluyor...")
                 run("systemctl stop nginx", check=False)
                 run("systemctl disable nginx", check=False)
-                print("✅ Nginx durduruldu")
+                run("pkill -f nginx", check=False)
+                run("killall nginx", check=False)
+                print("✅ Nginx tamamen durduruldu")
             
             # Apache kontrolü
             apache_result = run("systemctl is-active apache2", check=False)
@@ -603,7 +616,15 @@ def check_port_conflicts():
                 print("Apache çalışıyor, durduruluyor...")
                 run("systemctl stop apache2", check=False)
                 run("systemctl disable apache2", check=False)
+                run("pkill -f apache2", check=False)
                 print("✅ Apache durduruldu")
+                
+            # Nginx konfigürasyonunu devre dışı bırak
+            nginx_conf = Path("/etc/nginx/sites-enabled/default")
+            if nginx_conf.exists():
+                run(f"mv {nginx_conf} {nginx_conf}.backup", check=False)
+                print("✅ Nginx default site devre dışı bırakıldı")
+                
     except:
         pass
     
@@ -1266,6 +1287,9 @@ def domain_add(domain: str):
     if not LSWS_CONF_DIR.exists():
         print("OpenLiteSpeed kurulu değil gibi görünüyor.", file=sys.stderr)
         sys.exit(1)
+    
+    # Nginx çakışmasını kontrol et ve durdur
+    stop_nginx_if_running()
     
     # PHP handler'ları kontrol et
     ensure_php_handlers()
