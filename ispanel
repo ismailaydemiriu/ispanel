@@ -129,17 +129,29 @@ def install_mariadb():
 def install_symlink():
     target_path = os.environ.get("ISPANEL_SYMLINK_TARGET", "/usr/local/bin/ispanel")
     target = Path(target_path)
-    me = Path(__file__).resolve()
+
+    source_env = os.environ.get("ISPANEL_SOURCE_PATH")
+    source = Path(source_env).resolve() if source_env else Path(__file__).resolve()
+
+    if target.exists() or target.is_symlink():
+        try:
+            if target.is_dir() and not target.is_symlink():
+                shutil.rmtree(target)
+            else:
+                target.unlink()
+        except Exception as exc:
+            raise RuntimeError(f"Var olan {target} kaldırılamadı: {exc}")
+
+    if source.exists() and source.resolve() == target.resolve():
+        fallback_dir = Path("/usr/local/lib/ispanel")
+        fallback_dir.mkdir(parents=True, exist_ok=True)
+        source = fallback_dir / "ispanel.py"
+        shutil.copy2(Path(__file__).resolve(), source)
+        os.chmod(source, 0o755)
 
     try:
-        if target.exists() or target.is_symlink():
-            target.unlink()
-    except IsADirectoryError:
-        raise RuntimeError(f"{target} bir dizin, symlink oluşturulamadı")
-
-    try:
-        os.symlink(str(me), str(target))
-        print(f"Symlink oluşturuldu: {target} -> {me}")
+        os.symlink(str(source), str(target))
+        print(f"Symlink oluşturuldu: {target} -> {source}")
         return
     except OSError as exc:
         print(f"Symlink oluşturulamadı ({exc}), Python wrapper oluşturulacak...")
@@ -148,7 +160,7 @@ def install_symlink():
         "#!/usr/bin/env python3\n"
         "import os\n"
         "import sys\n"
-        f"os.execv(sys.executable, [sys.executable, '{me}'] + sys.argv[1:])\n"
+        f"os.execv(sys.executable, [sys.executable, '{source}'] + sys.argv[1:])\n"
     )
     target.write_text(wrapper, encoding="utf-8")
     os.chmod(target, 0o755)
@@ -347,6 +359,7 @@ def write_vhost_conf(domain: str, docroot: Path):
 
     template = load_template(VHOST_TEMPLATE)
     conf = template.format(domain=domain, docroot=str(docroot), default_lsphp=DEFAULT_LSPHP_VERSION)
+    conf = f"vhDomain {domain}\n" + conf
 
     vconf.write_text(conf, encoding="utf-8")
 

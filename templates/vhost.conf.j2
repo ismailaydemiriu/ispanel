@@ -1,4 +1,9 @@
+vhRoot {docroot}
 docRoot $VH_ROOT/public_html/
+context /.well-known/acme-challenge/ {{
+  allowBrowse 1
+  location $DOC_ROOT/.well-known/acme-challenge/
+}}
 enableGzip 1
 
 context / {{
