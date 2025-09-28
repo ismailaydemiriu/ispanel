@@ -131,8 +131,26 @@ def install_symlink():
     target = Path(target_path)
 
     source_env = os.environ.get("ISPANEL_SOURCE_PATH")
-    source = Path(source_env).resolve() if source_env else Path(__file__).resolve()
+    if source_env:
+        source = Path(source_env)
+    else:
+        # Symlink loop'u önlemek için os.path.realpath kullan
+        try:
+            source = Path(os.path.realpath(__file__))
+        except:
+            # Fallback: bilinen lokasyonları dene
+            for possible in ["/root/ispanel/ispanel", Path(__file__)]:
+                try:
+                    if Path(possible).exists():
+                        source = Path(possible)
+                        break
+                except:
+                    continue
+            else:
+                print("Hata: isPanel script dosyası bulunamadı!")
+                return
 
+    # Mevcut file/symlink'i temizle
     if target.exists() or target.is_symlink():
         try:
             if target.is_dir() and not target.is_symlink():
@@ -140,31 +158,35 @@ def install_symlink():
             else:
                 target.unlink()
         except Exception as exc:
-            raise RuntimeError(f"Var olan {target} kaldırılamadı: {exc}")
+            # Force remove
+            run(f"rm -rf {target}", check=False)
 
-    if source.exists() and source.resolve() == target.resolve():
-        fallback_dir = Path("/usr/local/lib/ispanel")
-        fallback_dir.mkdir(parents=True, exist_ok=True)
-        source = fallback_dir / "ispanel.py"
-        shutil.copy2(Path(__file__).resolve(), source)
-        os.chmod(source, 0o755)
-
-    try:
-        os.symlink(str(source), str(target))
-        print(f"Symlink oluşturuldu: {target} -> {source}")
+    # Eğer kaynak ve hedef aynıysa direkt kopyala
+    if str(source.resolve()) == str(target.resolve()):
+        print(f"isPanel zaten kurulu: {target}")
         return
-    except OSError as exc:
-        print(f"Symlink oluşturulamadı ({exc}), Python wrapper oluşturulacak...")
 
-    wrapper = (
-        "#!/usr/bin/env python3\n"
-        "import os\n"
-        "import sys\n"
-        f"os.execv(sys.executable, [sys.executable, '{source}'] + sys.argv[1:])\n"
-    )
+    # Python wrapper oluştur (symlink yerine)
+    wrapper = f'''#!/usr/bin/env python3
+import os
+import sys
+
+# Script yolu
+script_path = "{source}"
+
+# Dosya var mı kontrol et
+if not os.path.exists(script_path):
+    print(f"Hata: isPanel script bulunamadı: {{script_path}}")
+    sys.exit(1)
+
+# Script'i çalıştır
+os.execv(sys.executable, [sys.executable, script_path] + sys.argv[1:])
+'''
+    
+    target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(wrapper, encoding="utf-8")
     os.chmod(target, 0o755)
-    print(f"Python wrapper oluşturuldu: {target}")
+    print(f"isPanel wrapper kuruldu: {target} -> {source}")
 
 
 def cmd_install(args: argparse.Namespace):
@@ -341,17 +363,35 @@ listener SSL {{
 
 
 def load_template(template_path: Path) -> str:
+    # Symlink loop'u önlemek için os.path.realpath kullan
     candidates = [template_path]
-    repo_template = Path(__file__).resolve().parent / "templates" / template_path.name
-    if repo_template not in candidates:
-        candidates.append(repo_template)
+    
+    try:
+        # Gerçek dosya yolunu bul (symlink'leri takip et)
+        script_path = Path(os.path.realpath(__file__))
+        repo_template = script_path.parent / "templates" / template_path.name
+        if repo_template not in candidates:
+            candidates.append(repo_template)
+    except:
+        # Hata durumunda bilinen yolları dene
+        pass
+    
+    # Sistem genelinde template dizini
     alt = Path("/usr/local/lib/ispanel/templates") / template_path.name
     if alt not in candidates:
         candidates.append(alt)
+    
+    # Doğrudan /root/ispanel dizini
+    root_template = Path("/root/ispanel/templates") / template_path.name
+    if root_template not in candidates:
+        candidates.append(root_template)
 
     for candidate in candidates:
-        if candidate.exists():
-            return candidate.read_text(encoding="utf-8")
+        try:
+            if candidate.exists():
+                return candidate.read_text(encoding="utf-8")
+        except:
+            continue
     raise FileNotFoundError(f"Template bulunamadı: {template_path}")
 
 
