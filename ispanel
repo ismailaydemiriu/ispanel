@@ -3617,16 +3617,16 @@ def interactive_menu():
         else:
             print("Geçersiz seçim")
             
-    except KeyboardInterrupt:
-        print(f"\n\n{'='*60}")
-        print("👋 isPanel'den çıkıldı!")
-        print("💡 Tekrar giriş için: sudo ispanel")
-        print(f"{'='*60}")
-        break
-    except Exception as e:
-        print(f"\n❌ Beklenmeyen hata: {e}")
-        print("💡 Lütfen tekrar deneyin veya sistem yöneticisine başvurun.")
-        input("Devam etmek için Enter'a basın...")
+        except KeyboardInterrupt:
+            print(f"\n\n{'='*60}")
+            print("👋 isPanel'den çıkıldı!")
+            print("💡 Tekrar giriş için: sudo ispanel")
+            print(f"{'='*60}")
+            break
+        except Exception as e:
+            print(f"\n❌ Beklenmeyen hata: {e}")
+            print("💡 Lütfen tekrar deneyin veya sistem yöneticisine başvurun.")
+            input("Devam etmek için Enter'a basın...")
 
 
 def backup_domain_menu():
