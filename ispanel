@@ -143,13 +143,15 @@ def install_symlink():
         os.chmod(target_script, 0o755)
         print(f"isPanel kuruldu: {target_script}")
     
-    # Templates dizinini kopyala
+    # Templates dizinini kopyala (sadece farklı dizindeyse)
     source_templates = current_script.parent / "templates"
-    if source_templates.exists():
+    if source_templates.exists() and source_templates != ISPANEL_TEMPLATES_DIR:
+        ISPANEL_TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
         for template_file in source_templates.glob("*.j2"):
             target_template = ISPANEL_TEMPLATES_DIR / template_file.name
-            shutil.copy2(template_file, target_template)
-            print(f"Template kopyalandı: {target_template}")
+            if template_file != target_template:
+                shutil.copy2(template_file, target_template)
+                print(f"Template kopyalandı: {target_template}")
     
     # /usr/local/bin/ispanel wrapper oluştur
     bin_path = Path("/usr/local/bin/ispanel")
