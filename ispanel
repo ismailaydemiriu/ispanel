@@ -1317,14 +1317,14 @@ def update_ispanel():
     print("isPanel güncelleniyor...")
     
     try:
-        # Mevcut dizini kontrol et
-        current_dir = Path.cwd()
+        # Mevcut script yolunu al
         script_path = Path(__file__).resolve()
+        script_dir = script_path.parent
         
         print("Git durumu kontrol ediliyor...")
         
         # Git repository kontrolü
-        if not (current_dir / ".git").exists():
+        if not (script_dir / ".git").exists():
             print("Git repository bulunamadı. Manuel güncelleme gerekli.")
             return
         
@@ -1356,12 +1356,15 @@ def update_ispanel():
                 # Pull yap
                 run("git pull origin main", check=True)
                 
-                # Symlink'i güncelle
+                # Bozuk symlink'i temizle ve yeniden oluştur
+                print("Symlink düzeltiliyor...")
+                run("rm -f /usr/local/bin/ispanel", check=False)
                 install_symlink()
                 
                 print("✅ isPanel başarıyla güncellendi!")
                 print("Değişiklikler:")
                 print(result.stdout.strip())
+                print("\nArtık 'ispanel' komutu çalışacak!")
                 
                 # Yedek dosyasını sil
                 run(f"rm -f {backup_path}", check=False)
