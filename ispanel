@@ -93,7 +93,8 @@ def install_mariadb():
 
 def install_symlink():
     target = "/usr/local/bin/ispanel"
-    me = Path(sys.argv[0]).resolve()
+    # Gerçek script yolunu al (argv yerine __file__ kullan)
+    me = Path(__file__).resolve()
     
     # Eğer zaten symlink ise ve kendini işaret ediyorsa, önce sil
     if Path(target).is_symlink():
@@ -114,6 +115,7 @@ def install_symlink():
     except Exception as e:
         # Fallback: write a tiny wrapper
         print(f"Symlink oluşturulamadı ({e}), wrapper yazılıyor...")
+        # Dikkat: Burada {me} mutlak python dosya yoludur; kendine referans vermez
         wrapper = f"#!/bin/sh\nexec python3 {me} menu \"$@\"\n"
         Path(target).write_text(wrapper, encoding="utf-8")
         os.chmod(target, 0o755)
