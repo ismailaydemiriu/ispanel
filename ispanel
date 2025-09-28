@@ -167,9 +167,7 @@ def select_language():
             print(f"\n{get_text('goodbye')}")
             sys.exit(0)
 
-    print(
-        f"\n✅ Language selected: {get_text('language_options')[int(choice) - 1]}"
-    )
+    print(f"\n✅ Language selected: {get_text('language_options')[int(choice) - 1]}")
     print("=" * 60)
 
 
@@ -531,9 +529,7 @@ def cmd_install(args: argparse.Namespace):
 
     print("\n=== Kurulum Tamamlandı ===")
     print(
-        f"✅ OpenLiteSpeed + PHP {
-            DEFAULT_LSPHP_VERSION[0]}.{
-            DEFAULT_LSPHP_VERSION[1]} + MariaDB kuruldu"
+        f"✅ OpenLiteSpeed + PHP {DEFAULT_LSPHP_VERSION[0]}.{DEFAULT_LSPHP_VERSION[1]} + MariaDB kuruldu"
     )
     print("✅ Firewall ayarları yapıldı")
     print("✅ SSL/HTTPS desteği eklendi")
