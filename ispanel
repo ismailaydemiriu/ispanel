@@ -307,39 +307,46 @@ def install_mariadb():
     wait_for_apt()
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
     
-    # MariaDB kurulumu için environment variables
-    env_vars = {
-        'DEBIAN_FRONTEND': 'noninteractive',
-        'MYSQL_ROOT_PASSWORD': generate_random_password(20),
-        'MYSQL_DATABASE': 'ispanel',
-        'MYSQL_USER': 'ispanel_user',
-        'MYSQL_PASSWORD': generate_random_password(16)
-    }
-    
-    # Environment variables'ı export et
-    env_string = ' '.join([f'{k}="{v}"' for k, v in env_vars.items()])
-    
     # MariaDB kurulumu
-    run(f"{env_string} DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server", check=True)
+    run("DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server", check=True)
     
     # MariaDB servisini başlat
     run("systemctl enable mariadb", check=False)
-    run("systemctl restart mariadb", check=True)
+    run("systemctl start mariadb", check=True)
     
-    # Root şifresini ayarla
-    root_password = env_vars['MYSQL_ROOT_PASSWORD']
+    # Root şifresi oluştur
+    root_password = generate_random_password(20)
+    user_password = generate_random_password(16)
+    
     try:
-        # MariaDB'yi güvenli modda başlat
-        run("systemctl stop mariadb", check=False)
-        run("mysqld_safe --skip-grant-tables --skip-networking &", check=False)
-        time.sleep(3)
-        
-        # Root şifresini ayarla
+        # Güvenli kurulum için mysql_secure_installation eşdeğeri
         import shlex
         escaped_password = shlex.quote(root_password)
-        run(f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY {escaped_password};\"", check=True)
         
-        # MariaDB'yi normal modda yeniden başlat
+        # MariaDB'yi durdur
+        run("systemctl stop mariadb", check=False)
+        
+        # Geçici init dosyası oluştur
+        init_file = "/tmp/mariadb-init.sql"
+        init_content = f"""
+FLUSH PRIVILEGES;
+ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';
+DELETE FROM mysql.user WHERE User='';
+DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+FLUSH PRIVILEGES;
+"""
+        Path(init_file).write_text(init_content, encoding="utf-8")
+        
+        # MariaDB'yi init dosyası ile başlat
+        run(f"mysqld --init-file={init_file} &", check=False)
+        time.sleep(5)
+        
+        # Init dosyasını sil
+        Path(init_file).unlink()
+        
+        # MariaDB'yi normal başlat
         run("pkill mysqld", check=False)
         time.sleep(2)
         run("systemctl start mariadb", check=True)
@@ -347,18 +354,33 @@ def install_mariadb():
         # Şifreleri global değişkene kaydet
         global MYSQL_ROOT_PASSWORD, MYSQL_USER_PASSWORD
         MYSQL_ROOT_PASSWORD = root_password
-        MYSQL_USER_PASSWORD = env_vars['MYSQL_PASSWORD']
+        MYSQL_USER_PASSWORD = user_password
         
         print(f"✅ MariaDB kuruldu ve yapılandırıldı")
         print(f"🔑 MySQL Root Şifresi: {root_password}")
-        print(f"🔑 MySQL User Şifresi: {env_vars['MYSQL_PASSWORD']}")
+        print(f"🔑 MySQL User Şifresi: {user_password}")
+        
+        # Root şifresini dosyaya kaydet
+        mysql_conf = Path("/root/.my.cnf")
+        mysql_conf.write_text(f"""[client]
+user=root
+password={root_password}
+""", encoding="utf-8")
+        mysql_conf.chmod(0o600)
         
     except Exception as e:
         print(f"MariaDB şifre ayarlama hatası: {e}")
-        # Fallback: Manuel şifre ayarlama talimatı
-        print("Manuel olarak şu komutu çalıştırın:")
-        escaped_password = shlex.quote(root_password)
-        print(f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY {escaped_password};\"")
+        # Fallback: Şifresiz bağlan ve ayarla
+        try:
+            run("systemctl restart mariadb", check=True)
+            # Şifresiz dene
+            run(f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';\"", check=False)
+            MYSQL_ROOT_PASSWORD = root_password
+            MYSQL_USER_PASSWORD = user_password
+            print(f"✅ MariaDB şifresi ayarlandı: {root_password}")
+        except:
+            print("MariaDB şifre ayarlama başarısız. Manuel müdahale gerekli.")
+            print(f"Önerilen root şifresi: {root_password}")
 
 
 def install_symlink():
