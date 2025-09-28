@@ -1595,7 +1595,12 @@ def domain_remove(domain: str):
 
 
 def mysql_exec(sql: str):
-    run(f'mysql -uroot -e "{sql}"', check=True)
+    # MySQL root şifresini güvenli şekilde kullan
+    if MYSQL_ROOT_PASSWORD:
+        # --password= parametresi ile şifreyi güvenli şekilde geç
+        run(f'mysql -uroot --password={MYSQL_ROOT_PASSWORD} -e "{sql}"', check=True)
+    else:
+        run(f'mysql -uroot -e "{sql}"', check=True)
 
 
 def db_create(db: str, user: str, password: str):
