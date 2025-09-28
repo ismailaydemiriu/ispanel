@@ -3179,6 +3179,8 @@ def install_ssl_support():
 
 def secure_mariadb_menu():
     """MariaDB güvenlik ayarları (interaktif menü için)"""
+    global MYSQL_ROOT_PASSWORD
+    
     try:
         # Zaten güvenlik ayarları install sırasında yapıldı
         print("MariaDB güvenlik ayarları kontrol ediliyor...")
@@ -3195,7 +3197,6 @@ def secure_mariadb_menu():
             if new_password:
                 try:
                     run(f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{new_password}';\"", check=True)
-                    global MYSQL_ROOT_PASSWORD
                     MYSQL_ROOT_PASSWORD = new_password
                     print("✅ Root şifresi ayarlandı")
                     
