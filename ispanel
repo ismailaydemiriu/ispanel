@@ -259,22 +259,23 @@ def write_vhost_conf(domain: str, docroot: Path):
     vdir = VHOSTS_DIR / domain
     vdir.mkdir(parents=True, exist_ok=True)
     vconf = vdir / "vhost.conf"
-    
-    # Log dizinlerini oluştur
-    log_dir = vdir / "logs"
-    log_dir.mkdir(exist_ok=True)
-    
-    # CGI-bin dizinini oluştur
-    cgi_dir = docroot.parent / "cgi-bin"
-    cgi_dir.mkdir(exist_ok=True)
-    
-    # Protected dizinini oluştur
+
+    vh_root = docroot.parent
+
+    # Gerekli dizinleri oluştur
+    log_dir = vh_root / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    (log_dir / "access.log").touch(exist_ok=True)
+    (log_dir / "error.log").touch(exist_ok=True)
+
+    cgi_dir = vh_root / "cgi-bin"
+    cgi_dir.mkdir(parents=True, exist_ok=True)
+
     protected_dir = docroot / "protected"
-    protected_dir.mkdir(exist_ok=True)
-    
-    # Awstats dizinini oluştur
-    awstats_dir = vdir / "awstats"
-    awstats_dir.mkdir(exist_ok=True)
+    protected_dir.mkdir(parents=True, exist_ok=True)
+
+    awstats_dir = vh_root / "awstats"
+    awstats_dir.mkdir(parents=True, exist_ok=True)
     
     conf = f"""docRoot $VH_ROOT/public_html/
 enableGzip 1
@@ -403,6 +404,8 @@ phpIniOverride  {{
     # Dizin izinlerini ayarla
     run(f"chown -R lsadm:nogroup {vdir}", check=True)
     run(f"chmod -R 755 {vdir}", check=True)
+    run(f"chown -R lsadm:nogroup {vh_root}", check=False)
+    run(f"chmod -R 755 {vh_root}", check=False)
 
 
 def ensure_virtual_host_reference(domain: str):
@@ -605,7 +608,7 @@ def ensure_docroot(domain: str) -> Path:
 </body>
 </html>'''
         index_file.write_text(default_content, encoding="utf-8")
-    run(f"chown -R lsadm:lsadm {DOCROOT_BASE / domain}", check=False)
+    run(f"chown -R lsadm:nogroup {DOCROOT_BASE / domain}", check=False)
     return docroot
 
 
@@ -1172,22 +1175,22 @@ def fix_vhost_config(domain: str):
     
     # Yeni standart konfigürasyonu oluştur
     docroot = DOCROOT_BASE / domain / "public_html"
-    
-    # Log dizinlerini oluştur
-    log_dir = vdir / "logs"
-    log_dir.mkdir(exist_ok=True)
-    
-    # CGI-bin dizinini oluştur
-    cgi_dir = docroot.parent / "cgi-bin"
-    cgi_dir.mkdir(exist_ok=True)
-    
-    # Protected dizinini oluştur
+    vh_root = docroot.parent
+
+    # Gerekli dizinleri oluştur
+    log_dir = vh_root / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    (log_dir / "access.log").touch(exist_ok=True)
+    (log_dir / "error.log").touch(exist_ok=True)
+
+    cgi_dir = vh_root / "cgi-bin"
+    cgi_dir.mkdir(parents=True, exist_ok=True)
+
     protected_dir = docroot / "protected"
-    protected_dir.mkdir(exist_ok=True)
-    
-    # Awstats dizinini oluştur
-    awstats_dir = vdir / "awstats"
-    awstats_dir.mkdir(exist_ok=True)
+    protected_dir.mkdir(parents=True, exist_ok=True)
+
+    awstats_dir = vh_root / "awstats"
+    awstats_dir.mkdir(parents=True, exist_ok=True)
     
     conf = f"""docRoot $VH_ROOT/public_html/
 enableGzip 1
@@ -1317,6 +1320,8 @@ phpIniOverride  {{
     # Dizin izinlerini ayarla
     run(f"chown -R lsadm:nogroup {vdir}", check=True)
     run(f"chmod -R 755 {vdir}", check=True)
+    run(f"chown -R lsadm:nogroup {vh_root}", check=False)
+    run(f"chmod -R 755 {vh_root}", check=False)
     
     print(f"✅ {domain} vhost konfigürasyonu standart yapıya güncellendi")
     return True
