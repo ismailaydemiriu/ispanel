@@ -1066,6 +1066,7 @@ def interactive_menu():
         print("19) Cache sistemleri (Redis/Memcached)")
         print("20) Sistem yönetimi")
         print("21) OLS/PHP ayarları")
+        print("22) isPanel güncelle")
         print("0) Çıkış")
         choice = input("Seçim: ").strip()
         if choice == "1":
@@ -1153,6 +1154,8 @@ def interactive_menu():
             system_management_menu()
         elif choice == "21":
             ols_php_menu()
+        elif choice == "22":
+            update_ispanel()
         elif choice == "0":
             break
         else:
@@ -1301,6 +1304,72 @@ def optimize_kernel_parameters():
     Path("/etc/sysctl.d/99-ispanel.conf").write_text(sysctl_config, encoding="utf-8")
     
     print("Kernel parametreleri optimize edildi.")
+
+
+def update_ispanel():
+    """isPanel otomatik güncelleme"""
+    print("isPanel güncelleniyor...")
+    
+    try:
+        # Mevcut dizini kontrol et
+        current_dir = Path.cwd()
+        script_path = Path(__file__).resolve()
+        
+        print("Git durumu kontrol ediliyor...")
+        
+        # Git repository kontrolü
+        if not (current_dir / ".git").exists():
+            print("Git repository bulunamadı. Manuel güncelleme gerekli.")
+            return
+        
+        # Mevcut branch'i kontrol et
+        result = run("git branch --show-current", check=False)
+        current_branch = result.stdout.strip()
+        print(f"Mevcut branch: {current_branch}")
+        
+        # Remote'dan son değişiklikleri çek
+        print("GitHub'dan son değişiklikler çekiliyor...")
+        run("git fetch origin", check=True)
+        
+        # Mevcut commit ile remote arasındaki farkı kontrol et
+        result = run("git log HEAD..origin/main --oneline", check=False)
+        if result.stdout.strip():
+            print("Yeni güncellemeler bulundu:")
+            print(result.stdout.strip())
+            
+            # Kullanıcıdan onay al
+            confirm = input("Güncellemeyi uygulamak istiyor musunuz? (y/N): ").strip().lower()
+            if confirm in ['y', 'yes', 'evet']:
+                print("Güncelleme uygulanıyor...")
+                
+                # Backup oluştur
+                backup_path = f"/tmp/ispanel_backup_{int(time.time())}.py"
+                run(f"cp {script_path} {backup_path}", check=False)
+                print(f"Yedek oluşturuldu: {backup_path}")
+                
+                # Pull yap
+                run("git pull origin main", check=True)
+                
+                # Symlink'i güncelle
+                install_symlink()
+                
+                print("✅ isPanel başarıyla güncellendi!")
+                print("Değişiklikler:")
+                print(result.stdout.strip())
+                
+                # Yedek dosyasını sil
+                run(f"rm -f {backup_path}", check=False)
+                
+            else:
+                print("Güncelleme iptal edildi.")
+        else:
+            print("✅ isPanel zaten güncel!")
+            
+    except subprocess.CalledProcessError as e:
+        print(f"Güncelleme hatası: {e}")
+        print("Manuel güncelleme gerekebilir.")
+    except Exception as e:
+        print(f"Beklenmeyen hata: {e}")
 
 
 def system_management_menu():
