@@ -868,21 +868,42 @@ def reset_openlitespeed_admin_password():
         return
     
     try:
-        # htpasswd kullanarak şifreyi doğrudan ayarla
-        htpasswd_file = "/usr/local/lsws/admin/conf/htpasswd"
-        
-        # htpasswd komutu var mı kontrol et
-        if not shutil.which("htpasswd"):
-            print("htpasswd yükleniyor...")
-            run("apt-get install -y apache2-utils", check=True)
-        
-        # Şifreyi htpasswd ile ayarla
+        # OLS'nin kendi admpass.sh script'ini kullan
         print("Admin şifresi ayarlanıyor...")
-        run(f"htpasswd -b {htpasswd_file} admin '{new_password}'", check=True)
+        
+        # Script'i interaktif olmadan çalıştırmak için expect kullan
+        if not shutil.which("expect"):
+            print("expect yükleniyor...")
+            run("apt-get install -y expect", check=True)
+        
+        # Expect script oluştur
+        expect_script = f"""#!/usr/bin/expect -f
+set timeout 10
+spawn {admin_script}
+expect "Please specify the user name of administrator:"
+send "admin\\r"
+expect "Please specify the administrator's password:"
+send "{new_password}\\r"
+expect "Retype password:"
+send "{new_password}\\r"
+expect eof
+"""
+        
+        # Geçici expect dosyası oluştur
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.exp', delete=False) as f:
+            f.write(expect_script)
+            temp_file = f.name
+        
+        # Script'i çalıştırılabilir yap ve çalıştır
+        run(f"chmod +x {temp_file}", check=True)
+        run(f"expect {temp_file}", check=True)
+        
+        # Geçici dosyayı sil
+        Path(temp_file).unlink()
         
         # OpenLiteSpeed'i yeniden başlat
         print("OpenLiteSpeed yeniden başlatılıyor...")
-        run("systemctl restart lsws", check=False)
         run("/usr/local/lsws/bin/lswsctrl restart", check=True)
         
         print("✅ OpenLiteSpeed admin şifresi başarıyla sıfırlandı!")
