@@ -2094,11 +2094,22 @@ def optimize_openlitespeed():
     # PHP konfigürasyonunu optimize et
     optimize_php_lsapi(php_children, avoid_fork)
     
+    # PHP performans optimizasyonu
+    optimize_php_performance(total_mem_gb, cpu_cores)
+    
+    # OpenLiteSpeed ek optimizasyonları
+    optimize_openlitespeed_advanced(total_mem_gb, cpu_cores)
+    
+    # Sistem seviyesi optimizasyonlar
+    optimize_system_level(total_mem_gb, cpu_cores)
+    
     print("✅ OpenLiteSpeed performans optimizasyonu tamamlandı.")
     print(f"📊 Optimizasyon özeti:")
     print(f"   - PHP Children: {php_children}")
     print(f"   - Avoid Fork: {avoid_fork}")
     print(f"   - Max Connections: {max_conn}")
+    print(f"   - PHP OPcache: Optimized")
+    print(f"   - System Level: Optimized")
 
 
 def optimize_php_lsapi(php_children: int, avoid_fork: str):
@@ -2176,6 +2187,199 @@ def optimize_php_lsapi(php_children: int, avoid_fork: str):
             print(f"⚠️  /etc/environment güncellenemedi: {e}")
     
     print("✅ PHP LSAPI optimizasyonu tamamlandı")
+
+
+def optimize_php_performance(total_mem_gb: float, cpu_cores: int):
+    """PHP performans optimizasyonu"""
+    print("🚀 PHP performans optimizasyonu yapılıyor...")
+    
+    # OPcache ayarlarını hesapla
+    if total_mem_gb >= 16:
+        opcache_memory = "256"
+        opcache_files = "10000"
+        opcache_strings = "16"
+    elif total_mem_gb >= 8:
+        opcache_memory = "128"
+        opcache_files = "8000"
+        opcache_strings = "8"
+    elif total_mem_gb >= 4:
+        opcache_memory = "64"
+        opcache_files = "4000"
+        opcache_strings = "4"
+    else:
+        opcache_memory = "32"
+        opcache_files = "2000"
+        opcache_strings = "2"
+    
+    # PHP konfigürasyon dosyalarını bul
+    php_config_files = [
+        "/usr/local/lsws/conf/php.ini",
+        "/usr/local/lsws/lsphp82/etc/php/8.2/litespeed/php.ini",
+        "/usr/local/lsws/lsphp83/etc/php/8.3/litespeed/php.ini",
+    ]
+    
+    for config_file in php_config_files:
+        if Path(config_file).exists():
+            try:
+                content = Path(config_file).read_text(encoding="utf-8")
+                
+                # OPcache optimizasyonları
+                opcache_settings = {
+                    "opcache.enable": "1",
+                    "opcache.memory_consumption": opcache_memory,
+                    "opcache.interned_strings_buffer": opcache_strings,
+                    "opcache.max_accelerated_files": opcache_files,
+                    "opcache.revalidate_freq": "2",
+                    "opcache.fast_shutdown": "1",
+                    "opcache.enable_cli": "1",
+                    "opcache.validate_timestamps": "1",
+                    "opcache.save_comments": "1",
+                    "opcache.load_comments": "1",
+                }
+                
+                # Her ayarı güncelle
+                for setting, value in opcache_settings.items():
+                    pattern = rf"{re.escape(setting)}\s*=\s*[^\n]*"
+                    replacement = f"{setting} = {value}"
+                    content = re.sub(pattern, replacement, content)
+                    
+                    # Eğer ayar yoksa ekle
+                    if setting not in content:
+                        content += f"\n{setting} = {value}\n"
+                
+                # PHP genel optimizasyonları
+                php_optimizations = {
+                    "max_execution_time": "300",
+                    "max_input_time": "300",
+                    "memory_limit": f"{min(int(total_mem_gb * 128), 512)}M",
+                    "post_max_size": "64M",
+                    "upload_max_filesize": "64M",
+                    "max_file_uploads": "20",
+                    "max_input_vars": "3000",
+                    "realpath_cache_size": "2M",
+                    "realpath_cache_ttl": "600",
+                }
+                
+                for setting, value in php_optimizations.items():
+                    pattern = rf"{re.escape(setting)}\s*=\s*[^\n]*"
+                    replacement = f"{setting} = {value}"
+                    content = re.sub(pattern, replacement, content)
+                    
+                    if setting not in content:
+                        content += f"\n{setting} = {value}\n"
+                
+                Path(config_file).write_text(content, encoding="utf-8")
+                print(f"✅ {config_file} PHP optimizasyonu tamamlandı")
+                
+            except Exception as e:
+                print(f"⚠️  {config_file} PHP optimizasyonu başarısız: {e}")
+    
+    print("✅ PHP performans optimizasyonu tamamlandı")
+
+
+def optimize_openlitespeed_advanced(total_mem_gb: float, cpu_cores: int):
+    """OpenLiteSpeed gelişmiş optimizasyonları"""
+    print("⚡ OpenLiteSpeed gelişmiş optimizasyonları yapılıyor...")
+    
+    if HTTPD_CONF.exists():
+        try:
+            content = HTTPD_CONF.read_text(encoding="utf-8")
+            
+            # Gelişmiş optimizasyonlar
+            advanced_optimizations = {
+                "maxReqURLLen": "32768",
+                "maxReqHeaderSize": "65536",
+                "maxReqBodySize": "2047M",
+                "maxDynRespHeaderSize": "32768",
+                "maxDynRespSize": "2047M",
+                "maxCachedFileSize": "2000000",
+                "totalInMemCacheSize": "200M",
+                "maxMMapFileSize": "256M",
+                "useSendfile": "1",
+                "fileETag": "2",
+                "enableExpires": "1",
+                "expiresByType": "text/css A2592000,application/javascript A2592000,image/png A2592000,image/jpg A2592000,image/gif A2592000,image/ico A2592000",
+            }
+            
+            # Her optimizasyonu uygula
+            for key, value in advanced_optimizations.items():
+                pattern = rf"{key}\s+[^\n]*"
+                replacement = f"{key} {value}"
+                content = re.sub(pattern, replacement, content)
+                
+                # Eğer ayar yoksa ekle
+                if key not in content:
+                    content += f"\n{key} {value}\n"
+            
+            # Worker optimizasyonları
+            worker_optimizations = {
+                "maxConnections": str(min(int(total_mem_gb * 1000), 20000)),
+                "maxSSLConnections": str(min(int(total_mem_gb * 1000), 20000)),
+                "connTimeout": "300",
+                "maxKeepAliveReq": "10000",
+                "keepAliveTimeout": "5",
+                "sndBufSize": "0",
+                "rcvBufSize": "0",
+            }
+            
+            for key, value in worker_optimizations.items():
+                pattern = rf"{key}\s+[^\n]*"
+                replacement = f"{key} {value}"
+                content = re.sub(pattern, replacement, content)
+            
+            HTTPD_CONF.write_text(content, encoding="utf-8")
+            print("✅ OpenLiteSpeed gelişmiş optimizasyonları tamamlandı")
+            
+        except Exception as e:
+            print(f"⚠️  OpenLiteSpeed gelişmiş optimizasyon hatası: {e}")
+
+
+def optimize_system_level(total_mem_gb: float, cpu_cores: int):
+    """Sistem seviyesi optimizasyonlar"""
+    print("🔧 Sistem seviyesi optimizasyonlar yapılıyor...")
+    
+    try:
+        # Kernel parametreleri
+        kernel_params = {
+            "net.core.rmem_max": "16777216",
+            "net.core.wmem_max": "16777216",
+            "net.ipv4.tcp_rmem": "4096 65536 16777216",
+            "net.ipv4.tcp_wmem": "4096 65536 16777216",
+            "net.core.netdev_max_backlog": "5000",
+            "net.ipv4.tcp_congestion_control": "bbr",
+            "vm.swappiness": "10",
+            "vm.dirty_ratio": "15",
+            "vm.dirty_background_ratio": "5",
+            "fs.file-max": "2097152",
+            "net.core.somaxconn": "65535",
+        }
+        
+        # sysctl ayarlarını uygula
+        for param, value in kernel_params.items():
+            run(f"sysctl -w {param}={value}", check=False)
+        
+        # Kalıcı konfigürasyon
+        sysctl_config = "# isPanel System Optimization\n"
+        for param, value in kernel_params.items():
+            sysctl_config += f"{param} = {value}\n"
+        
+        Path("/etc/sysctl.d/99-ispanel.conf").write_text(sysctl_config, encoding="utf-8")
+        
+        # Limits optimizasyonu
+        limits_config = f"""# isPanel Performance Limits
+* soft nofile 65535
+* hard nofile 65535
+* soft nproc {cpu_cores * 1000}
+* hard nproc {cpu_cores * 1000}
+root soft nofile 65535
+root hard nofile 65535
+"""
+        Path("/etc/security/limits.d/99-ispanel.conf").write_text(limits_config, encoding="utf-8")
+        
+        print("✅ Sistem seviyesi optimizasyonlar tamamlandı")
+        
+    except Exception as e:
+        print(f"⚠️  Sistem optimizasyon hatası: {e}")
 
 
 def repair_mariadb():
