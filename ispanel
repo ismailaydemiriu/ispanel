@@ -3404,12 +3404,17 @@ def update_ispanel():
 
         # Git repository kontrolü
         if not (script_dir / ".git").exists():
-            print("Git repository bulunamadı. Manuel güncelleme gerekli.")
+            print("❌ Git repository bulunamadı.")
+            print("💡 Manuel güncelleme için:")
+            print(f"   cd {script_dir}")
+            print("   git clone https://github.com/ismailaydemiriu/ispanel.git temp")
+            print("   cp -r temp/.git .")
+            print("   rm -rf temp")
             return
 
         # Mevcut branch'i kontrol et
         result = run("git branch --show-current", check=False)
-        current_branch = result.stdout.strip()
+        current_branch = result.stdout.strip() if result.stdout else "unknown"
         print(f"Mevcut branch: {current_branch}")
 
         # Remote'dan son değişiklikleri çek
@@ -3418,7 +3423,7 @@ def update_ispanel():
 
         # Mevcut commit ile remote arasındaki farkı kontrol et
         result = run("git log HEAD..origin/main --oneline", check=False)
-        if result.stdout.strip():
+        if result.stdout and result.stdout.strip():
             print("Yeni güncellemeler bulundu:")
             print(result.stdout.strip())
 
