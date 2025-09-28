@@ -3405,12 +3405,36 @@ def update_ispanel():
         # Git repository kontrolü
         if not (script_dir / ".git").exists():
             print("❌ Git repository bulunamadı.")
-            print("💡 Manuel güncelleme için:")
-            print(f"   cd {script_dir}")
-            print("   git clone https://github.com/ismailaydemiriu/ispanel.git temp")
-            print("   cp -r temp/.git .")
-            print("   rm -rf temp")
-            return
+            print("🔧 Otomatik düzeltme seçenekleri:")
+            print("1) Otomatik düzelt (önerilen)")
+            print("2) Manuel düzeltme talimatları")
+            print("0) İptal")
+            
+            choice = input("Seçiminizi girin (1-2-0): ").strip()
+            
+            if choice == "1":
+                print("🔄 Git repository düzeltiliyor...")
+                try:
+                    # Geçici dizin oluştur
+                    temp_dir = script_dir / "temp"
+                    run(f"git clone https://github.com/ismailaydemiriu/ispanel.git {temp_dir}", check=True)
+                    run(f"cp -r {temp_dir}/.git {script_dir}/", check=True)
+                    run(f"rm -rf {temp_dir}", check=True)
+                    print("✅ Git repository başarıyla düzeltildi!")
+                    print("🔄 Güncelleme işlemi devam ediyor...")
+                except Exception as e:
+                    print(f"❌ Otomatik düzeltme başarısız: {e}")
+                    return
+            elif choice == "2":
+                print("💡 Manuel güncelleme için:")
+                print(f"   cd {script_dir}")
+                print("   git clone https://github.com/ismailaydemiriu/ispanel.git temp")
+                print("   cp -r temp/.git .")
+                print("   rm -rf temp")
+                return
+            else:
+                print("❌ İşlem iptal edildi.")
+                return
 
         # Mevcut branch'i kontrol et
         result = run("git branch --show-current", check=False)
