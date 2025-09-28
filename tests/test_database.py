@@ -231,7 +231,8 @@ class TestDatabasePerformance:
                 mock_run.return_value = MagicMock(returncode=0, stdout="Optimized", stderr="")
                 
                 try:
-                    ispanel.optimize_mysql_performance()
+                    # Provide required parameters: total_mem_gb and cpu_cores
+                    ispanel.optimize_mysql_performance(total_mem_gb=8, cpu_cores=4)
                     optimization_success = True
                 except Exception as e:
                     print(f"MySQL optimization failed: {e}")

@@ -35,7 +35,14 @@ class TestDomainManagement:
         
         # Mock the domain_add function if it exists
         if hasattr(ispanel, 'domain_add'):
-            with patch('ispanel.run') as mock_run:
+            with patch('ispanel.run') as mock_run, \
+                 patch('ispanel.LSWS_CONF_DIR') as mock_lsws_conf, \
+                 patch('pathlib.Path.exists', return_value=True), \
+                 patch('pathlib.Path.read_text', return_value="mock config"), \
+                 patch('pathlib.Path.write_text'):
+                
+                # Mock LSWS_CONF_DIR.exists() to return True
+                mock_lsws_conf.exists.return_value = True
                 mock_run.return_value = MagicMock(returncode=0, stdout="OK", stderr="")
                 
                 # Test domain addition
