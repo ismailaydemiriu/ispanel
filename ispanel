@@ -2727,8 +2727,8 @@ def domain_php_version_menu():
 
 
 def interactive_menu():
-    try:
-        while True:
+    while True:
+        try:
             print(f"\n{'='*60}")
             print(f"🎯 {get_text('main_menu_title')}")
             print(f"{'='*60}")
@@ -2861,21 +2861,21 @@ def interactive_menu():
             ols_php_menu()
         elif choice == "27":
             update_ispanel()
-        elif choice == "0":
+            elif choice == "0":
+                break
+            else:
+                print("Geçersiz seçim")
+        
+        except KeyboardInterrupt:
+            print(f"\n\n{'='*60}")
+            print("👋 isPanel'den çıkıldı!")
+            print("💡 Tekrar giriş için: sudo ispanel")
+            print(f"{'='*60}")
             break
-        else:
-            print("Geçersiz seçim")
-    
-    except KeyboardInterrupt:
-        print(f"\n\n{'='*60}")
-        print("👋 isPanel'den çıkıldı!")
-        print("💡 Tekrar giriş için: sudo ispanel")
-        print(f"{'='*60}")
-        return
-    except Exception as e:
-        print(f"\n❌ Beklenmeyen hata: {e}")
-        print("💡 Lütfen tekrar deneyin veya sistem yöneticisine başvurun.")
-        return
+        except Exception as e:
+            print(f"\n❌ Beklenmeyen hata: {e}")
+            print("💡 Lütfen tekrar deneyin veya sistem yöneticisine başvurun.")
+            input("Devam etmek için Enter'a basın...")
 
 
 def backup_domain_menu():
