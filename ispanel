@@ -4258,10 +4258,10 @@ def update_ispanel():
         os.chdir(script_dir)
         
         try:
-        # Mevcut branch'i kontrol et
-        result = run("git branch --show-current", check=False)
-        current_branch = result.stdout.strip() if result.stdout else "unknown"
-        print(f"Mevcut branch: {current_branch}")
+            # Mevcut branch'i kontrol et
+            result = run("git branch --show-current", check=False)
+            current_branch = result.stdout.strip() if result.stdout else "unknown"
+            print(f"Mevcut branch: {current_branch}")
 
         # Remote'dan son değişiklikleri çek
         print("GitHub'dan son değişiklikler çekiliyor...")
