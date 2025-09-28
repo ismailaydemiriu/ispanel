@@ -2797,74 +2797,75 @@ def interactive_menu():
             print(f"{'='*60}")
 
             choice = input(f"\n{get_text('enter_choice')}: ").strip()
-        if choice == "1":
-            # Her iki PHP sürümü de kurulacak
-            cmd_install(argparse.Namespace(php_version="83"))
-        elif choice == "2":
-            install_openlitespeed_only()
-        elif choice == "3":
-            install_mariadb_only()
-        elif choice == "4":
-            domain = input(f"{get_text('domain_prompt')}: ").strip()
-            domain_add(domain)
-        elif choice == "5":
-            domain_php_version_menu()
-        elif choice == "6":
-            list_domains()
-        elif choice == "7":
-            domain = input(f"{get_text('domain_prompt')}: ").strip()
-            domain_remove(domain)
-        elif choice == "8":
-            db = input(f"{get_text('db_name_prompt')}: ").strip()
-            user = input(f"{get_text('db_user_prompt')}: ").strip()
-            password = input(f"{get_text('db_pass_prompt')}: ").strip()
-            db_create(db, user, password)
-        elif choice == "9":
-            list_databases()
-        elif choice == "10":
-            db = input(f"{get_text('db_name_prompt')}: ").strip()
-            user = input(f"{get_text('db_user_prompt')}: ").strip()
-            db_delete(db, user)
-        elif choice == "11":
-            domain = input(f"{get_text('domain_prompt')}: ").strip()
-            fix_virtual_host_root(domain)
-        elif choice == "12":
-            domain = input(f"{get_text('domain_prompt')}: ").strip()
-            fix_vhost_config(domain)
-        elif choice == "13":
-            reset_mysql_root_password()
-        elif choice == "14":
-            reset_openlitespeed_admin_password()
-        elif choice == "15":
-            manage_firewall()
-        elif choice == "16":
-            install_ssl_support()
-        elif choice == "17":
-            secure_mariadb_menu()
-        elif choice == "18":
-            optimize_openlitespeed()
-        elif choice == "19":
-            backup_domain_menu()
-        elif choice == "20":
-            backup_database_menu()
-        elif choice == "21":
-            list_backups()
-        elif choice == "22":
-            cron_backup_menu()
-        elif choice == "23":
-            repair_menu()
-        elif choice == "24":
-            cache_menu()
-        elif choice == "25":
-            system_management_menu()
-        elif choice == "26":
-            ols_php_menu()
-        elif choice == "27":
-            update_ispanel()
-        elif choice == "0":
-            break
-        else:
-            print("Geçersiz seçim")
+            
+            if choice == "1":
+                # Her iki PHP sürümü de kurulacak
+                cmd_install(argparse.Namespace(php_version="83"))
+            elif choice == "2":
+                install_openlitespeed_only()
+            elif choice == "3":
+                install_mariadb_only()
+            elif choice == "4":
+                domain = input(f"{get_text('domain_prompt')}: ").strip()
+                domain_add(domain)
+            elif choice == "5":
+                domain_php_version_menu()
+            elif choice == "6":
+                list_domains()
+            elif choice == "7":
+                domain = input(f"{get_text('domain_prompt')}: ").strip()
+                domain_remove(domain)
+            elif choice == "8":
+                db = input(f"{get_text('db_name_prompt')}: ").strip()
+                user = input(f"{get_text('db_user_prompt')}: ").strip()
+                password = input(f"{get_text('db_pass_prompt')}: ").strip()
+                db_create(db, user, password)
+            elif choice == "9":
+                list_databases()
+            elif choice == "10":
+                db = input(f"{get_text('db_name_prompt')}: ").strip()
+                user = input(f"{get_text('db_user_prompt')}: ").strip()
+                db_delete(db, user)
+            elif choice == "11":
+                domain = input(f"{get_text('domain_prompt')}: ").strip()
+                fix_virtual_host_root(domain)
+            elif choice == "12":
+                domain = input(f"{get_text('domain_prompt')}: ").strip()
+                fix_vhost_config(domain)
+            elif choice == "13":
+                reset_mysql_root_password()
+            elif choice == "14":
+                reset_openlitespeed_admin_password()
+            elif choice == "15":
+                manage_firewall()
+            elif choice == "16":
+                install_ssl_support()
+            elif choice == "17":
+                secure_mariadb_menu()
+            elif choice == "18":
+                optimize_openlitespeed()
+            elif choice == "19":
+                backup_domain_menu()
+            elif choice == "20":
+                backup_database_menu()
+            elif choice == "21":
+                list_backups()
+            elif choice == "22":
+                cron_backup_menu()
+            elif choice == "23":
+                repair_menu()
+            elif choice == "24":
+                cache_menu()
+            elif choice == "25":
+                system_management_menu()
+            elif choice == "26":
+                ols_php_menu()
+            elif choice == "27":
+                update_ispanel()
+            elif choice == "0":
+                break
+            else:
+                print("Geçersiz seçim")
         
         except KeyboardInterrupt:
             print(f"\n\n{'='*60}")
