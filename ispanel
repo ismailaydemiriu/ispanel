@@ -295,13 +295,67 @@ def install_openlitespeed_and_php(lsphp_version: str = "83"):
         run("/usr/local/lsws/bin/lswsctrl restart", check=True)
 
 
+def generate_random_password(length: int = 16) -> str:
+    """Random şifre üret"""
+    import secrets
+    import string
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
 def install_mariadb():
     logger.info("MariaDB kuruluyor...")
     wait_for_apt()
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
-    run("DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server", check=True)
+    
+    # MariaDB kurulumu için environment variables
+    env_vars = {
+        'DEBIAN_FRONTEND': 'noninteractive',
+        'MYSQL_ROOT_PASSWORD': generate_random_password(20),
+        'MYSQL_DATABASE': 'ispanel',
+        'MYSQL_USER': 'ispanel_user',
+        'MYSQL_PASSWORD': generate_random_password(16)
+    }
+    
+    # Environment variables'ı export et
+    env_string = ' '.join([f'{k}={v}' for k, v in env_vars.items()])
+    
+    # MariaDB kurulumu
+    run(f"{env_string} DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server", check=True)
+    
+    # MariaDB servisini başlat
     run("systemctl enable mariadb", check=False)
     run("systemctl restart mariadb", check=True)
+    
+    # Root şifresini ayarla
+    root_password = env_vars['MYSQL_ROOT_PASSWORD']
+    try:
+        # MariaDB'yi güvenli modda başlat
+        run("systemctl stop mariadb", check=False)
+        run("mysqld_safe --skip-grant-tables --skip-networking &", check=False)
+        time.sleep(3)
+        
+        # Root şifresini ayarla
+        run(f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';\"", check=True)
+        
+        # MariaDB'yi normal modda yeniden başlat
+        run("pkill mysqld", check=False)
+        time.sleep(2)
+        run("systemctl start mariadb", check=True)
+        
+        # Şifreleri global değişkene kaydet
+        global MYSQL_ROOT_PASSWORD, MYSQL_USER_PASSWORD
+        MYSQL_ROOT_PASSWORD = root_password
+        MYSQL_USER_PASSWORD = env_vars['MYSQL_PASSWORD']
+        
+        print(f"✅ MariaDB kuruldu ve yapılandırıldı")
+        print(f"🔑 MySQL Root Şifresi: {root_password}")
+        print(f"🔑 MySQL User Şifresi: {env_vars['MYSQL_PASSWORD']}")
+        
+    except Exception as e:
+        print(f"MariaDB şifre ayarlama hatası: {e}")
+        # Fallback: Manuel şifre ayarlama talimatı
+        print("Manuel olarak şu komutu çalıştırın:")
+        print(f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{root_password}';\"")
 
 
 def install_symlink():
@@ -409,6 +463,15 @@ def cmd_install(args: argparse.Namespace):
     print("✅ MariaDB güvenlik ayarları yapıldı")
     print("✅ OpenLiteSpeed performans optimizasyonu yapıldı")
     print("✅ Yedek sistemi hazır")
+    
+    # Şifreleri göster
+    if MYSQL_ROOT_PASSWORD:
+        print("\n🔐 ÖNEMLİ ŞİFRELER:")
+        print(f"MySQL Root Şifresi: {MYSQL_ROOT_PASSWORD}")
+        if MYSQL_USER_PASSWORD:
+            print(f"MySQL User Şifresi: {MYSQL_USER_PASSWORD}")
+        print("\n⚠️  Bu şifreleri güvenli bir yerde saklayın!")
+    
     print("\nKullanım: sudo ispanel")
 
 
@@ -426,6 +489,10 @@ LOG_LEVEL = os.environ.get("ISPANEL_LOG_LEVEL", "INFO").upper()
 ISPANEL_HOME = Path("/usr/local/ispanel")
 ISPANEL_TEMPLATES_DIR = ISPANEL_HOME / "templates"
 ISPANEL_BACKUP_DIR = Path("/home/backup")
+
+# MySQL şifreleri (kurulum sırasında ayarlanır)
+MYSQL_ROOT_PASSWORD = ""
+MYSQL_USER_PASSWORD = ""
 
 # Template dizinini belirle
 TEMPLATE_DIR = Path(os.environ.get("ISPANEL_TEMPLATE_DIR", str(ISPANEL_TEMPLATES_DIR)))
@@ -2568,9 +2635,13 @@ def restore_database(backup_file: str, db_name: str):
 
 def get_mysql_root_password():
     """MySQL root şifresini al"""
-    # Bu fonksiyon gerçek implementasyonda MySQL root şifresini döndürmeli
-    # Şimdilik boş string döndürüyoruz
-    return ""
+    global MYSQL_ROOT_PASSWORD
+    if MYSQL_ROOT_PASSWORD:
+        return MYSQL_ROOT_PASSWORD
+    else:
+        # Eğer global değişken boşsa, kullanıcıdan iste
+        password = input("MySQL root şifresini girin: ").strip()
+        return password
 
 def cron_backup_menu():
     """Cron backup ayarları menüsü"""
