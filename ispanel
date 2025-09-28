@@ -696,19 +696,43 @@ def reset_openlitespeed_admin_password():
         print("Şifre boş olamaz!")
         return
     
+    if len(new_password) < 6:
+        print("Şifre en az 6 karakter olmalı!")
+        return
+    
     # OpenLiteSpeed admin şifresini sıfırla
     admin_script = "/usr/local/lsws/admin/misc/admpass.sh"
     if not Path(admin_script).exists():
         print("OpenLiteSpeed admin scripti bulunamadı!", file=sys.stderr)
         return
     
-    # Admin şifresini ayarla
-    run(f"echo '{new_password}' | {admin_script}", check=True)
-    
-    print("OpenLiteSpeed admin şifresi başarıyla sıfırlandı!")
-    print(f"Admin panel: https://SERVER_IP:7080")
-    print(f"Kullanıcı: admin")
-    print(f"Şifre: {new_password}")
+    try:
+        # Non-interactive şifre ayarlama
+        print("Admin şifresi ayarlanıyor...")
+        
+        # Şifreyi dosyaya yaz ve script'e yönlendir
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+            f.write(f"{new_password}\n{new_password}\n")
+            temp_file = f.name
+        
+        # Script'i non-interactive çalıştır
+        run(f"cat {temp_file} | {admin_script}", check=True)
+        
+        # Geçici dosyayı sil
+        Path(temp_file).unlink()
+        
+        print("✅ OpenLiteSpeed admin şifresi başarıyla sıfırlandı!")
+        print(f"Admin panel: https://SERVER_IP:7080")
+        print(f"Kullanıcı: admin")
+        print(f"Şifre: {new_password}")
+        
+    except subprocess.CalledProcessError as e:
+        print(f"Şifre sıfırlama hatası: {e}")
+        print("Manuel olarak şu komutu çalıştırabilirsiniz:")
+        print(f"sudo {admin_script}")
+    except Exception as e:
+        print(f"Beklenmeyen hata: {e}")
 
 
 def check_port(port):
