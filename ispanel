@@ -206,6 +206,7 @@ def cmd_install(args: argparse.Namespace):
     install_ssl_support()
     secure_mariadb()
     optimize_openlitespeed()
+    cleanup_default_listeners()  # Varsayılan 8088 listener'ını temizle
     
     # PHP OPcache konfigürasyonu
     configure_php_opcache()
@@ -276,30 +277,68 @@ def reload_lsws():
         run("/usr/local/lsws/bin/lswsctrl restart", check=True)
 
 
+def cleanup_default_listeners():
+    """Varsayılan 8088 listener'ını ve gereksiz konfigürasyonları temizle"""
+    if not HTTPD_CONF.exists():
+        return
+    
+    content = HTTPD_CONF.read_text(encoding="utf-8")
+    original_content = content
+    
+    # 8088 portundaki Default listener'ı temizle
+    content = re.sub(r'listener\s+Default\s*\{\s*address\s+\*:8088[^}]*\}', '', content, flags=re.DOTALL)
+    
+    # Example virtualhost'u temizle
+    content = re.sub(r'virtualHost\s+Example\s*\{[^}]*\}', '', content, flags=re.DOTALL)
+    
+    # EasyRailsWithSuEXEC template'ini temizle
+    content = re.sub(r'vhTemplate\s+EasyRailsWithSuEXEC\s*\{[^}]*\}', '', content, flags=re.DOTALL)
+    
+    # Boş satırları temizle
+    content = re.sub(r'\n{3,}', '\n\n', content)
+    
+    if content != original_content:
+        HTTPD_CONF.write_text(content, encoding="utf-8")
+        print("✅ Varsayılan listener ve gereksiz konfigürasyonlar temizlendi")
+
+
 def ensure_http_listener_mapping(domain: str):
     if not HTTPD_CONF.exists():
         print(f"Bulunamadı: {HTTPD_CONF}", file=sys.stderr)
         sys.exit(1)
     content = HTTPD_CONF.read_text(encoding="utf-8")
 
-    map_block = f"map                     {domain}:80 {domain}"
-    listener_pattern = r"listener\s+Default\\s*\{[\s\S]*?\}"
-    m = re.search(listener_pattern, content)
+    # Önce 8088 portundaki Default listener'ı temizle
+    content = re.sub(r'listener\s+Default\s*\{\s*address\s+\*:8088.*?\n\}', '', content, flags=re.DOTALL)
+    
+    # Duplicate Default listener'ları temizle
+    default_listeners = list(re.finditer(r'listener\s+Default\s*\{[^}]*address\s+\*:80[^}]*\}', content, re.DOTALL))
+    if len(default_listeners) > 1:
+        # İlkini koru, diğerlerini sil
+        for match in default_listeners[1:]:
+            content = content.replace(match.group(0), '')
+
+    map_block = f"map                     {domain} {domain}"
+    listener_pattern = r"listener\s+Default\s*\{[^}]*address\s+\*:80[^}]*\}"
+    m = re.search(listener_pattern, content, re.DOTALL)
+    
     if not m:
         # Eksikse, Default HTTP listener'ı oluştur
-        default_listener = (
-            "\nlistener Default {\n"
-            "    address                 *:80\n"
-            "    secure                  0\n"
-            f"    {map_block}\n"
-            "}\n"
-        )
+        default_listener = f"""
+listener Default {{
+    address                 *:80
+    secure                  0
+    {map_block}
+}}
+"""
         content = content.rstrip() + "\n" + default_listener
         HTTPD_CONF.write_text(content, encoding="utf-8")
         return
+    
     block = m.group(0)
-    if map_block in block:
+    if f"map                     {domain}" in block:
         return
+    
     new_block = block.rstrip("}\n") + f"\n    {map_block}\n}}"
     new_content = content.replace(block, new_block)
     HTTPD_CONF.write_text(new_content, encoding="utf-8")
@@ -311,13 +350,23 @@ def ensure_https_listener_mapping(domain: str):
         return
     content = HTTPD_CONF.read_text(encoding="utf-8")
 
+    # Duplicate SSL listener'ları temizle
+    ssl_listeners = list(re.finditer(r'listener\s+SSL\s*\{[^}]*address\s+\*:443[^}]*\}', content, re.DOTALL))
+    if len(ssl_listeners) > 1:
+        # İlkini koru, diğerlerini sil
+        for match in ssl_listeners[1:]:
+            content = content.replace(match.group(0), '')
+    
     # HTTPS listener kontrolü
-    https_listener_pattern = r"listener\s+SSL\\s*\{[\s\S]*?\}"
-    if not re.search(https_listener_pattern, content):
+    https_listener_pattern = r"listener\s+SSL\s*\{[^}]*address\s+\*:443[^}]*\}"
+    m = re.search(https_listener_pattern, content, re.DOTALL)
+    
+    ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
+    ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
+    map_block = f"map                     {domain} {domain}"
+    
+    if not m:
         # HTTPS listener oluştur
-        ssl_cert = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
-        ssl_key = f"/etc/letsencrypt/live/{domain}/privkey.pem"
-        
         https_listener = f"""
 listener SSL {{
     address                 *:443
@@ -333,20 +382,15 @@ listener SSL {{
     sslSessionTickets       1
     enableSpdy              15
     enableQuic              1
-    map                     {domain}:443 {domain}
+    {map_block}
 }}
 """
-        # Listener'ı ekle
-        new_content = content + https_listener
-        HTTPD_CONF.write_text(new_content, encoding="utf-8")
+        content = content.rstrip() + "\n" + https_listener
+        HTTPD_CONF.write_text(content, encoding="utf-8")
     else:
         # Mevcut HTTPS listener'a domain ekle
-        map_block = f"map                     {domain}:443 {domain}"
-        m = re.search(https_listener_pattern, content)
-        if not m:
-            return
         block = m.group(0)
-        if map_block in block:
+        if f"map                     {domain}" in block:
             return
         new_block = block.rstrip("}\n") + f"\n    {map_block}\n}}"
         new_content = content.replace(block, new_block)
