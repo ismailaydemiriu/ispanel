@@ -28,11 +28,20 @@ TEXTS = {
             "Delete Database",
             "Fix Virtual Host Root",
             "Fix Vhost Configuration",
-            "Backup Domain",
-            "Backup Database",
-            "List Backups",
+            "Reset MySQL Root Password",
             "Reset OpenLiteSpeed Admin Password",
-            "Optimize OpenLiteSpeed",
+            "Port Control and Firewall Management",
+            "Install SSL/HTTPS Support",
+            "MariaDB Security Settings",
+            "OpenLiteSpeed Performance Optimization",
+            "File Backup Menu",
+            "Database Backup Menu",
+            "List Backups",
+            "Cron Backup Settings",
+            "Repair Tools",
+            "Cache Systems (Redis/Memcached)",
+            "System Management",
+            "OLS/PHP Settings",
             "Update isPanel",
             "Exit"
         ],
@@ -78,11 +87,20 @@ TEXTS = {
             "Veritabanı Sil",
             "Virtual Host Root Düzelt",
             "Vhost Konfigürasyon Düzelt",
-            "Domain Yedekle",
-            "Veritabanı Yedekle",
-            "Yedekleri Listele",
+            "MySQL Root Şifre Sıfırla",
             "OpenLiteSpeed Admin Şifre Sıfırla",
-            "OpenLiteSpeed Optimize Et",
+            "Port Kontrolü ve Firewall Yönetimi",
+            "SSL/HTTPS Desteği Kur",
+            "MariaDB Güvenlik Ayarları",
+            "OpenLiteSpeed Performans Optimizasyonu",
+            "Dosya Yedekleme Menüsü",
+            "Veritabanı Yedekleme Menüsü",
+            "Yedekleri Listele",
+            "Cron Backup Ayarları",
+            "Onarım Araçları",
+            "Cache Sistemleri (Redis/Memcached)",
+            "Sistem Yönetimi",
+            "OLS/PHP Ayarları",
             "isPanel Güncelle",
             "Çıkış"
         ],
@@ -2298,22 +2316,22 @@ def interactive_menu():
             domain = input(f"{get_text('domain_prompt')}: ").strip()
             domain_remove(domain)
         elif choice == "6":
-            list_databases()
-        elif choice == "7":
-            domain = input(f"{get_text('domain_prompt')}: ").strip()
-            fix_virtual_host_root(domain)
-        elif choice == "8":
-            domain = input(f"{get_text('domain_prompt')}: ").strip()
-            fix_vhost_config(domain)
-        elif choice == "9":
             db = input(f"{get_text('db_name_prompt')}: ").strip()
             user = input(f"{get_text('db_user_prompt')}: ").strip()
             password = input(f"{get_text('db_pass_prompt')}: ").strip()
             db_create(db, user, password)
-        elif choice == "10":
+        elif choice == "7":
+            list_databases()
+        elif choice == "8":
             db = input(f"{get_text('db_name_prompt')}: ").strip()
             user = input(f"{get_text('db_user_prompt')}: ").strip()
             db_delete(db, user)
+        elif choice == "9":
+            domain = input(f"{get_text('domain_prompt')}: ").strip()
+            fix_virtual_host_root(domain)
+        elif choice == "10":
+            domain = input(f"{get_text('domain_prompt')}: ").strip()
+            fix_vhost_config(domain)
         elif choice == "11":
             reset_mysql_root_password()
         elif choice == "12":
@@ -2325,6 +2343,8 @@ def interactive_menu():
         elif choice == "15":
             secure_mariadb()
         elif choice == "16":
+            optimize_openlitespeed()
+        elif choice == "17":
             while True:
                 print("\n--- Dosya Yedekleme ---")
                 print("1) Domain yedeği al")
