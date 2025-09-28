@@ -3509,42 +3509,42 @@ def update_ispanel():
 
             # Mevcut commit ile remote arasındaki farkı kontrol et
             result = run("git log HEAD..origin/main --oneline", check=False)
-        if result.stdout and result.stdout.strip():
-            print("Yeni güncellemeler bulundu:")
-            print(result.stdout.strip())
-
-            # Kullanıcıdan onay al
-            confirm = (
-                input("Güncellemeyi uygulamak istiyor musunuz? (y/N): ").strip().lower()
-            )
-            if confirm in ["y", "yes", "evet"]:
-                print("Güncelleme uygulanıyor...")
-
-                # Backup oluştur
-                backup_path = f"/tmp/ispanel_backup_{int(time.time())}.py"
-                run(f"cp {script_path} {backup_path}", check=False)
-                print(f"Yedek oluşturuldu: {backup_path}")
-
-                # Pull yap
-                run("git pull origin main", check=True)
-
-                # Bozuk symlink'i temizle ve yeniden oluştur
-                print("Symlink düzeltiliyor...")
-                run("rm -f /usr/local/bin/ispanel", check=False)
-                install_symlink()
-
-                print("✅ isPanel başarıyla güncellendi!")
-                print("Değişiklikler:")
+            if result.stdout and result.stdout.strip():
+                print("Yeni güncellemeler bulundu:")
                 print(result.stdout.strip())
-                print("\nArtık 'ispanel' komutu çalışacak!")
 
-                # Yedek dosyasını sil
-                run(f"rm -f {backup_path}", check=False)
+                # Kullanıcıdan onay al
+                confirm = (
+                    input("Güncellemeyi uygulamak istiyor musunuz? (y/N): ").strip().lower()
+                )
+                if confirm in ["y", "yes", "evet"]:
+                    print("Güncelleme uygulanıyor...")
 
+                    # Backup oluştur
+                    backup_path = f"/tmp/ispanel_backup_{int(time.time())}.py"
+                    run(f"cp {script_path} {backup_path}", check=False)
+                    print(f"Yedek oluşturuldu: {backup_path}")
+
+                    # Pull yap
+                    run("git pull origin main", check=True)
+
+                    # Bozuk symlink'i temizle ve yeniden oluştur
+                    print("Symlink düzeltiliyor...")
+                    run("rm -f /usr/local/bin/ispanel", check=False)
+                    install_symlink()
+
+                    print("✅ isPanel başarıyla güncellendi!")
+                    print("Değişiklikler:")
+                    print(result.stdout.strip())
+                    print("\nArtık 'ispanel' komutu çalışacak!")
+
+                    # Yedek dosyasını sil
+                    run(f"rm -f {backup_path}", check=False)
+
+                else:
+                    print("Güncelleme iptal edildi.")
             else:
-                print("Güncelleme iptal edildi.")
-        else:
-            print("✅ isPanel zaten güncel!")
+                print("✅ isPanel zaten güncel!")
             
         finally:
             # Orijinal dizine geri dön
