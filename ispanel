@@ -1,0 +1,365 @@
+#!/usr/bin/env python3
+import argparse
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+
+def run(cmd: str, check: bool = True) -> subprocess.CompletedProcess:
+    return subprocess.run(cmd, shell=True, check=check, text=True)
+
+
+def require_root():
+    if os.geteuid() != 0:
+        print("Bu komutları root olarak çalıştırın (sudo kullanın).", file=sys.stderr)
+        sys.exit(1)
+
+
+def wait_for_apt(max_retries: int = 30, delay: int = 10):
+    retries = 0
+    while retries < max_retries:
+        cp = subprocess.run(
+            "ps aux | grep -E '(apt|apt-get)\\s' | grep -v grep | grep -v _apt",
+            shell=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if not cp.stdout.strip():
+            return
+        retries += 1
+        print(f"apt kullanımda, {retries}/{max_retries} bekleniyor...", flush=True)
+        time.sleep(delay)
+    print("HATA: apt kilitli görünüyor. Lütfen diğer apt işlemlerini kapatın.", file=sys.stderr)
+    sys.exit(1)
+
+
+def ensure_cmd(cmd: str, pkg: str):
+    if shutil.which(cmd):
+        return
+    wait_for_apt()
+    run(f"DEBIAN_FRONTEND=noninteractive apt-get update -y")
+    run(f"DEBIAN_FRONTEND=noninteractive apt-get install -y {pkg}")
+    if not shutil.which(cmd):
+        print(f"Gerekli komut bulunamadı: {cmd} (paket: {pkg})", file=sys.stderr)
+        sys.exit(1)
+
+
+def check_disk_space(min_gb: int = 1):
+    df = shutil.disk_usage("/")
+    available_gb = df.free // (1024 * 1024 * 1024)
+    print(f"Boş disk alanı: {available_gb} GB")
+    if available_gb < min_gb:
+        print("En az 1GB boş alan gerekli.", file=sys.stderr)
+        sys.exit(1)
+
+
+def install_openlitespeed_and_php():
+    print("OpenLiteSpeed ve PHP 8.2 kuruluyor...")
+    wait_for_apt()
+    run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
+    ensure_cmd("curl", "curl")
+    ensure_cmd("wget", "wget")
+
+    # Litespeed repo
+    run("wget -O - https://repo.litespeed.sh | bash", check=True)
+
+    # Paketler
+    run("DEBIAN_FRONTEND=noninteractive apt-get -y install openlitespeed", check=True)
+    run(
+        "DEBIAN_FRONTEND=noninteractive apt-get -y install lsphp82 lsphp82-common lsphp82-mysql",
+        check=True,
+    )
+
+    # Hizmetleri başlat/enable
+    # openlitespeed service name is usually 'lsws'
+    try:
+        run("systemctl enable lsws", check=False)
+        run("systemctl restart lsws", check=True)
+    except subprocess.CalledProcessError:
+        run("/usr/local/lsws/bin/lswsctrl restart", check=True)
+
+
+def install_mariadb():
+    print("MariaDB kuruluyor...")
+    wait_for_apt()
+    run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
+    run("DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server", check=True)
+    run("systemctl enable mariadb", check=False)
+    run("systemctl restart mariadb", check=True)
+
+
+def install_symlink():
+    target = "/usr/local/bin/ispanel"
+    me = Path(sys.argv[0]).resolve()
+    # symlink CLI to open menu by default
+    try:
+        Path(target).unlink(missing_ok=True)
+        os.symlink(str(me), target)
+        os.chmod(target, 0o755)
+    except Exception as e:
+        # Fallback: write a tiny wrapper
+        wrapper = f"#!/bin/sh\nexec python3 {me} menu \"$@\"\n"
+        Path(target).write_text(wrapper, encoding="utf-8")
+        os.chmod(target, 0o755)
+
+
+def cmd_install(args: argparse.Namespace):
+    require_root()
+    check_disk_space(1)
+
+    # OS kontrolü
+    with open("/etc/os-release", "r", encoding="utf-8") as f:
+        osr = f.read()
+    if "Ubuntu" not in osr:
+        print("Bu kurulum Ubuntu 22+ için tasarlanmıştır.", file=sys.stderr)
+    install_openlitespeed_and_php()
+    install_mariadb()
+    install_symlink()
+    print("Kurulum tamamlandı.")
+
+
+# ---------- OpenLiteSpeed domain yönetimi ----------
+
+LSWS_CONF_DIR = Path("/usr/local/lsws/conf")
+VHOSTS_DIR = LSWS_CONF_DIR / "vhosts"
+HTTPD_CONF = LSWS_CONF_DIR / "httpd_config.conf"
+DOCROOT_BASE = Path("/var/www")
+
+
+def reload_lsws():
+    try:
+        run("systemctl reload lsws", check=True)
+    except subprocess.CalledProcessError:
+        run("/usr/local/lsws/bin/lswsctrl restart", check=True)
+
+
+def ensure_http_listener_mapping(domain: str):
+    if not HTTPD_CONF.exists():
+        print(f"Bulunamadı: {HTTPD_CONF}", file=sys.stderr)
+        sys.exit(1)
+    content = HTTPD_CONF.read_text(encoding="utf-8")
+
+    map_block = f"map                     {domain}:80 {domain}"
+    listener_pattern = r"listener\s+Default\\s*\{[\s\S]*?\}"
+    m = re.search(listener_pattern, content)
+    if not m:
+        print("httpd_config.conf içinde 'listener Default' bulunamadı. Lütfen OLS varsayılan konfigürasyonunu kullanın.", file=sys.stderr)
+        sys.exit(1)
+    block = m.group(0)
+    if map_block in block:
+        return
+    new_block = block.rstrip("}\n") + f"\n    {map_block}\n}}"
+    new_content = content.replace(block, new_block)
+    HTTPD_CONF.write_text(new_content, encoding="utf-8")
+
+
+def write_vhost_conf(domain: str, docroot: Path):
+    vdir = VHOSTS_DIR / domain
+    vdir.mkdir(parents=True, exist_ok=True)
+    vconf = vdir / f"{domain}.conf"
+    accesslog = Path("/usr/local/lsws/logs") / f"{domain}.access.log"
+    errorlog = Path("/usr/local/lsws/logs") / f"{domain}.error.log"
+    conf = f"""
+virtualHost {domain} {{
+    vhRoot                  {docroot}
+    configFile              conf/vhosts/{domain}/{domain}.conf
+    allowSymbolLink         1
+    enableScript            1
+    restrained              1
+}}
+vhDomain                  {domain}
+docRoot                   {docroot}
+index  {"index.php,index.html"}
+
+errorlog {errorlog} {{
+    useServer              0
+    logLevel               ERROR
+}}
+
+accesslog {accesslog} {{
+    useServer              0
+    logFormat              "%h %l %u %t \"%r\" %>s %b"
+}}
+
+context / {{
+    location              {docroot}
+    allowBrowse           1
+}}
+
+scriptHandler {{
+    add                   lsapi:lsphp82 php
+}}
+
+phpIniOverride  {{
+}}
+""".strip()
+    vconf.write_text(conf, encoding="utf-8")
+
+
+def ensure_docroot(domain: str) -> Path:
+    docroot = DOCROOT_BASE / domain / "public_html"
+    docroot.mkdir(parents=True, exist_ok=True)
+    index_file = docroot / "index.php"
+    if not index_file.exists():
+        index_file.write_text("<?php phpinfo();", encoding="utf-8")
+    run(f"chown -R lsadm:lsadm {DOCROOT_BASE / domain}", check=False)
+    return docroot
+
+
+def domain_add(domain: str):
+    if not re.match(r"^[A-Za-z0-9.-]+$", domain):
+        print("Geçersiz domain.", file=sys.stderr)
+        sys.exit(1)
+    if not LSWS_CONF_DIR.exists():
+        print("OpenLiteSpeed kurulu değil gibi görünüyor.", file=sys.stderr)
+        sys.exit(1)
+    docroot = ensure_docroot(domain)
+    write_vhost_conf(domain, docroot)
+    ensure_http_listener_mapping(domain)
+    reload_lsws()
+    print(f"Domain eklendi: {domain} -> {docroot}")
+
+
+def domain_remove(domain: str):
+    vdir = VHOSTS_DIR / domain
+    if vdir.exists():
+        shutil.rmtree(vdir)
+
+    if HTTPD_CONF.exists():
+        content = HTTPD_CONF.read_text(encoding="utf-8")
+        content = re.sub(rf"\n\s*map\s+{re.escape(domain)}:80\s+{re.escape(domain)}\s*", "\n", content)
+        HTTPD_CONF.write_text(content, encoding="utf-8")
+    reload_lsws()
+    print(f"Domain silindi: {domain}")
+
+
+# ---------- MariaDB yönetimi ----------
+
+def mysql_exec(sql: str):
+    run(f"mysql -uroot -e \"{sql}\"", check=True)
+
+
+def db_create(db: str, user: str, password: str):
+    if not re.match(r"^[A-Za-z0-9_]+$", db):
+        print("Geçersiz veritabanı adı.", file=sys.stderr)
+        sys.exit(1)
+    if not re.match(r"^[A-Za-z0-9_]+$", user):
+        print("Geçersiz kullanıcı adı.", file=sys.stderr)
+        sys.exit(1)
+    sql = (
+        f"CREATE DATABASE IF NOT EXISTS `{db}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; "
+        f"CREATE USER IF NOT EXISTS '{user}'@'%' IDENTIFIED BY '{password}'; "
+        f"GRANT ALL PRIVILEGES ON `{db}`.* TO '{user}'@'%'; FLUSH PRIVILEGES;"
+    )
+    mysql_exec(sql)
+    print(f"DB oluşturuldu: {db}, kullanıcı: {user}")
+
+
+def db_delete(db: str, user: str):
+    sql = (
+        f"DROP DATABASE IF EXISTS `{db}`; "
+        f"DROP USER IF EXISTS '{user}'@'%'; FLUSH PRIVILEGES;"
+    )
+    mysql_exec(sql)
+    print(f"DB silindi: {db}, kullanıcı: {user}")
+
+
+def interactive_menu():
+    while True:
+        print("\n=== ispanel (Ubuntu 22+) ===")
+        print("1) Kurulum (OpenLiteSpeed + PHP 8.2 + MariaDB)")
+        print("2) Domain ekle")
+        print("3) Domain sil")
+        print("4) DB oluştur")
+        print("5) DB sil")
+        print("0) Çıkış")
+        choice = input("Seçim: ").strip()
+        if choice == "1":
+            cmd_install(argparse.Namespace())
+        elif choice == "2":
+            domain = input("Domain: ").strip()
+            domain_add(domain)
+        elif choice == "3":
+            domain = input("Domain: ").strip()
+            domain_remove(domain)
+        elif choice == "4":
+            db = input("DB adı: ").strip()
+            user = input("Kullanıcı: ").strip()
+            password = input("Parola: ").strip()
+            db_create(db, user, password)
+        elif choice == "5":
+            db = input("DB adı: ").strip()
+            user = input("Kullanıcı: ").strip()
+            db_delete(db, user)
+        elif choice == "0":
+            break
+        else:
+            print("Geçersiz seçim")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="SSH tabanlı mini panel (Ubuntu 22+)")
+    sub = parser.add_subparsers(dest="cmd")
+
+    p_install = sub.add_parser("install", help="OpenLiteSpeed, PHP 8.2 ve MariaDB kur")
+    p_install.set_defaults(func=cmd_install)
+
+    p_dadd = sub.add_parser("domain-add", help="Domain ekle")
+    p_dadd.add_argument("domain")
+    def _dadd(args):
+        require_root()
+        domain_add(args.domain)
+    p_dadd.set_defaults(func=_dadd)
+
+    p_drm = sub.add_parser("domain-rm", help="Domain sil")
+    p_drm.add_argument("domain")
+    def _drm(args):
+        require_root()
+        domain_remove(args.domain)
+    p_drm.set_defaults(func=_drm)
+
+    p_dbcreate = sub.add_parser("db-create", help="MariaDB veritabanı ve kullanıcı oluştur")
+    p_dbcreate.add_argument("db")
+    p_dbcreate.add_argument("user")
+    p_dbcreate.add_argument("password")
+    def _dbcreate(args):
+        require_root()
+        db_create(args.db, args.user, args.password)
+    p_dbcreate.set_defaults(func=_dbcreate)
+
+    p_dbdelete = sub.add_parser("db-delete", help="MariaDB veritabanı ve kullanıcı sil")
+    p_dbdelete.add_argument("db")
+    p_dbdelete.add_argument("user")
+    def _dbdelete(args):
+        require_root()
+        db_delete(args.db, args.user)
+    p_dbdelete.set_defaults(func=_dbdelete)
+
+    # Etkileşimli menü
+    p_menu = sub.add_parser("menu", help="İnteraktif menüyü başlat")
+    def _menu(args):
+        require_root()
+        interactive_menu()
+    p_menu.set_defaults(func=_menu)
+
+    args = parser.parse_args()
+    if not hasattr(args, "func"):
+        # Varsayılan olarak menüyü aç
+        if os.geteuid() == 0:
+            interactive_menu()
+            return
+        else:
+            parser.print_help()
+            sys.exit(1)
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
+
+
