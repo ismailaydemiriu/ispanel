@@ -425,7 +425,24 @@ def domain_remove(domain: str):
 
     if HTTPD_CONF.exists():
         content = HTTPD_CONF.read_text(encoding="utf-8")
+        # HTTP listener'dan domain mapping'i sil
         content = re.sub(rf"\n\s*map\s+{re.escape(domain)}:80\s+{re.escape(domain)}\s*", "\n", content)
+        # HTTPS listener'dan domain mapping'i sil
+        content = re.sub(rf"\n\s*map\s+{re.escape(domain)}:443\s+{re.escape(domain)}\s*", "\n", content)
+        # virtualHost referansını sil
+        lines = content.split('\n')
+        new_lines = []
+        skip_until_brace = False
+        for line in lines:
+            if f"virtualHost {domain}" in line:
+                skip_until_brace = True
+                continue
+            if skip_until_brace and line.strip() == '}':
+                skip_until_brace = False
+                continue
+            if not skip_until_brace:
+                new_lines.append(line)
+        content = '\n'.join(new_lines)
         HTTPD_CONF.write_text(content, encoding="utf-8")
     reload_lsws()
     print(f"Domain silindi: {domain}")
