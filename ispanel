@@ -4100,10 +4100,21 @@ def get_mysql_root_password():
     global MYSQL_ROOT_PASSWORD
     if MYSQL_ROOT_PASSWORD:
         return MYSQL_ROOT_PASSWORD
-    else:
-        # Eğer global değişken boşsa, kullanıcıdan iste
-        password = input("MySQL root şifresini girin: ").strip()
-        return password
+    # /root/.my.cnf içinden şifreyi dene
+    try:
+        my_cnf = Path("/root/.my.cnf")
+        if my_cnf.exists():
+            content = my_cnf.read_text(encoding="utf-8", errors="ignore")
+            # Basit parser: password=... veya password = ...
+            m = re.search(r"^\s*password\s*=\s*(.+)\s*$", content, flags=re.MULTILINE)
+            if m:
+                MYSQL_ROOT_PASSWORD = m.group(1).strip().strip('"').strip("'")
+                return MYSQL_ROOT_PASSWORD
+    except Exception:
+        pass
+    # Dosyada yoksa kullanıcıdan iste
+    password = input("MySQL root şifresini girin: ").strip()
+    return password
 
 
 def db_user_create(user: str, password: str, host: str):
@@ -4283,6 +4294,21 @@ def add_mariadb_remote_grant(ip: str, db: str, user: str, password: str):
         print(f"❌ Uzak erişim verilemedi: {e}")
 
 
+def grant_root_remote(ip: str, db: str):
+    """Root kullanıcısı için uzak erişim ver (yeni kullanıcı oluşturmaz)."""
+    try:
+        target_host = ip if ip else "%"
+        target_db = "*" if db == "*" else db
+        grant_db = "*.*" if target_db == "*" else f"{target_db}.*"
+        run(
+            f"mysql -u root -p{get_mysql_root_password()} -e \"GRANT ALL PRIVILEGES ON {grant_db} TO 'root'@'{target_host}' WITH GRANT OPTION; FLUSH PRIVILEGES;\"",
+            check=True,
+        )
+        print(f"✅ Root için uzak erişim verildi: root@{target_host} -> {grant_db}")
+    except Exception as e:
+        print(f"❌ Root için uzak erişim verilemedi: {e}")
+
+
 def change_mariadb_remote_ip(old_ip: str, new_ip: str, db: str, user: str):
     """Kullanıcının uzak IP erişimini değiştir: eski IP için yetkileri kaldır, yeni IP için ekle."""
     try:
@@ -4309,7 +4335,7 @@ def secure_mariadb_menu():
         print(f"1) {get_text('mariadb_set_root')}")
         print(f"2) {get_text('mariadb_open_remote')}")
         print(f"3) {get_text('mariadb_close_remote')}")
-        print(f"4) {get_text('mariadb_add_remote_ip')}")
+        print(f"4) {get_text('mariadb_add_remote_ip')} (user or root)")
         print(f"5) {get_text('mariadb_ufw_allow')}")
         print(f"6) {get_text('mariadb_change_remote_ip')}")
         print("0) " + get_text("main_menu_options")[-1])
@@ -4345,9 +4371,13 @@ def secure_mariadb_menu():
         elif choice == "4":
             ip = input("İzin verilecek IP (veya %): ").strip()
             db = input("Veritabanı adı (tüm DB için * bırak): ").strip() or "*"
-            user = input("Kullanıcı adı: ").strip()
-            password = input("Kullanıcı şifresi (boş bırakılırsa değişmez/oluşturulur): ").strip()
-            add_mariadb_remote_grant(ip, db, user, password)
+            user = input("Kullanıcı adı (root için 'root' yazın): ").strip()
+            password = ""
+            if user != "root":
+                password = input("Kullanıcı şifresi (boş bırakılırsa değişmez/oluşturulur): ").strip()
+                add_mariadb_remote_grant(ip, db, user, password)
+            else:
+                grant_root_remote(ip, db)
 
         elif choice == "5":
             cidr = input("IP veya CIDR (örn. 203.0.113.5 / 203.0.113.0/24 / any): ").strip()
