@@ -3813,6 +3813,8 @@ def configure_memcached():
 
 def _enable_domain_ols_cache(domain: str) -> bool:
     """Belirtilen domain'in vhost.conf dosyasında OLS cache'i etkinleştir."""
+    # Sunucu seviyesinde cache modülünün tanımlı olduğundan emin ol
+    _ensure_server_cache_module()
     vdir = VHOSTS_DIR / domain
     vconf = vdir / "vhost.conf"
     if not vconf.exists():
@@ -3878,6 +3880,46 @@ def _disable_domain_ols_cache(domain: str) -> bool:
     reload_lsws()
     print(f"✅ OLS Cache devre dışı bırakıldı: {domain}")
     return True
+
+
+def _ensure_server_cache_module():
+    """Sunucu genelinde `module cache` bloğu mevcut değilse httpd_config.conf içine ekle."""
+    try:
+        if not HTTPD_CONF.exists():
+            print(f"⚠️ Sunucu konfigürasyonu bulunamadı: {HTTPD_CONF}")
+            return
+
+        content = HTTPD_CONF.read_text(encoding="utf-8")
+        if re.search(r"\bmodule\s+cache\b", content, flags=re.IGNORECASE):
+            # Mevcut ise enable'i 1'e çekmeye çalış
+            new_content = re.sub(r"(module\s+cache\s*\{[\s\S]*?\benable\s+)0",
+                                 r"\g<1>1", content, flags=re.IGNORECASE)
+            if new_content != content:
+                HTTPD_CONF.write_text(new_content, encoding="utf-8")
+                reload_lsws()
+            return
+
+        # Yoksa sona ekle
+        module_block = (
+            "\n# isPanel: OpenLiteSpeed Cache Module\n"
+            "module cache {\n"
+            "  enable               1\n"
+            "  checkPrivateCache   1\n"
+            "  checkPublicCache    1\n"
+            "  maxCacheObjSize     10000000\n"
+            "  maxStaleAge         200\n"
+            "  qsCache             1\n"
+            "  reqCookieCache      1\n"
+            "  respCookieCache     1\n"
+            "  ignoreReqCacheCtrl  1\n"
+            "  ignoreRespCacheCtrl 0\n"
+            "}\n"
+        )
+        HTTPD_CONF.write_text(content.rstrip() + "\n" + module_block, encoding="utf-8")
+        reload_lsws()
+        print("✅ Sunucu modülü: cache eklendi ve etkinleştirildi")
+    except Exception as e:
+        print(f"⚠️ Sunucu cache modülü eklenemedi: {e}")
 
 
 def toggle_domain_cache_menu():
