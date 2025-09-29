@@ -4247,6 +4247,25 @@ def add_mariadb_remote_grant(ip: str, db: str, user: str, password: str):
         print(f"✅ Uzak erişim verildi: {user}@{target_host} -> {grant_db}")
     except Exception as e:
         print(f"❌ Uzak erişim verilemedi: {e}")
+
+
+def change_mariadb_remote_ip(old_ip: str, new_ip: str, db: str, user: str):
+    """Kullanıcının uzak IP erişimini değiştir: eski IP için yetkileri kaldır, yeni IP için ekle."""
+    try:
+        target_db = "*" if db == "*" else db
+        grant_db = "*.*" if target_db == "*" else f"{target_db}.*"
+
+        # Eski IP için yetkileri kaldır ve kullanıcıyı temizle (varsa)
+        run(
+            f"mysql -u root -p{get_mysql_root_password()} -e \"REVOKE ALL PRIVILEGES, GRANT OPTION ON {grant_db} FROM '{user}'@'{old_ip}'; DROP USER IF EXISTS '{user}'@'{old_ip}'; FLUSH PRIVILEGES;\"",
+            check=True,
+        )
+        print(f"✅ Eski IP kaldırıldı: {user}@{old_ip}")
+
+        # Yeni IP için kullanıcı ve yetkiler
+        add_mariadb_remote_grant(new_ip, db, user, "")
+    except Exception as e:
+        print(f"❌ IP değiştirilemedi: {e}")
 def secure_mariadb_menu():
     """MariaDB güvenlik ve uzaktan erişim menüsü"""
     global MYSQL_ROOT_PASSWORD
@@ -4258,6 +4277,7 @@ def secure_mariadb_menu():
         print("3) Uzak bağlantıyı kapat (bind-address 127.0.0.1)")
         print("4) Uzak IP ekle ve yetki ver")
         print("5) Güvenlik duvarında 3306 izin ver (IP/Aralık)")
+        print("6) Uzak IP değiştir (eskiyi sil, yeniyi ekle)")
         print("0) Geri dön")
 
         choice = input("Seçiminizi girin: ").strip()
@@ -4298,6 +4318,12 @@ def secure_mariadb_menu():
         elif choice == "5":
             cidr = input("IP veya CIDR (örn. 203.0.113.5 / 203.0.113.0/24 / any): ").strip()
             ufw_allow_mysql(cidr)
+        elif choice == "6":
+            old_ip = input("Eski IP (veya %): ").strip()
+            new_ip = input("Yeni IP (veya %): ").strip()
+            db = input("Veritabanı adı (tüm DB için * bırak): ").strip() or "*"
+            user = input("Kullanıcı adı: ").strip()
+            change_mariadb_remote_ip(old_ip, new_ip, db, user)
         elif choice == "0":
             return
         else:
