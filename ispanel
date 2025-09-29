@@ -75,6 +75,14 @@ TEXTS = {
         "update_complete": "isPanel updated successfully!",
         "press_enter": "Press Enter to continue...",
         "goodbye": "Goodbye!",
+        # Section titles
+        "section_install": "INSTALL OPTIONS",
+        "section_domain": "DOMAIN MANAGEMENT",
+        "section_db": "DATABASE MANAGEMENT",
+        "section_system": "SYSTEM MANAGEMENT",
+        "section_backup": "BACKUP SYSTEM",
+        "section_tools": "TOOLS",
+        "section_recovery": "RECOVERY & MONITORING",
         # Cache menu labels
         "cache_install_redis": "Install Redis",
         "cache_install_memcached": "Install Memcached",
@@ -153,6 +161,14 @@ TEXTS = {
         "update_complete": "isPanel başarıyla güncellendi!",
         "press_enter": "Devam etmek için Enter'a basın...",
         "goodbye": "Hoşça kalın!",
+        # Section titles
+        "section_install": "KURULUM SEÇENEKLERİ",
+        "section_domain": "DOMAIN YÖNETİMİ",
+        "section_db": "VERİTABANI YÖNETİMİ",
+        "section_system": "SİSTEM YÖNETİMİ",
+        "section_backup": "YEDEKLEME SİSTEMİ",
+        "section_tools": "ARAÇLAR",
+        "section_recovery": "KURTARMA VE İZLEME",
         # Cache menü başlıkları
         "cache_install_redis": "Redis Kur",
         "cache_install_memcached": "Memcached Kur",
@@ -3535,27 +3551,27 @@ def interactive_menu():
             # Menü seçeneklerini kategorize et
             menu_options = get_text("main_menu_options")
             
-            # 🚀 KURULUM SEÇENEKLERİ
-            print(f"\n{BOLD}{CYAN}🚀 KURULUM SEÇENEKLERİ{RESET}")
+            # 🚀 INSTALL/SETUP
+            print(f"\n{BOLD}{CYAN}🚀 {get_text('section_install')}{RESET}")
             print(f"{GREEN}1){RESET} {menu_options[0]}")
             print(f"{GREEN}2){RESET} {menu_options[1]}")
             print(f"{GREEN}3){RESET} {menu_options[2]}")
             
-            # 🌐 DOMAIN YÖNETİMİ
-            print(f"\n{BOLD}{BLUE}🌐 DOMAIN YÖNETİMİ{RESET}")
+            # 🌐 DOMAIN
+            print(f"\n{BOLD}{BLUE}🌐 {get_text('section_domain')}{RESET}")
             print(f"{YELLOW}4){RESET} {menu_options[3]}")
             print(f"{YELLOW}5){RESET} {menu_options[4]}")
             print(f"{YELLOW}6){RESET} {menu_options[5]}")
             print(f"{YELLOW}7){RESET} {menu_options[6]}")
             
-            # 🗄️ VERİTABANI YÖNETİMİ
-            print(f"\n{BOLD}{PURPLE}🗄️ VERİTABANI YÖNETİMİ{RESET}")
+            # 🗄️ DATABASE
+            print(f"\n{BOLD}{PURPLE}🗄️ {get_text('section_db')}{RESET}")
             print(f"{PURPLE}8){RESET} {menu_options[7]}")
             print(f"{PURPLE}9){RESET} {menu_options[8]}")
             print(f"{PURPLE}10){RESET} {menu_options[9]}")
             
-            # 🔧 SİSTEM YÖNETİMİ
-            print(f"\n{BOLD}{RED}🔧 SİSTEM YÖNETİMİ{RESET}")
+            # 🔧 SYSTEM
+            print(f"\n{BOLD}{RED}🔧 {get_text('section_system')}{RESET}")
             print(f"{RED}11){RESET} {menu_options[10]}")
             print(f"{RED}12){RESET} {menu_options[11]}")
             print(f"{RED}13){RESET} {menu_options[12]}")
@@ -3565,28 +3581,28 @@ def interactive_menu():
             print(f"{RED}17){RESET} {menu_options[16]}")
             print(f"{RED}18){RESET} {menu_options[17]}")
             
-            # 💾 YEDEKLEME SİSTEMİ
-            print(f"\n{BOLD}{CYAN}💾 YEDEKLEME SİSTEMİ{RESET}")
+            # 💾 BACKUP
+            print(f"\n{BOLD}{CYAN}💾 {get_text('section_backup')}{RESET}")
             print(f"{CYAN}19){RESET} {menu_options[18]}")
             print(f"{CYAN}20){RESET} {menu_options[19]}")
             print(f"{CYAN}21){RESET} {menu_options[20]}")
             print(f"{CYAN}22){RESET} {menu_options[21]}")
             
-            # 🛠️ ARAÇLAR
-            print(f"\n{BOLD}{YELLOW}🛠️ ARAÇLAR{RESET}")
+            # 🛠️ TOOLS
+            print(f"\n{BOLD}{YELLOW}🛠️ {get_text('section_tools')}{RESET}")
             print(f"{YELLOW}23){RESET} {menu_options[22]}")
             print(f"{YELLOW}24){RESET} {menu_options[23]}")
             print(f"{YELLOW}25){RESET} {menu_options[24]}")
             print(f"{YELLOW}26){RESET} {menu_options[25]}")
             print(f"{YELLOW}27){RESET} {menu_options[26]}")
             
-            # 🚨 KURTARMA VE İZLEME
-            print(f"\n{BOLD}{RED}🚨 KURTARMA VE İZLEME{RESET}")
-            print(f"{RED}28){RESET} Acil Durum Kurtarma")
-            print(f"{RED}29){RESET} Sistem Sağlık Kontrolü")
-            print(f"{RED}30){RESET} Sistem İzleme")
-            print(f"{RED}31){RESET} Otomatik Yedekleme Sistemi")
-            print(f"{RED}32){RESET} isPanel Güncelle")
+            # 🚨 RECOVERY
+            print(f"\n{BOLD}{RED}🚨 {get_text('section_recovery')}{RESET}")
+            print(f"{RED}28){RESET} Emergency Backup")
+            print(f"{RED}29){RESET} System Health Check")
+            print(f"{RED}30){RESET} System Monitoring")
+            print(f"{RED}31){RESET} Automatic Backup System")
+            print(f"{RED}32){RESET} Update isPanel")
             
             # ÇIKIŞ
             print(f"\n{BOLD}{WHITE}0){RESET} {get_text('main_menu_options')[-1]}")
