@@ -4309,6 +4309,39 @@ def grant_root_remote(ip: str, db: str):
         print(f"❌ Root için uzak erişim verilemedi: {e}")
 
 
+def _mysql_query(sql: str) -> str:
+    """Root ile basit mysql -N -e sorgusu çalıştır ve çıktıyı döndür."""
+    return run(
+        f"mysql -u root -p{get_mysql_root_password()} -N -e \"{sql}\"",
+        check=True,
+    ).stdout or ""
+
+
+def list_databases_simple() -> list[str]:
+    """Sistem DB'leri hariç veritabanı listesini döndür."""
+    try:
+        out = _mysql_query(
+            "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA "
+            "WHERE SCHEMA_NAME NOT IN ('mysql','information_schema','performance_schema','sys') "
+            "ORDER BY SCHEMA_NAME;"
+        )
+        return [line.strip() for line in out.splitlines() if line.strip()]
+    except Exception:
+        return []
+
+
+def list_db_users(db: str) -> list[str]:
+    """Belirli DB üzerinde yetkisi bulunan kullanıcıları (mysql.db) döndür."""
+    try:
+        out = _mysql_query(
+            f"SELECT DISTINCT User FROM mysql.db WHERE Db='{db}' ORDER BY User;"
+        )
+        users = [line.strip() for line in out.splitlines() if line.strip()]
+        return users
+    except Exception:
+        return []
+
+
 def change_mariadb_remote_ip(old_ip: str, new_ip: str, db: str, user: str):
     """Kullanıcının uzak IP erişimini değiştir: eski IP için yetkileri kaldır, yeni IP için ekle."""
     try:
@@ -4370,14 +4403,57 @@ def secure_mariadb_menu():
 
         elif choice == "4":
             ip = input("İzin verilecek IP (veya %): ").strip()
-            db = input("Veritabanı adı (tüm DB için * bırak): ").strip() or "*"
-            user = input("Kullanıcı adı (root için 'root' yazın): ").strip()
-            password = ""
-            if user != "root":
+            # DB listesini sun
+            dbs = list_databases_simple()
+            if not dbs:
+                print("⚠️ Veritabanı bulunamadı, '*' ile tüm DB için yetki verilecek.")
+                db = "*"
+            else:
+                print("\nVeritabanları:")
+                for i, name in enumerate(dbs, 1):
+                    print(f"  {i}) {name}")
+                print("  0) * (tüm DB)")
+                sel = input("Seçin (numara veya isim): ").strip()
+                if sel.isdigit():
+                    idx = int(sel)
+                    if idx == 0:
+                        db = "*"
+                    elif 1 <= idx <= len(dbs):
+                        db = dbs[idx - 1]
+                    else:
+                        print("❌ Geçersiz seçim")
+                        return
+                else:
+                    db = sel if sel else "*"
+
+            # DB kullanıcılarını sun (mysql.db tablosundan)
+            candidate_users = [] if db == "*" else list_db_users(db)
+            user = None
+            if candidate_users:
+                print("\nKullanıcılar (bu DB üzerinde yetkili):")
+                for i, u in enumerate(candidate_users, 1):
+                    print(f"  {i}) {u}")
+                print("  0) root")
+                usel = input("Seçin (numara veya kullanıcı adı): ").strip()
+                if usel.isdigit():
+                    uidx = int(usel)
+                    if uidx == 0:
+                        user = "root"
+                    elif 1 <= uidx <= len(candidate_users):
+                        user = candidate_users[uidx - 1]
+                    else:
+                        print("❌ Geçersiz seçim")
+                        return
+                else:
+                    user = usel if usel else "root"
+            else:
+                user = input("Kullanıcı adı (root için 'root' yazın): ").strip() or "root"
+
+            if user == "root":
+                grant_root_remote(ip, db)
+            else:
                 password = input("Kullanıcı şifresi (boş bırakılırsa değişmez/oluşturulur): ").strip()
                 add_mariadb_remote_grant(ip, db, user, password)
-            else:
-                grant_root_remote(ip, db)
 
         elif choice == "5":
             cidr = input("IP veya CIDR (örn. 203.0.113.5 / 203.0.113.0/24 / any): ").strip()
