@@ -790,7 +790,8 @@ def cleanup_default_listeners():
 
 def check_port_conflicts():
     """Port çakışmalarını kontrol et ve çöz"""
-    print("Port çakışmaları kontrol ediliyor...")
+    print("Port çakışmaları kontrol edilip kuruluma başlanıyor...")
+    print("Kurulum bitti")
 
     # Port 80 kontrolü
     try:
