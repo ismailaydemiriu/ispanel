@@ -375,6 +375,8 @@ def install_openlitespeed_and_php(lsphp_version: str = "83"):
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
     ensure_cmd("curl", "curl")
     ensure_cmd("wget", "wget")
+    # Reset admin için gerekli bağımlılık
+    ensure_cmd("expect", "expect")
 
     # Nginx'i durdur (port çakışmasını önlemek için)
     stop_nginx_if_running()
@@ -579,6 +581,9 @@ def install_openlitespeed_only():
     # Port çakışmalarını kontrol et
     check_port_conflicts()
     
+    # Reset admin için gerekli bağımlılık
+    ensure_cmd("expect", "expect")
+
     # OpenLiteSpeed ve PHP kurulumu
     install_openlitespeed_and_php("83")
     
@@ -4215,11 +4220,10 @@ def reset_openlitespeed_admin_password():
             print("❌ Password must be at least 6 characters")
             return
 
-        # Expect paketini kur
+        # Expect kurulumunu install aşamasında yapıyoruz; burada sadece kontrol et
         if not shutil.which("expect"):
-            print("expect yükleniyor...")
-            run("apt-get update", check=True)
-            run("apt-get install -y expect", check=True)
+            print("❌ 'expect' bulunamadı. Lütfen kurulum menüsünden sistemi kurun veya 'apt-get install -y expect' ile yükleyin.")
+            return
 
         # Use expect script for non-interactive password reset
         expect_script = f"""#!/usr/bin/expect -f
