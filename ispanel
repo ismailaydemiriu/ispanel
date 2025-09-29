@@ -5348,6 +5348,7 @@ def cache_menu():
     print("2) PHP OPcache temizle")
     print("3) Tüm cache'leri temizle")
     print("4) Cache durumunu kontrol et")
+    print("5) Domain için OLS Cache aç/kapat")
     print("0) Ana menüye dön")
     
     choice = input("\nSeçiminizi girin: ").strip()
@@ -5360,6 +5361,8 @@ def cache_menu():
         clear_all_cache()
     elif choice == "4":
         check_cache_status()
+    elif choice == "5":
+        toggle_domain_cache_menu()
     elif choice == "0":
         return
     else:
