@@ -1495,7 +1495,7 @@ def ensure_docroot(domain: str) -> Path:
 
         <div class="footer">
             <p class="footer-content">
-                &copy; <?php echo date('Y'); ?> isPanel - Enterprise Web Hosting Management System
+                &copy; <?php echo date('Y'); ?> isPanel - Enterprise Web Hosting Management System · Powered by: isPanel
             </p>
             <div class="footer-links">
                 <a href="https://ispanel.com" target="_blank" class="footer-link">
