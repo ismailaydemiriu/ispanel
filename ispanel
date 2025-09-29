@@ -3930,6 +3930,22 @@ def _disable_domain_ols_cache(domain: str) -> bool:
     return True
 
 
+def get_domain_cache_status(domain: str) -> bool:
+    """Domain'in vhost.conf dosyasında cache etkin mi?"""
+    try:
+        vconf = VHOSTS_DIR / domain / "vhost.conf"
+        if not vconf.exists():
+            return False
+        content = vconf.read_text(encoding="utf-8")
+        # module cache bloğunda enableCache 1 veya ls_enabled 1 ise açık kabul et
+        if re.search(r"module\s+cache\s*\{[\s\S]*?enableCache\s+1", content, flags=re.IGNORECASE):
+            return True
+        if re.search(r"module\s+cache\s*\{[\s\S]*?ls_enabled\s+1", content, flags=re.IGNORECASE):
+            return True
+        return False
+    except Exception:
+        return False
+
 def _ensure_server_cache_module():
     """Sunucu genelinde `module cache` bloğu mevcut değilse httpd_config.conf içine ekle."""
     try:
@@ -3982,7 +3998,9 @@ def toggle_domain_cache_menu():
         return
     print("\nMevcut domainler:")
     for i, d in enumerate(domains, 1):
-        print(f"  {i}) {d}")
+        status = get_domain_cache_status(d)
+        badge = "Açık" if status else "Kapalı"
+        print(f"  {i}) {d}  [Cache: {badge}]")
     sel = input("Seçin (numara veya domain yazın): ").strip()
     if sel.isdigit():
         idx = int(sel)
