@@ -83,6 +83,15 @@ TEXTS = {
         "cache_toggle_domain": "Toggle OLS Cache for a Domain",
         # Prompts
         "cache_toggle_prompt": "Enable cache (e) / disable (d):",
+        # MariaDB remote menu
+        "mariadb_menu_title": "MariaDB Security & Remote Access",
+        "mariadb_set_root": "Set/Update root password",
+        "mariadb_open_remote": "Enable remote access (bind-address 0.0.0.0)",
+        "mariadb_close_remote": "Disable remote access (bind-address 127.0.0.1)",
+        "mariadb_add_remote_ip": "Add remote IP and grant privileges",
+        "mariadb_ufw_allow": "Allow 3306 on firewall (IP/Range)",
+        "mariadb_change_remote_ip": "Change remote IP (revoke old, add new)",
+        "enter_selection": "Enter your selection",
     },
     "tr": {
         # Ana menü
@@ -152,6 +161,15 @@ TEXTS = {
         "cache_toggle_domain": "Domain için OLS Cache aç/kapat",
         # İstemler
         "cache_toggle_prompt": "Cache'i etkinleştir (e) / devre dışı bırak (d):",
+        # MariaDB remote menü
+        "mariadb_menu_title": "MariaDB Güvenlik ve Uzak Erişim",
+        "mariadb_set_root": "Root şifresini ayarla/güncelle",
+        "mariadb_open_remote": "Uzak bağlantıyı aç (bind-address 0.0.0.0)",
+        "mariadb_close_remote": "Uzak bağlantıyı kapat (bind-address 127.0.0.1)",
+        "mariadb_add_remote_ip": "Uzak IP ekle ve yetki ver",
+        "mariadb_ufw_allow": "Güvenlik duvarında 3306 izin ver (IP/Aralık)",
+        "mariadb_change_remote_ip": "Uzak IP değiştir (eskiyi sil, yeniyi ekle)",
+        "enter_selection": "Seçiminizi girin",
     },
 }
 
@@ -4271,16 +4289,16 @@ def secure_mariadb_menu():
     global MYSQL_ROOT_PASSWORD
 
     try:
-        print("\n=== MariaDB Güvenlik ve Uzak Erişim ===")
-        print("1) Root şifresini ayarla/güncelle")
-        print("2) Uzak bağlantıyı aç (bind-address 0.0.0.0)")
-        print("3) Uzak bağlantıyı kapat (bind-address 127.0.0.1)")
-        print("4) Uzak IP ekle ve yetki ver")
-        print("5) Güvenlik duvarında 3306 izin ver (IP/Aralık)")
-        print("6) Uzak IP değiştir (eskiyi sil, yeniyi ekle)")
-        print("0) Geri dön")
+        print(f"\n=== {get_text('mariadb_menu_title')} ===")
+        print(f"1) {get_text('mariadb_set_root')}")
+        print(f"2) {get_text('mariadb_open_remote')}")
+        print(f"3) {get_text('mariadb_close_remote')}")
+        print(f"4) {get_text('mariadb_add_remote_ip')}")
+        print(f"5) {get_text('mariadb_ufw_allow')}")
+        print(f"6) {get_text('mariadb_change_remote_ip')}")
+        print("0) " + get_text("main_menu_options")[-1])
 
-        choice = input("Seçiminizi girin: ").strip()
+        choice = input(get_text('enter_selection') + ": ").strip()
 
         if choice == "1":
             new_password = input("Yeni root şifresi: ").strip()
