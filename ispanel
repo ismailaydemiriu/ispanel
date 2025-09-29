@@ -514,23 +514,30 @@ password={root_password}
 
 
 def ensure_root_my_cnf():
-    """/root/.my.cnf dosyasını doğrula; eksikse mevcut root şifresiyle oluştur."""
+    """/root/.my.cnf dosyasını doğrula; eksikse, SADECE bilinen şifre varsa oluştur (prompt yok)."""
     try:
         my_cnf = Path("/root/.my.cnf")
-        need_write = True
         if my_cnf.exists():
             content = my_cnf.read_text(encoding="utf-8", errors="ignore")
             if "password=" in content and "user=root" in content:
-                need_write = False
-        if need_write:
-            # Şifreyi bellekten veya config.json'dan al
-            pwd = get_mysql_root_password()
-            if not pwd:
-                print("⚠️ Root şifresi tespit edilemedi; /root/.my.cnf oluşturulamadı.")
                 return
-            my_cnf.write_text(f"[client]\nuser=root\npassword={pwd}\n", encoding="utf-8")
-            my_cnf.chmod(0o600)
-            print("✅ /root/.my.cnf oluşturuldu/güncellendi")
+        # Prompt ETME: sadece bellekteki veya configteki şifre ile yaz
+        pwd = ""
+        if MYSQL_ROOT_PASSWORD:
+            pwd = MYSQL_ROOT_PASSWORD
+        else:
+            try:
+                import json
+                if ISPANEL_CONFIG_FILE.exists():
+                    cfg = json.loads(ISPANEL_CONFIG_FILE.read_text(encoding="utf-8"))
+                    pwd = cfg.get("mysql_root_password", "")
+            except Exception:
+                pwd = ""
+        if not pwd:
+            return  # Şifre bilinmiyor; kurulum ilerledikten sonra tekrar çağrılacak
+        my_cnf.write_text(f"[client]\nuser=root\npassword={pwd}\n", encoding="utf-8")
+        my_cnf.chmod(0o600)
+        print("✅ /root/.my.cnf oluşturuldu/güncellendi")
     except Exception as e:
         print(f"⚠️ /root/.my.cnf doğrulanamadı: {e}")
 
@@ -677,16 +684,15 @@ def cmd_install(args: argparse.Namespace):
 
     # Port çakışmalarını kontrol et
     check_port_conflicts()
-    # Root my.cnf güvence
-    ensure_root_my_cnf()
     
     # Temel kurulum
     install_openlitespeed_and_php(php_version)
     install_mariadb()
+    # MariaDB kurulduktan sonra /root/.my.cnf'i yaz (artık şifre belli)
+    ensure_root_my_cnf()
     
     # Güvenlik ve performans ayarları
     print("\n=== Güvenlik ve Performans Ayarları ===")
-    ensure_root_my_cnf()
     manage_firewall()
     install_ssl_support()
     secure_mariadb()
