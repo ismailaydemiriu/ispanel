@@ -3813,8 +3813,6 @@ def configure_memcached():
 
 def _enable_domain_ols_cache(domain: str) -> bool:
     """Belirtilen domain'in vhost.conf dosyasında OLS cache'i etkinleştir."""
-    # Sunucu seviyesinde cache modülünün tanımlı olduğundan emin ol
-    _ensure_server_cache_module()
     vdir = VHOSTS_DIR / domain
     vconf = vdir / "vhost.conf"
     if not vconf.exists():
@@ -3822,39 +3820,18 @@ def _enable_domain_ols_cache(domain: str) -> bool:
         return False
     content = vconf.read_text(encoding="utf-8")
 
-    cache_module_block = (
-        "modules {{\n"
-        "  module cache {{\n"
-        "    enable               1\n"
-        "    checkPrivateCache   1\n"
-        "    checkPublicCache    1\n"
-        "    maxCacheObjSize     10000000\n"
-        "    maxStaleAge         200\n"
-        "    qsCache             1\n"
-        "    reqCookieCache      1\n"
-        "    respCookieCache     1\n"
-        "    ignoreReqCacheCtrl  1\n"
-        "    ignoreRespCacheCtrl 0\n"
-        "  }}\n"
-        "}}\n"
-    )
-    cache_block = (
-        "cache {{\n"
-        "  enableCache         1\n"
-        "  expireInSeconds     3600\n"
-        "  enablePrivateCache  0\n"
-        "  privateExpireInSeconds 3600\n"
-        "}}\n"
-    )
+    # Şablondan oku
+    tpl_path = TEMPLATE_DIR / "vhostCache.conf"
+    if not tpl_path.exists():
+        print(f"❌ Template bulunamadı: {tpl_path}")
+        return False
+    cache_module_block = tpl_path.read_text(encoding="utf-8").strip() + "\n"
 
-    if "module cache" not in content:
-        content = content.rstrip() + "\n\n" + cache_module_block + cache_block
+    if not re.search(r"\bmodule\s+cache\s*\{", content, flags=re.IGNORECASE):
+        content = content.rstrip() + "\n\n" + cache_module_block
     else:
-        # Module var ama kapalı olabilir; enable 0 ise 1 yap
-        content = re.sub(r"(module\s+cache\s*\{[\s\S]*?\benable\s+)0", r"\g<1>1", content, flags=re.IGNORECASE)
-        # Cache bloğu yoksa ekle
-        if "\ncache {" not in content:
-            content = content.rstrip() + "\n\n" + cache_block
+        # Mevcut bloğu komple şablonla değiştir
+        content = re.sub(r"module\s+cache\s*\{[\s\S]*?\}\s*", cache_module_block, content, flags=re.IGNORECASE)
 
     vconf.write_text(content, encoding="utf-8")
     reload_lsws()
@@ -3871,10 +3848,9 @@ def _disable_domain_ols_cache(domain: str) -> bool:
         return False
     content = vconf.read_text(encoding="utf-8")
 
-    # enable'i 0 yap
-    content = re.sub(r"(module\s+cache\s*\{[\s\S]*?\benable\s+)1", r"\g<1>0", content, flags=re.IGNORECASE)
-    # cache { enableCache 1 } -> 0
-    content = re.sub(r"(cache\s*\{[\s\S]*?\benableCache\s+)1", r"\g<1>0", content, flags=re.IGNORECASE)
+    # module cache bloğunda enableCache ve ls_enabled değerlerini 0 yap
+    content = re.sub(r"(module\s+cache\s*\{[\s\S]*?\benableCache\s+)1", r"\g<1>0", content, flags=re.IGNORECASE)
+    content = re.sub(r"(module\s+cache\s*\{[\s\S]*?\bls_enabled\s+)1", r"\g<1>0", content, flags=re.IGNORECASE)
 
     vconf.write_text(content, encoding="utf-8")
     reload_lsws()
@@ -4275,39 +4251,6 @@ echo "$(date): Backup rotation completed" >> /var/log/backup_rotation.log
     cron_add("0 4 * * 0 /usr/local/bin/backup_rotation.sh")
     
     print("Yedek rotasyonu kuruldu (30 günlük).")
-
-
-def setup_log_rotation():
-    """Log rotasyonu kurulumu"""
-    print("Log rotasyonu ayarlanıyor...")
-    
-    # Logrotate konfigürasyonu
-    logrotate_config = """
-/var/log/*.log {
-    daily
-    missingok
-    rotate 7
-    compress
-    delaycompress
-    notifempty
-    create 644 root root
-}
-
-/usr/local/lsws/logs/*.log {
-    daily
-    missingok
-    rotate 7
-    compress
-    delaycompress
-    notifempty
-    create 644 lsadm lsadm
-}
-"""
-    
-    config_path = "/etc/logrotate.d/ispanel"
-    Path(config_path).write_text(logrotate_config, encoding="utf-8")
-    
-    print("Log rotasyonu kuruldu.")
 def optimize_kernel_parameters():
     """Kernel parametrelerini optimize et"""
     print("Kernel parametreleri optimize ediliyor...")
