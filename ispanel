@@ -4178,6 +4178,21 @@ def save_mysql_client_profile(db: str, user: str, password: str, host_hint: str 
         content = my_cnf.read_text(encoding="utf-8", errors="ignore")
         section_name = f"client-{user}-{(host_hint+'-' if host_hint else '')}{db or 'all'}"
         section_header = f"[{section_name}]"
+        # Parola boşsa, aynı kullanıcı ve DB (hostsuz) profilinden devralmayı dene
+        if not password:
+            import re as _re
+            # Önce tam DB eşleşmesi, sonra 'all'
+            patterns = [
+                rf"\[client-{re.escape(user)}-{re.escape(db or 'all')}\][\s\S]*?(?=\n\[|\Z)",
+                rf"\[client-{re.escape(user)}-all\][\s\S]*?(?=\n\[|\Z)",
+            ]
+            for pat in patterns:
+                m = _re.search(pat, content, flags=_re.MULTILINE)
+                if m:
+                    m2 = _re.search(r"^password\s*=\s*(.+)$", m.group(0), flags=_re.MULTILINE)
+                    if m2:
+                        password = m2.group(1).strip()
+                        break
         block = (
             f"{section_header}\n"
             + (f"host={host_hint}\n" if host_hint else "")
@@ -4521,6 +4536,11 @@ def secure_mariadb_menu():
             else:
                 password = input("Kullanıcı şifresi (boş bırakılırsa değişmez/oluşturulur): ").strip()
                 add_mariadb_remote_grant(ip, db, user, password)
+            # Güvenlik duvarını da otomatik aç
+            try:
+                ufw_allow_mysql(ip)
+            except Exception:
+                pass
 
         elif choice == "5":
             cidr = input("IP veya CIDR (örn. 203.0.113.5 / 203.0.113.0/24 / any): ").strip()
