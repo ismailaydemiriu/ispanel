@@ -4123,6 +4123,55 @@ def get_mysql_root_password():
     return password
 
 
+def save_mysql_client_profile(db: str, user: str, password: str, host_hint: str | None = None):
+    """/root/.my.cnf içine [client-<user>-<db>] profili ekle/güncelle.
+    host_hint verilirse [client-<user>-<host>-<db>] şeklinde yazar.
+    Parolayı dosyada düz metin olarak tutar (yalnızca sunucu root için önerilir)."""
+    try:
+        my_cnf = Path("/root/.my.cnf")
+        my_cnf.touch(exist_ok=True)
+        content = my_cnf.read_text(encoding="utf-8", errors="ignore")
+        section_name = f"client-{user}-{(host_hint+'-' if host_hint else '')}{db or 'all'}"
+        section_header = f"[{section_name}]"
+        block = (
+            f"{section_header}\n"
+            + (f"host={host_hint}\n" if host_hint else "")
+            + f"user={user}\n"
+            + (f"password={password}\n" if password else "")
+            + (f"database={db}\n" if db else "")
+        )
+
+        if section_header in content:
+            # Bölümü güncelle: basit yaklaşım, eski bloğu silip sona ekle
+            import re as _re
+            content = _re.sub(rf"\[{section_name}\][\s\S]*?(?=\n\[|\Z)", "", content, flags=_re.MULTILINE)
+            content = content.rstrip() + "\n\n" + block
+        else:
+            content = content.rstrip() + ("\n\n" if content.strip() else "") + block
+        my_cnf.write_text(content + "\n", encoding="utf-8")
+        os.chmod(str(my_cnf), 0o600)
+        print(f"✅ /root/.my.cnf profili güncellendi: [{section_name}]")
+    except Exception as e:
+        print(f"⚠️ /root/.my.cnf profili yazılamadı: {e}")
+
+
+def remove_mysql_client_profile(db: str, user: str):
+    """/root/.my.cnf içinden ilgili client profilini kaldır."""
+    try:
+        my_cnf = Path("/root/.my.cnf")
+        if not my_cnf.exists():
+            return
+        content = my_cnf.read_text(encoding="utf-8", errors="ignore")
+        import re as _re
+        # Hem hostlu hem hostsuz bölümleri temizlemeye çalış
+        content_new = _re.sub(rf"\[client-{_re.escape(user)}-.*?{_re.escape(db or 'all')}\][\s\S]*?(?=\n\[|\Z)", "", content, flags=_re.MULTILINE)
+        if content_new != content:
+            my_cnf.write_text(content_new.strip() + "\n", encoding="utf-8")
+            print(f"✅ /root/.my.cnf profili kaldırıldı: user={user}, db={db}")
+    except Exception as e:
+        print(f"⚠️ /root/.my.cnf profili kaldırılamadı: {e}")
+
+
 def db_user_create(user: str, password: str, host: str):
     """Database kullanıcısı oluştur"""
     try:
@@ -4170,6 +4219,8 @@ def db_create(db_name: str, user: str, password: str):
 
         print(f"✅ Database created: {db_name}")
         print(f"✅ User created: {user}")
+        # Kullanıcı profilini /root/.my.cnf içine kaydet
+        save_mysql_client_profile(db_name, user, password)
     except Exception as e:
         print(f"❌ Database creation failed: {e}")
 
@@ -4191,6 +4242,8 @@ def db_delete(db_name: str, user: str):
 
         print(f"✅ Database deleted: {db_name}")
         print(f"✅ User deleted: {user}")
+        # Profil silmeyi deneyelim
+        remove_mysql_client_profile(db_name, user)
     except Exception as e:
         print(f"❌ Database deletion failed: {e}")
 
@@ -4295,6 +4348,8 @@ def add_mariadb_remote_grant(ip: str, db: str, user: str, password: str):
             check=True,
         )
         print(f"✅ Uzak erişim verildi: {user}@{target_host} -> {grant_db}")
+        # İstemci bağlantısı için profil kaydı (host bazlı)
+        save_mysql_client_profile(db if db != "*" else "", user, password, host_hint=target_host)
     except Exception as e:
         print(f"❌ Uzak erişim verilemedi: {e}")
 
@@ -4310,6 +4365,7 @@ def grant_root_remote(ip: str, db: str):
             check=True,
         )
         print(f"✅ Root için uzak erişim verildi: root@{target_host} -> {grant_db}")
+        # Root için ayrı profil kaydetmeye gerek yok (zaten [client] var). İstenirse ekleyebiliriz.
     except Exception as e:
         print(f"❌ Root için uzak erişim verilemedi: {e}")
 
