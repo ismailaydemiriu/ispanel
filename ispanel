@@ -1416,7 +1416,7 @@ def ensure_docroot(domain: str) -> Path:
 
         <div class="header">
             <div class="logo-wrapper">
-                <div class="logo-icon">iP</div>
+                <div class="logo-icon">iS</div>
                 <div class="logo-text">isPanel</div>
             </div>
             <h1 class="domain"><?php echo $_SERVER['HTTP_HOST']; ?></h1>
@@ -1485,7 +1485,7 @@ def ensure_docroot(domain: str) -> Path:
             <h4>Technology Stack</h4>
             <div class="tech-items">
                 <div class="tech-badge">OpenLiteSpeed</div>
-                <div class="tech-badge">PHP <?php echo phpversion(); ?></div>
+                <div class="tech-badge">PHP 8.2 / 8.3</div>
                 <div class="tech-badge">MariaDB</div>
                 <div class="tech-badge">Let's Encrypt SSL</div>
                 <div class="tech-badge">Ubuntu Server</div>
