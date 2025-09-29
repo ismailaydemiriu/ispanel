@@ -18,6 +18,9 @@ context / {{
   extraHeaders <<<END_extraHeaders
 X-Forwarded-Proto $scheme
 X-Turbo-Charged-By ispanel
+Server-Timing cfCacheStatus;desc="DYNAMIC"
+Server-Timing cfEdge;dur=10,cfOrigin;dur=27
+Vary Accept-Encoding
 END_extraHeaders
 }}
 
