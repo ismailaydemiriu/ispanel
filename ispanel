@@ -1968,7 +1968,7 @@ def secure_mariadb():
     
         for sql in sql_commands:
             if password:
-                run(f'mysql -uroot -p{password} -e "{sql}"', check=False)
+                mysql_exec(sql, check=False)
             else:
                 run(f'mysql -uroot -e "{sql}"', check=False)
 
@@ -4153,6 +4153,21 @@ def get_mysql_root_password():
     return password
 
 
+def mysql_exec(sql: str, check: bool = True):
+    """Root ile non-interactive MySQL komutu çalıştır (parolayı env ile geçir)."""
+    try:
+        import shlex as _shlex
+        pwd = get_mysql_root_password()
+        # Env ile parola aktar; -p kullanma (özel karakter sorunlarını önler)
+        cmd = f"MYSQL_PWD={_shlex.quote(pwd)} mysql -uroot -e \"{sql}\""
+        return run(cmd, check=check)
+    except Exception as e:
+        print(f"MySQL komutu çalıştırılamadı: {e}")
+        if check:
+            raise
+        return None
+
+
 def save_mysql_client_profile(db: str, user: str, password: str, host_hint: str | None = None):
     """/root/.my.cnf içine [client-<user>-<db>] profili ekle/güncelle.
     host_hint verilirse [client-<user>-<host>-<db>] şeklinde yazar.
@@ -4205,18 +4220,9 @@ def remove_mysql_client_profile(db: str, user: str):
 def db_user_create(user: str, password: str, host: str):
     """Database kullanıcısı oluştur"""
     try:
-        run(
-            f"mysql -u root -p{get_mysql_root_password()} -e \"CREATE USER '{user}'@'{host}' IDENTIFIED BY '{password}';\"",
-            check=True,
-        )
-        run(
-            f"mysql -u root -p{get_mysql_root_password()} -e \"GRANT ALL PRIVILEGES ON *.* TO '{user}'@'{host}';\"",
-            check=True,
-        )
-        run(
-            f'mysql -u root -p{get_mysql_root_password()} -e "FLUSH PRIVILEGES;"',
-            check=True,
-        )
+        mysql_exec(f"CREATE USER '{user}'@'{host}' IDENTIFIED BY '{password}';", check=True)
+        mysql_exec(f"GRANT ALL PRIVILEGES ON *.* TO '{user}'@'{host}';", check=True)
+        mysql_exec("FLUSH PRIVILEGES;", check=True)
         print(f"✅ Database user created: {user}")
     except Exception as e:
         print(f"❌ Database user creation failed: {e}")
@@ -4226,26 +4232,14 @@ def db_create(db_name: str, user: str, password: str):
     """Database oluştur"""
     try:
         # Create database
-        run(
-            f'mysql -u root -p{get_mysql_root_password()} -e "CREATE DATABASE {db_name};"',
-            check=True,
-        )
+        mysql_exec(f"CREATE DATABASE {db_name};", check=True)
 
         # Create user
-        run(
-            f"mysql -u root -p{get_mysql_root_password()} -e \"CREATE USER '{user}'@'localhost' IDENTIFIED BY '{password}';\"",
-            check=True,
-        )
+        mysql_exec(f"CREATE USER '{user}'@'localhost' IDENTIFIED BY '{password}';", check=True)
 
         # Grant privileges
-        run(
-            f"mysql -u root -p{get_mysql_root_password()} -e \"GRANT ALL PRIVILEGES ON {db_name}.* TO '{user}'@'localhost';\"",
-            check=True,
-        )
-        run(
-            f'mysql -u root -p{get_mysql_root_password()} -e "FLUSH PRIVILEGES;"',
-            check=True,
-        )
+        mysql_exec(f"GRANT ALL PRIVILEGES ON {db_name}.* TO '{user}'@'localhost';", check=True)
+        mysql_exec("FLUSH PRIVILEGES;", check=True)
 
         print(f"✅ Database created: {db_name}")
         print(f"✅ User created: {user}")
@@ -4259,16 +4253,10 @@ def db_delete(db_name: str, user: str):
     """Database sil"""
     try:
         # Drop database
-        run(
-            f'mysql -u root -p{get_mysql_root_password()} -e "DROP DATABASE IF EXISTS {db_name};"',
-            check=True,
-        )
+        mysql_exec(f"DROP DATABASE IF EXISTS {db_name};", check=True)
 
         # Drop user
-        run(
-            f"mysql -u root -p{get_mysql_root_password()} -e \"DROP USER IF EXISTS '{user}'@'localhost';\"",
-            check=True,
-        )
+        mysql_exec(f"DROP USER IF EXISTS '{user}'@'localhost';", check=True)
 
         print(f"✅ Database deleted: {db_name}")
         print(f"✅ User deleted: {user}")
@@ -4369,14 +4357,8 @@ def add_mariadb_remote_grant(ip: str, db: str, user: str, password: str):
         pass_clause = f"IDENTIFIED BY '{password}'" if password else ""
         grant_db = "*.*" if target_db == "*" else f"{target_db}.*"
 
-        run(
-            f"mysql -u root -p{get_mysql_root_password()} -e \"CREATE USER IF NOT EXISTS '{user}'@'{target_host}' {pass_clause};\"",
-            check=True,
-        )
-        run(
-            f"mysql -u root -p{get_mysql_root_password()} -e \"GRANT ALL PRIVILEGES ON {grant_db} TO '{user}'@'{target_host}'; FLUSH PRIVILEGES;\"",
-            check=True,
-        )
+        mysql_exec(f"CREATE USER IF NOT EXISTS '{user}'@'{target_host}' {pass_clause};", check=True)
+        mysql_exec(f"GRANT ALL PRIVILEGES ON {grant_db} TO '{user}'@'{target_host}'; FLUSH PRIVILEGES;", check=True)
         print(f"✅ Uzak erişim verildi: {user}@{target_host} -> {grant_db}")
         # İstemci bağlantısı için profil kaydı (host bazlı)
         save_mysql_client_profile(db if db != "*" else "", user, password, host_hint=target_host)
@@ -4390,10 +4372,7 @@ def grant_root_remote(ip: str, db: str):
         target_host = ip if ip else "%"
         target_db = "*" if db == "*" else db
         grant_db = "*.*" if target_db == "*" else f"{target_db}.*"
-        run(
-            f"mysql -u root -p{get_mysql_root_password()} -e \"GRANT ALL PRIVILEGES ON {grant_db} TO 'root'@'{target_host}' WITH GRANT OPTION; FLUSH PRIVILEGES;\"",
-            check=True,
-        )
+        mysql_exec(f"GRANT ALL PRIVILEGES ON {grant_db} TO 'root'@'{target_host}' WITH GRANT OPTION; FLUSH PRIVILEGES;", check=True)
         print(f"✅ Root için uzak erişim verildi: root@{target_host} -> {grant_db}")
         # Root için ayrı profil kaydetmeye gerek yok (zaten [client] var). İstenirse ekleyebiliriz.
     except Exception as e:
@@ -4440,10 +4419,7 @@ def change_mariadb_remote_ip(old_ip: str, new_ip: str, db: str, user: str):
         grant_db = "*.*" if target_db == "*" else f"{target_db}.*"
 
         # Eski IP için yetkileri kaldır ve kullanıcıyı temizle (varsa)
-        run(
-            f"mysql -u root -p{get_mysql_root_password()} -e \"REVOKE ALL PRIVILEGES, GRANT OPTION ON {grant_db} FROM '{user}'@'{old_ip}'; DROP USER IF EXISTS '{user}'@'{old_ip}'; FLUSH PRIVILEGES;\"",
-            check=True,
-        )
+        mysql_exec(f"REVOKE ALL PRIVILEGES, GRANT OPTION ON {grant_db} FROM '{user}'@'{old_ip}'; DROP USER IF EXISTS '{user}'@'{old_ip}'; FLUSH PRIVILEGES;", check=True)
         print(f"✅ Eski IP kaldırıldı: {user}@{old_ip}")
 
         # Yeni IP için kullanıcı ve yetkiler
