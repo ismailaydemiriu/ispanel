@@ -75,6 +75,14 @@ TEXTS = {
         "update_complete": "isPanel updated successfully!",
         "press_enter": "Press Enter to continue...",
         "goodbye": "Goodbye!",
+        # Cache menu labels
+        "cache_install_redis": "Install Redis",
+        "cache_install_memcached": "Install Memcached",
+        "cache_configure_redis": "Configure Redis",
+        "cache_configure_memcached": "Configure Memcached",
+        "cache_toggle_domain": "Toggle OLS Cache for a Domain",
+        # Prompts
+        "cache_toggle_prompt": "Enable cache (e) / disable (d):",
     },
     "tr": {
         # Ana menü
@@ -136,6 +144,14 @@ TEXTS = {
         "update_complete": "isPanel başarıyla güncellendi!",
         "press_enter": "Devam etmek için Enter'a basın...",
         "goodbye": "Hoşça kalın!",
+        # Cache menü başlıkları
+        "cache_install_redis": "Redis Kur",
+        "cache_install_memcached": "Memcached Kur",
+        "cache_configure_redis": "Redis Yapılandır",
+        "cache_configure_memcached": "Memcached Yapılandır",
+        "cache_toggle_domain": "Domain için OLS Cache aç/kapat",
+        # İstemler
+        "cache_toggle_prompt": "Cache'i etkinleştir (e) / devre dışı bırak (d):",
     },
 }
 
@@ -3754,11 +3770,11 @@ def cache_menu():
     while True:
         # Cache Systems
         print(f"\n=== {get_text('main_menu_options')[21]} ===")
-        print("1) Install Redis")
-        print("2) Install Memcached")
-        print("3) Configure Redis")
-        print("4) Configure Memcached")
-        print("5) Domain için OLS Cache aç/kapat")
+        print(f"1) {get_text('cache_install_redis')}")
+        print(f"2) {get_text('cache_install_memcached')}")
+        print(f"3) {get_text('cache_configure_redis')}")
+        print(f"4) {get_text('cache_configure_memcached')}")
+        print(f"5) {get_text('cache_toggle_domain')}")
         print("0) " + get_text("main_menu_options")[-1])  # Exit
 
         choice = input(f"{get_text('enter_choice')}: ").strip()
@@ -3870,7 +3886,7 @@ def toggle_domain_cache_menu():
     if not domain:
         print("❌ Domain gerekli")
         return
-    action = input("Cache'i etkinleştir (e) / devre dışı bırak (d): ").strip().lower()
+    action = input(get_text("cache_toggle_prompt") + " ").strip().lower()
     if action in ["e", "enable", "evet", "yes", "y"]:
         _enable_domain_ols_cache(domain)
     elif action in ["d", "disable", "hayir", "hayır", "no", "n"]:
