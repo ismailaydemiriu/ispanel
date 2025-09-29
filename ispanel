@@ -1876,6 +1876,8 @@ enabled = true
 
 
 def secure_mariadb():
+    """Varsayılan güvenlik iyileştirmeleri (mevcut fonksiyon placeholder)."""
+    pass
     """MariaDB güvenlik ayarları"""
     print("MariaDB güvenlik ayarları yapılıyor...")
     
@@ -4198,41 +4200,111 @@ expect eof
         print(f"❌ OpenLiteSpeed admin password reset failed: {e}")
 
 
+def ufw_allow_mysql(cidr: str):
+    """UFW üzerinden 3306/TCP portuna belirli IP/CIDR için izin ver."""
+    try:
+        if cidr.lower() in ["any", "*"]:
+            run("ufw allow 3306/tcp", check=True)
+        else:
+            run(f"ufw allow from {cidr} to any port 3306 proto tcp", check=True)
+        print(f"✅ UFW: 3306 izin verildi: {cidr}")
+    except Exception as e:
+        print(f"⚠️ UFW kuralı eklenemedi: {e}")
+
+
+def mariadb_set_bind_address(address: str):
+    """MariaDB bind-address değerini ayarla ve config dosyasını güncelle."""
+    try:
+        cnf = Path("/etc/mysql/mariadb.conf.d/50-server.cnf")
+        content = cnf.read_text(encoding="utf-8") if cnf.exists() else ""
+        if re.search(r"^bind-address\s*=", content, flags=re.MULTILINE):
+            content = re.sub(r"^bind-address\s*=.*$", f"bind-address = {address}", content, flags=re.MULTILINE)
+        else:
+            content = (content.rstrip() + "\n[mysqld]\n" if "[mysqld]" not in content else content)
+            content = content.rstrip() + f"\nbind-address = {address}\n"
+        cnf.write_text(content, encoding="utf-8")
+        print(f"✅ bind-address {address} olarak ayarlandı")
+    except Exception as e:
+        print(f"⚠️ bind-address ayarlanamadı: {e}")
+
+
+def add_mariadb_remote_grant(ip: str, db: str, user: str, password: str):
+    """Belirtilen IP için kullanıcıya uzaktan erişim izni ver."""
+    try:
+        target_host = ip if ip else "%"
+        target_db = "*" if db == "*" else db
+        pass_clause = f"IDENTIFIED BY '{password}'" if password else ""
+        grant_db = "*.*" if target_db == "*" else f"{target_db}.*"
+
+        run(
+            f"mysql -u root -p{get_mysql_root_password()} -e \"CREATE USER IF NOT EXISTS '{user}'@'{target_host}' {pass_clause};\"",
+            check=True,
+        )
+        run(
+            f"mysql -u root -p{get_mysql_root_password()} -e \"GRANT ALL PRIVILEGES ON {grant_db} TO '{user}'@'{target_host}'; FLUSH PRIVILEGES;\"",
+            check=True,
+        )
+        print(f"✅ Uzak erişim verildi: {user}@{target_host} -> {grant_db}")
+    except Exception as e:
+        print(f"❌ Uzak erişim verilemedi: {e}")
 def secure_mariadb_menu():
-    """MariaDB güvenlik ayarları (interaktif menü için)"""
+    """MariaDB güvenlik ve uzaktan erişim menüsü"""
     global MYSQL_ROOT_PASSWORD
 
     try:
-        # Zaten güvenlik ayarları install sırasında yapıldı
-        print("MariaDB güvenlik ayarları kontrol ediliyor...")
+        print("\n=== MariaDB Güvenlik ve Uzak Erişim ===")
+        print("1) Root şifresini ayarla/güncelle")
+        print("2) Uzak bağlantıyı aç (bind-address 0.0.0.0)")
+        print("3) Uzak bağlantıyı kapat (bind-address 127.0.0.1)")
+        print("4) Uzak IP ekle ve yetki ver")
+        print("5) Güvenlik duvarında 3306 izin ver (IP/Aralık)")
+        print("0) Geri dön")
 
-        # Root şifresi var mı kontrol et
-        if MYSQL_ROOT_PASSWORD:
-            print(f"✅ MariaDB root şifresi zaten ayarlı")
-            print(
-                "✅ Anonim kullanıcılar ve test veritabanı kurulum sırasında temizlendi"
-            )
-            print("✅ MariaDB güvenli durumda")
+        choice = input("Seçiminizi girin: ").strip()
+
+        if choice == "1":
+            new_password = input("Yeni root şifresi: ").strip()
+            if not new_password:
+                print("❌ Şifre gerekli")
+                return
+            try:
+                run(
+                    f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{new_password}';\"",
+                    check=True,
+                )
+                MYSQL_ROOT_PASSWORD = new_password
+                print("✅ Root şifresi ayarlandı")
+                secure_mariadb()
+            except Exception as e:
+                print(f"❌ Root şifresi ayarlanamadı: {e}")
+
+        elif choice == "2":
+            mariadb_set_bind_address("0.0.0.0")
+            print("✅ MariaDB uzak bağlantıya açıldı")
+            run("systemctl restart mariadb", check=True)
+
+        elif choice == "3":
+            mariadb_set_bind_address("127.0.0.1")
+            print("✅ MariaDB yerel erişime kapatıldı")
+            run("systemctl restart mariadb", check=True)
+
+        elif choice == "4":
+            ip = input("İzin verilecek IP (veya %): ").strip()
+            db = input("Veritabanı adı (tüm DB için * bırak): ").strip() or "*"
+            user = input("Kullanıcı adı: ").strip()
+            password = input("Kullanıcı şifresi (boş bırakılırsa değişmez/oluşturulur): ").strip()
+            add_mariadb_remote_grant(ip, db, user, password)
+
+        elif choice == "5":
+            cidr = input("IP veya CIDR (örn. 203.0.113.5 / 203.0.113.0/24 / any): ").strip()
+            ufw_allow_mysql(cidr)
+        elif choice == "0":
+            return
         else:
-            print("⚠️  MariaDB root şifresi bulunamadı")
-            print("Güvenlik ayarları için root şifresi gerekli")
-            new_password = input("Yeni root şifresi girin: ").strip()
-            if new_password:
-                try:
-                    run(
-                        f"mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '{new_password}';\"",
-                        check=True,
-                    )
-                    MYSQL_ROOT_PASSWORD = new_password
-                    print("✅ Root şifresi ayarlandı")
-
-                    # Güvenlik ayarlarını uygula
-                    secure_mariadb()
-                except BaseException:
-                    print("❌ Şifre ayarlama başarısız")
+            print("❌ Geçersiz seçim")
 
     except Exception as e:
-        print(f"❌ MariaDB güvenlik ayarları hatası: {e}")
+        print(f"❌ MariaDB menü hatası: {e}")
 
 
 def auto_update_system():
