@@ -3900,10 +3900,29 @@ def _ensure_server_cache_module():
 
 def toggle_domain_cache_menu():
     """Domain bazında OLS Cache aç/kapat menüsü."""
-    domain = input("Domain: ").strip()
-    if not domain:
-        print("❌ Domain gerekli")
+    # Domainleri listele ve seçim al
+    if not VHOSTS_DIR.exists():
+        print("❌ Vhost dizini bulunamadı.")
         return
+    domains = [d.name for d in VHOSTS_DIR.iterdir() if d.is_dir() and d.name != "Example"]
+    if not domains:
+        print("❌ Domain bulunamadı.")
+        return
+    print("\nMevcut domainler:")
+    for i, d in enumerate(domains, 1):
+        print(f"  {i}) {d}")
+    sel = input("Seçin (numara veya domain yazın): ").strip()
+    if sel.isdigit():
+        idx = int(sel)
+        if idx < 1 or idx > len(domains):
+            print("❌ Geçersiz seçim")
+            return
+        domain = domains[idx - 1]
+    else:
+        domain = sel
+        if domain not in domains:
+            print("❌ Domain listede yok")
+            return
     action = input(get_text("cache_toggle_prompt") + " ").strip().lower()
     if action in ["e", "enable", "evet", "yes", "y"]:
         _enable_domain_ols_cache(domain)
