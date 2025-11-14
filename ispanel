@@ -100,6 +100,57 @@ TEXTS = {
         "mariadb_ufw_allow": "Allow 3306 on firewall (IP/Range)",
         "mariadb_change_remote_ip": "Change remote IP (revoke old, add new)",
         "enter_selection": "Enter your selection",
+        # MySQL Remote Access Menu
+        "mysql_remote_menu_title": "MySQL Remote Access Management",
+        "mysql_remote_check_status": "Check Remote Access Status",
+        "mysql_remote_enable": "Enable Remote Access (bind-address 0.0.0.0)",
+        "mysql_remote_disable": "Disable Remote Access (bind-address 127.0.0.1)",
+        "mysql_remote_add_ip": "Grant Access to Specific IP",
+        "mysql_remote_remove_ip": "Revoke IP Access",
+        "mysql_remote_list_ips": "List Allowed IPs",
+        "mysql_remote_firewall_allow": "Firewall: Allow Port 3306 for IP",
+        "mysql_remote_firewall_remove": "Firewall: Remove Port 3306 for IP",
+        "mysql_remote_confirm_enable": "Are you sure you want to enable remote access? (y/n)",
+        "mysql_remote_confirm_disable": "Are you sure you want to disable remote access? (y/n)",
+        "mysql_remote_ip_prompt": "IP Address (e.g., 192.168.1.100)",
+        "mysql_remote_user_prompt": "MySQL User (default: root)",
+        "mysql_remote_password_prompt": "User Password",
+        "mysql_remote_database_prompt": "Database (* = all, default: *)",
+        "mysql_remote_firewall_add_prompt": "Also add firewall rule? (y/n)",
+        "mysql_remote_firewall_remove_prompt": "Also remove firewall rule? (y/n)",
+        "mysql_remote_operation_cancelled": "Operation cancelled",
+        "mysql_remote_ip_required": "IP address is required",
+        "mysql_remote_password_required": "Password is required",
+        "mysql_remote_invalid_choice": "Invalid choice",
+        "mysql_remote_add_ip_title": "Grant MySQL Access to IP",
+        "mysql_remote_remove_ip_title": "Revoke MySQL Access from IP",
+        "mysql_remote_firewall_allow_title": "Firewall: Allow Port 3306 for IP",
+        "mysql_remote_firewall_remove_title": "Firewall: Remove Port 3306 for IP",
+        "mysql_remote_back_to_menu": "Back to Main Menu",
+        "mysql_remote_press_enter": "Press Enter to continue...",
+        # Cron Job Management
+        "cron_menu_title": "Cron Job Management",
+        "cron_list_jobs": "List All Cron Jobs",
+        "cron_add_job": "Add New Cron Job",
+        "cron_edit_job": "Edit Cron Job",
+        "cron_delete_job": "Delete Cron Job",
+        "cron_view_logs": "View Cron Logs",
+        "cron_test_job": "Test Cron Job",
+        "cron_enable_disable": "Enable/Disable Cron Job",
+        "cron_schedule_prompt": "Schedule (e.g., '0 2 * * *' for daily at 2 AM)",
+        "cron_command_prompt": "Command to execute",
+        "cron_comment_prompt": "Comment/Description (optional)",
+        "cron_domain_prompt": "Domain (optional, for domain-specific jobs)",
+        "cron_job_added": "Cron job added successfully",
+        "cron_job_deleted": "Cron job deleted successfully",
+        "cron_job_updated": "Cron job updated successfully",
+        "cron_job_not_found": "Cron job not found",
+        "cron_no_jobs": "No cron jobs found",
+        "cron_select_job": "Select cron job number",
+        "cron_invalid_schedule": "Invalid schedule format",
+        "cron_confirm_delete": "Are you sure you want to delete this cron job? (y/n)",
+        "cron_back_to_menu": "Back to Main Menu",
+        "cron_press_enter": "Press Enter to continue...",
     },
     "tr": {
         # Ana menü
@@ -186,6 +237,57 @@ TEXTS = {
         "mariadb_ufw_allow": "Güvenlik duvarında 3306 izin ver (IP/Aralık)",
         "mariadb_change_remote_ip": "Uzak IP değiştir (eskiyi sil, yeniyi ekle)",
         "enter_selection": "Seçiminizi girin",
+        # MySQL Uzaktan Erişim Menüsü
+        "mysql_remote_menu_title": "MySQL Uzaktan Erişim Yönetimi",
+        "mysql_remote_check_status": "Uzaktan Erişim Durumunu Kontrol Et",
+        "mysql_remote_enable": "Uzaktan Erişimi Aç (bind-address 0.0.0.0)",
+        "mysql_remote_disable": "Uzaktan Erişimi Kapat (bind-address 127.0.0.1)",
+        "mysql_remote_add_ip": "Belirli IP'ye İzin Ver",
+        "mysql_remote_remove_ip": "IP İznini Kaldır",
+        "mysql_remote_list_ips": "İzin Verilen IP'leri Listele",
+        "mysql_remote_firewall_allow": "Firewall: IP'ye Port 3306 İzni Ver",
+        "mysql_remote_firewall_remove": "Firewall: IP'nin Port 3306 İznini Kaldır",
+        "mysql_remote_confirm_enable": "Uzaktan erişimi açmak istediğinizden emin misiniz? (e/h)",
+        "mysql_remote_confirm_disable": "Uzaktan erişimi kapatmak istediğinizden emin misiniz? (e/h)",
+        "mysql_remote_ip_prompt": "IP Adresi (örn: 192.168.1.100)",
+        "mysql_remote_user_prompt": "MySQL Kullanıcı (varsayılan: root)",
+        "mysql_remote_password_prompt": "Kullanıcı Şifresi",
+        "mysql_remote_database_prompt": "Database (* = tümü, varsayılan: *)",
+        "mysql_remote_firewall_add_prompt": "Firewall kuralı da eklensin mi? (e/h)",
+        "mysql_remote_firewall_remove_prompt": "Firewall kuralı da kaldırılsın mı? (e/h)",
+        "mysql_remote_operation_cancelled": "İşlem iptal edildi",
+        "mysql_remote_ip_required": "IP adresi gerekli",
+        "mysql_remote_password_required": "Şifre gerekli",
+        "mysql_remote_invalid_choice": "Geçersiz seçim",
+        "mysql_remote_add_ip_title": "IP'ye MySQL Erişim İzni Ver",
+        "mysql_remote_remove_ip_title": "IP'nin MySQL Erişimini Kaldır",
+        "mysql_remote_firewall_allow_title": "Firewall: IP'ye Port 3306 İzni Ver",
+        "mysql_remote_firewall_remove_title": "Firewall: IP'nin Port 3306 İznini Kaldır",
+        "mysql_remote_back_to_menu": "Ana Menüye Dön",
+        "mysql_remote_press_enter": "Devam etmek için Enter'a basın...",
+        # Cron Job Yönetimi
+        "cron_menu_title": "Cron Job Yönetimi",
+        "cron_list_jobs": "Tüm Cron Job'ları Listele",
+        "cron_add_job": "Yeni Cron Job Ekle",
+        "cron_edit_job": "Cron Job Düzenle",
+        "cron_delete_job": "Cron Job Sil",
+        "cron_view_logs": "Cron Log'larını Görüntüle",
+        "cron_test_job": "Cron Job Test Et",
+        "cron_enable_disable": "Cron Job Aktif/Pasif Yap",
+        "cron_schedule_prompt": "Zamanlama (örn: '0 2 * * *' günlük saat 02:00)",
+        "cron_command_prompt": "Çalıştırılacak komut",
+        "cron_comment_prompt": "Açıklama (opsiyonel)",
+        "cron_domain_prompt": "Domain (opsiyonel, domain bazlı job'lar için)",
+        "cron_job_added": "Cron job başarıyla eklendi",
+        "cron_job_deleted": "Cron job başarıyla silindi",
+        "cron_job_updated": "Cron job başarıyla güncellendi",
+        "cron_job_not_found": "Cron job bulunamadı",
+        "cron_no_jobs": "Cron job bulunamadı",
+        "cron_select_job": "Cron job numarasını seçin",
+        "cron_invalid_schedule": "Geçersiz zamanlama formatı",
+        "cron_confirm_delete": "Bu cron job'ı silmek istediğinizden emin misiniz? (e/h)",
+        "cron_back_to_menu": "Ana Menüye Dön",
+        "cron_press_enter": "Devam etmek için Enter'a basın...",
     },
 }
 
@@ -3749,6 +3851,375 @@ def cron_add(line: str):
         print("Cron eklenemedi", file=sys.stderr)
 
 
+def get_cron_jobs():
+    """Mevcut cron job'ları listele ve döndür"""
+    install_cron()
+    try:
+        result = subprocess.run(
+            "crontab -l",
+            shell=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            lines = result.stdout.strip().split("\n")
+            # Boş satırları ve yorum satırlarını filtrele
+            jobs = []
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith("#") and not line.startswith("SHELL=") and not line.startswith("PATH=") and not line.startswith("MAILTO="):
+                    jobs.append(line)
+            return jobs
+        return []
+    except Exception as e:
+        print(f"❌ Cron job'lar alınamadı: {e}")
+        return []
+
+
+def list_cron_jobs():
+    """Cron job'ları numaralı liste olarak göster"""
+    jobs = get_cron_jobs()
+    
+    if not jobs:
+        print(f"ℹ️  {get_text('cron_no_jobs')}")
+        return
+    
+    print(f"\n{'='*70}")
+    print(f"📋 {get_text('cron_list_jobs')}")
+    print(f"{'='*70}\n")
+    
+    for idx, job in enumerate(jobs, 1):
+        # Cron formatını parse et
+        parts = job.split(None, 5)
+        if len(parts) >= 6:
+            schedule = " ".join(parts[:5])
+            command = parts[5]
+            print(f"{idx:2d}) Schedule: {schedule}")
+            print(f"    Command: {command}")
+        else:
+            print(f"{idx:2d}) {job}")
+        print()
+    
+    print(f"{'='*70}")
+
+
+def validate_cron_schedule(schedule: str) -> bool:
+    """Cron zamanlama formatını doğrula"""
+    parts = schedule.split()
+    if len(parts) != 5:
+        return False
+    
+    # Basit format kontrolü (daha detaylı regex eklenebilir)
+    for part in parts:
+        if not (part.isdigit() or part == "*" or "," in part or "-" in part or "/" in part or part in ["*", "?", "L", "W"]):
+            # Daha karmaşık formatlar için basit kontrol
+            if not any(c.isdigit() or c in "*,-/LW?" for c in part):
+                return False
+    
+    return True
+
+
+def add_cron_job_interactive():
+    """İnteraktif olarak yeni cron job ekle"""
+    print(f"\n{'='*70}")
+    print(f"➕ {get_text('cron_add_job')}")
+    print(f"{'='*70}\n")
+    
+    # Zamanlama
+    schedule = input(f"{get_text('cron_schedule_prompt')}: ").strip()
+    if not schedule:
+        print(f"❌ {get_text('cron_invalid_schedule')}")
+        return False
+    
+    if not validate_cron_schedule(schedule):
+        print(f"❌ {get_text('cron_invalid_schedule')}")
+        print("   Format: minute hour day month weekday")
+        print("   Example: 0 2 * * * (daily at 2 AM)")
+        return False
+    
+    # Komut
+    command = input(f"{get_text('cron_command_prompt')}: ").strip()
+    if not command:
+        print("❌ Command is required")
+        return False
+    
+    # Açıklama
+    comment = input(f"{get_text('cron_comment_prompt')}: ").strip()
+    
+    # Domain (opsiyonel)
+    domain = input(f"{get_text('cron_domain_prompt')}: ").strip()
+    
+    # Cron satırı oluştur
+    cron_line = f"{schedule} {command}"
+    
+    # Açıklama varsa yorum satırı olarak ekle
+    if comment or domain:
+        comment_text = f"# isPanel: {comment}" if comment else "# isPanel"
+        if domain:
+            comment_text += f" [Domain: {domain}]"
+        cron_line = f"{comment_text}\n{cron_line}"
+    
+    # Cron ekle
+    install_cron()
+    cp = subprocess.run(
+        "crontab -l",
+        shell=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    current = cp.stdout if cp.returncode == 0 else ""
+    
+    # Duplicate kontrolü
+    if cron_line.strip() in current:
+        print("⚠️  Bu cron job zaten mevcut")
+        return False
+    
+    new = current + ("\n" if current and not current.endswith("\n") else "") + cron_line + "\n"
+    
+    p = subprocess.run("crontab -", shell=True, input=new, text=True)
+    if p.returncode == 0:
+        print(f"✅ {get_text('cron_job_added')}")
+        return True
+    else:
+        print("❌ Cron job eklenemedi")
+        return False
+
+
+def delete_cron_job():
+    """Cron job sil"""
+    jobs = get_cron_jobs()
+    
+    if not jobs:
+        print(f"ℹ️  {get_text('cron_no_jobs')}")
+        return False
+    
+    list_cron_jobs()
+    
+    try:
+        job_num = input(f"\n{get_text('cron_select_job')}: ").strip()
+        job_idx = int(job_num) - 1
+        
+        if job_idx < 0 or job_idx >= len(jobs):
+            print(f"❌ {get_text('cron_job_not_found')}")
+            return False
+        
+        job_to_delete = jobs[job_idx]
+        
+        # Onay
+        confirm = input(f"{get_text('cron_confirm_delete')}: ").strip().lower()
+        if confirm not in ["e", "y", "yes"]:
+            print(f"❌ {get_text('mysql_remote_operation_cancelled')}")
+            return False
+        
+        # Mevcut crontab'ı al
+        cp = subprocess.run(
+            "crontab -l",
+            shell=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if cp.returncode != 0:
+            print("❌ Crontab okunamadı")
+            return False
+        
+        lines = cp.stdout.split("\n")
+        new_lines = []
+        skip_next = False
+        
+        for i, line in enumerate(lines):
+            # Silinecek job'ı bul
+            if job_to_delete in line and not line.strip().startswith("#"):
+                # Önceki satır yorum satırıysa onu da sil
+                if i > 0 and lines[i-1].strip().startswith("#") and "isPanel" in lines[i-1]:
+                    continue
+                skip_next = True
+                continue
+            
+            if skip_next and line.strip() == "":
+                skip_next = False
+                continue
+            
+            if not skip_next:
+                new_lines.append(line)
+        
+        # Yeni crontab'ı yaz
+        new_crontab = "\n".join(new_lines)
+        if new_crontab.strip():
+            new_crontab += "\n"
+        
+        p = subprocess.run("crontab -", shell=True, input=new_crontab, text=True)
+        if p.returncode == 0:
+            print(f"✅ {get_text('cron_job_deleted')}")
+            return True
+        else:
+            print("❌ Cron job silinemedi")
+            return False
+            
+    except ValueError:
+        print("❌ Geçersiz numara")
+        return False
+    except Exception as e:
+        print(f"❌ Hata: {e}")
+        return False
+
+
+def view_cron_logs():
+    """Cron log'larını görüntüle"""
+    print(f"\n{'='*70}")
+    print(f"📋 {get_text('cron_view_logs')}")
+    print(f"{'='*70}\n")
+    
+    # Cron log dosyası genellikle /var/log/syslog veya /var/log/cron.log
+    log_files = [
+        "/var/log/cron.log",
+        "/var/log/syslog",
+        "/var/log/auth.log"
+    ]
+    
+    found_log = None
+    for log_file in log_files:
+        if Path(log_file).exists():
+            found_log = log_file
+            break
+    
+    if not found_log:
+        print("⚠️  Cron log dosyası bulunamadı")
+        print("   Log dosyaları genellikle şu konumlarda bulunur:")
+        for log_file in log_files:
+            print(f"   - {log_file}")
+        return
+    
+    print(f"📄 Log dosyası: {found_log}\n")
+    
+    try:
+        # Son 50 satırı göster
+        result = run(f"tail -n 50 {found_log} | grep -i cron", check=False)
+        if result.stdout:
+            print(result.stdout)
+        else:
+            print("ℹ️  Son cron log kaydı bulunamadı")
+    except Exception as e:
+        print(f"❌ Log okunamadı: {e}")
+
+
+def test_cron_job():
+    """Cron job'ı test et (hemen çalıştır)"""
+    jobs = get_cron_jobs()
+    
+    if not jobs:
+        print(f"ℹ️  {get_text('cron_no_jobs')}")
+        return False
+    
+    list_cron_jobs()
+    
+    try:
+        job_num = input(f"\n{get_text('cron_select_job')}: ").strip()
+        job_idx = int(job_num) - 1
+        
+        if job_idx < 0 or job_idx >= len(jobs):
+            print(f"❌ {get_text('cron_job_not_found')}")
+            return False
+        
+        job = jobs[job_idx]
+        # Komut kısmını al (ilk 5 alan zamanlama)
+        parts = job.split(None, 5)
+        if len(parts) >= 6:
+            command = parts[5]
+        else:
+            command = job
+        
+        print(f"\n🧪 Test ediliyor: {command}\n")
+        
+        # Komutu çalıştır
+        result = run(command, check=False)
+        if result.returncode == 0:
+            print(f"✅ Komut başarıyla çalıştırıldı")
+            if result.stdout:
+                print(f"\nÇıktı:\n{result.stdout}")
+        else:
+            print(f"❌ Komut hata verdi (exit code: {result.returncode})")
+            if result.stderr:
+                print(f"\nHata:\n{result.stderr}")
+        
+        return True
+        
+    except ValueError:
+        print("❌ Geçersiz numara")
+        return False
+    except Exception as e:
+        print(f"❌ Hata: {e}")
+        return False
+
+
+def cron_job_management_menu():
+    """Gelişmiş Cron Job Yönetim Menüsü"""
+    while True:
+        print("\n" + "="*70)
+        print(f"⏰ {get_text('cron_menu_title').upper()}")
+        print("="*70)
+        print(f"1) 📋 {get_text('cron_list_jobs')}")
+        print(f"2) ➕ {get_text('cron_add_job')}")
+        print(f"3) ✏️  {get_text('cron_edit_job')}")
+        print(f"4) 🗑️  {get_text('cron_delete_job')}")
+        print(f"5) 📄 {get_text('cron_view_logs')}")
+        print(f"6) 🧪 {get_text('cron_test_job')}")
+        print(f"0) 🔙 {get_text('cron_back_to_menu')}")
+        print("="*70)
+        
+        choice = input(f"\n{get_text('enter_choice')}: ").strip()
+        
+        if choice == "1":
+            list_cron_jobs()
+            
+        elif choice == "2":
+            add_cron_job_interactive()
+            
+        elif choice == "3":
+            # Edit için önce listele, sonra sil ve yeni ekle
+            jobs = get_cron_jobs()
+            if not jobs:
+                print(f"ℹ️  {get_text('cron_no_jobs')}")
+            else:
+                list_cron_jobs()
+                job_num = input(f"\n{get_text('cron_select_job')} (düzenlemek için): ").strip()
+                try:
+                    job_idx = int(job_num) - 1
+                    if 0 <= job_idx < len(jobs):
+                        # Mevcut job'ı göster
+                        print(f"\n📝 Mevcut job: {jobs[job_idx]}")
+                        print("\nYeni bilgileri girin (boş bırakırsanız mevcut değer kullanılır):\n")
+                        
+                        # Önce sil
+                        delete_cron_job()
+                        # Sonra yeni ekle
+                        add_cron_job_interactive()
+                    else:
+                        print(f"❌ {get_text('cron_job_not_found')}")
+                except ValueError:
+                    print("❌ Geçersiz numara")
+            
+        elif choice == "4":
+            delete_cron_job()
+            
+        elif choice == "5":
+            view_cron_logs()
+            
+        elif choice == "6":
+            test_cron_job()
+            
+        elif choice == "0":
+            break
+            
+        else:
+            print(f"❌ {get_text('invalid_choice')}")
+        
+        if choice != "0":
+            input(f"\n{get_text('cron_press_enter')}")
+
+
 def cron_backup_menu():
     while True:
         print("\n--- Cron Backup Ayarları ---")
@@ -3884,7 +4355,8 @@ def interactive_menu():
             print(f"{PURPLE}8){RESET} {menu_options[7]}")
             print(f"{PURPLE}9){RESET} {menu_options[8]}")
             print(f"{PURPLE}10){RESET} {menu_options[9]}")
-            print(f"{PURPLE}33){RESET} 🌐 MySQL Uzaktan Erişim Yönetimi")
+            print(f"{PURPLE}33){RESET} 🌐 {get_text('mysql_remote_menu_title')}")
+            print(f"{PURPLE}34){RESET} ⏰ {get_text('cron_menu_title')}")
             
             # 🔧 SYSTEM
             print(f"\n{BOLD}{RED}🔧 {get_text('section_system')}{RESET}")
@@ -4002,6 +4474,8 @@ def interactive_menu():
                 update_ispanel()
             elif choice == "33":
                 mysql_remote_access_menu()
+            elif choice == "34":
+                cron_job_management_menu()
             elif choice == "0":
                 break
             else:
@@ -5039,108 +5513,110 @@ def mysql_firewall_remove_ip(ip: str):
         print(f"❌ Firewall kuralı kaldırılamadı: {e}")
         return False
 def mysql_remote_access_menu():
-    """MySQL Uzaktan Erişim Yönetimi - Basit ve Kullanıcı Dostu Menü"""
+    """MySQL Uzaktan Erişim Yönetimi - Basit ve Kullanıcı Dostu Menü (Çok Dilli)"""
     while True:
         print("\n" + "="*60)
-        print("MySQL UZAKTAN ERİŞİM YÖNETİMİ")
+        print(get_text("mysql_remote_menu_title").upper())
         print("="*60)
-        print("1) 📊 Uzaktan Erişim Durumunu Kontrol Et")
-        print("2) ✅ Uzaktan Erişimi Aç (bind-address 0.0.0.0)")
-        print("3) ❌ Uzaktan Erişimi Kapat (bind-address 127.0.0.1)")
-        print("4) ➕ Belirli IP'ye İzin Ver")
-        print("5) ➖ IP İznini Kaldır")
-        print("6) 📋 İzin Verilen IP'leri Listele")
-        print("7) 🔥 Firewall: IP'ye Port 3306 İzni Ver")
-        print("8) 🚫 Firewall: IP'nin Port 3306 İznini Kaldır")
-        print("0) 🔙 Ana Menüye Dön")
+        print(f"1) 📊 {get_text('mysql_remote_check_status')}")
+        print(f"2) ✅ {get_text('mysql_remote_enable')}")
+        print(f"3) ❌ {get_text('mysql_remote_disable')}")
+        print(f"4) ➕ {get_text('mysql_remote_add_ip')}")
+        print(f"5) ➖ {get_text('mysql_remote_remove_ip')}")
+        print(f"6) 📋 {get_text('mysql_remote_list_ips')}")
+        print(f"7) 🔥 {get_text('mysql_remote_firewall_allow')}")
+        print(f"8) 🚫 {get_text('mysql_remote_firewall_remove')}")
+        print(f"0) 🔙 {get_text('mysql_remote_back_to_menu')}")
         print("="*60)
         
-        choice = input("\nSeçiminiz: ").strip()
+        choice = input(f"\n{get_text('enter_choice')}: ").strip()
         
         if choice == "1":
             check_mysql_remote_status()
             
         elif choice == "2":
-            confirm = input("\n⚠️  Uzaktan erişimi açmak istediğinizden emin misiniz? (e/h): ").strip().lower()
-            if confirm == "e":
+            confirm_prompt = get_text("mysql_remote_confirm_enable")
+            confirm = input(f"\n⚠️  {confirm_prompt}: ").strip().lower()
+            if confirm in ["e", "y", "yes"]:
                 enable_mysql_remote_access()
             else:
-                print("❌ İşlem iptal edildi")
+                print(f"❌ {get_text('mysql_remote_operation_cancelled')}")
                 
         elif choice == "3":
-            confirm = input("\n⚠️  Uzaktan erişimi kapatmak istediğinizden emin misiniz? (e/h): ").strip().lower()
-            if confirm == "e":
+            confirm_prompt = get_text("mysql_remote_confirm_disable")
+            confirm = input(f"\n⚠️  {confirm_prompt}: ").strip().lower()
+            if confirm in ["e", "y", "yes"]:
                 disable_mysql_remote_access()
             else:
-                print("❌ İşlem iptal edildi")
+                print(f"❌ {get_text('mysql_remote_operation_cancelled')}")
                 
         elif choice == "4":
-            print("\n--- IP'ye MySQL Erişim İzni Ver ---")
-            ip = input("IP Adresi (örn: 192.168.1.100): ").strip()
+            print(f"\n--- {get_text('mysql_remote_add_ip_title')} ---")
+            ip = input(f"{get_text('mysql_remote_ip_prompt')}: ").strip()
             if not ip:
-                print("❌ IP adresi gerekli")
+                print(f"❌ {get_text('mysql_remote_ip_required')}")
                 continue
             
-            user = input("MySQL Kullanıcı (varsayılan: root): ").strip() or "root"
+            user = input(f"{get_text('mysql_remote_user_prompt')}: ").strip() or "root"
             
             if user != "root":
-                password = input("Kullanıcı Şifresi: ").strip()
+                password = input(f"{get_text('mysql_remote_password_prompt')}: ").strip()
                 if not password:
-                    print("❌ Şifre gerekli")
+                    print(f"❌ {get_text('mysql_remote_password_required')}")
                     continue
             else:
                 password = ""
             
-            database = input("Database (* = tümü, varsayılan: *): ").strip() or "*"
+            database = input(f"{get_text('mysql_remote_database_prompt')}: ").strip() or "*"
             
             if add_mysql_remote_ip(ip, user, password, database):
                 # Firewall kuralı eklemek ister mi?
-                fw = input("\n🔥 Firewall kuralı da eklensin mi? (e/h): ").strip().lower()
-                if fw == "e":
+                fw = input(f"\n🔥 {get_text('mysql_remote_firewall_add_prompt')}: ").strip().lower()
+                if fw in ["e", "y", "yes"]:
                     mysql_firewall_allow_ip(ip)
                     
         elif choice == "5":
-            print("\n--- IP'nin MySQL Erişimini Kaldır ---")
-            ip = input("IP Adresi: ").strip()
+            print(f"\n--- {get_text('mysql_remote_remove_ip_title')} ---")
+            ip = input(f"{get_text('mysql_remote_ip_prompt')}: ").strip()
             if not ip:
-                print("❌ IP adresi gerekli")
+                print(f"❌ {get_text('mysql_remote_ip_required')}")
                 continue
             
-            user = input("MySQL Kullanıcı (varsayılan: root): ").strip() or "root"
+            user = input(f"{get_text('mysql_remote_user_prompt')}: ").strip() or "root"
             
             if remove_mysql_remote_ip(ip, user):
                 # Firewall kuralı kaldırmak ister mi?
-                fw = input("\n🔥 Firewall kuralı da kaldırılsın mı? (e/h): ").strip().lower()
-                if fw == "e":
+                fw = input(f"\n🔥 {get_text('mysql_remote_firewall_remove_prompt')}: ").strip().lower()
+                if fw in ["e", "y", "yes"]:
                     mysql_firewall_remove_ip(ip)
                     
         elif choice == "6":
             list_mysql_remote_users()
             
         elif choice == "7":
-            print("\n--- Firewall: IP'ye Port 3306 İzni Ver ---")
-            ip = input("IP Adresi: ").strip()
+            print(f"\n--- {get_text('mysql_remote_firewall_allow_title')} ---")
+            ip = input(f"{get_text('mysql_remote_ip_prompt')}: ").strip()
             if ip:
                 mysql_firewall_allow_ip(ip)
             else:
-                print("❌ IP adresi gerekli")
+                print(f"❌ {get_text('mysql_remote_ip_required')}")
                 
         elif choice == "8":
-            print("\n--- Firewall: IP'nin Port 3306 İznini Kaldır ---")
-            ip = input("IP Adresi: ").strip()
+            print(f"\n--- {get_text('mysql_remote_firewall_remove_title')} ---")
+            ip = input(f"{get_text('mysql_remote_ip_prompt')}: ").strip()
             if ip:
                 mysql_firewall_remove_ip(ip)
             else:
-                print("❌ IP adresi gerekli")
+                print(f"❌ {get_text('mysql_remote_ip_required')}")
                 
         elif choice == "0":
             break
             
         else:
-            print("❌ Geçersiz seçim")
+            print(f"❌ {get_text('mysql_remote_invalid_choice')}")
         
         if choice != "0":
-            input("\nDevam etmek için Enter'a basın...")
+            input(f"\n{get_text('mysql_remote_press_enter')}")
 
 
 def secure_mariadb_menu():
