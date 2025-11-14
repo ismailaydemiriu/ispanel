@@ -905,11 +905,35 @@ def configure_logging():
         return
 
     handlers = []
+    log_file = LOG_FILE
+    
+    # Root olmayan kullanıcılar için alternatif log konumu
+    if os.geteuid() != 0:
+        # Kullanıcının home dizininde log dosyası oluştur
+        user_home = Path.home()
+        log_file = user_home / ".ispanel" / "ispanel.log"
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        # Root kullanıcı için /var/log kullan
+        log_file = LOG_FILE
+    
     try:
-        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        handlers.append(logging.FileHandler(LOG_FILE, encoding="utf-8"))
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        # Dosya yoksa oluştur ve izinleri ayarla
+        if not log_file.exists():
+            log_file.touch()
+            if os.geteuid() == 0:
+                # Root için standart izinler
+                log_file.chmod(0o644)
+            else:
+                # Kullanıcı için kendi izinleri
+                log_file.chmod(0o600)
+        
+        handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
     except OSError as exc:
-        print(f"Log dosyasına yazılamadı: {LOG_FILE} ({exc})", file=sys.stderr)
+        # Log dosyası oluşturulamazsa sessizce devam et
+        # Sadece stderr'e yaz, kullanıcıyı rahatsız etme
+        pass
 
     log_level = getattr(logging, LOG_LEVEL, logging.INFO)
     if handlers:
@@ -919,6 +943,7 @@ def configure_logging():
             handlers=handlers,
         )
     else:
+        # Log dosyası yoksa sadece console'a yaz
         logging.basicConfig(
             level=log_level, format="%(asctime)s [%(levelname)s] %(message)s"
         )
@@ -7027,7 +7052,7 @@ def main():
     p_menu = sub.add_parser("menu", help="İnteraktif menüyü başlat")
 
     def _menu(args):
-        require_root()
+        # Menüyü açmak için root gerekmez, sadece bazı işlemler root gerektirir
         select_language()
         interactive_menu()
 
@@ -7035,15 +7060,10 @@ def main():
 
     args = parser.parse_args()
     if not hasattr(args, "func"):
-        # Varsayılan olarak menüyü aç
-        if os.geteuid() == 0:
-            # Dil seçimi yap
-            select_language()
-            interactive_menu()
-            return
-        else:
-            parser.print_help()
-            sys.exit(1)
+        # Varsayılan olarak menüyü aç (root olmak zorunda değil)
+        select_language()
+        interactive_menu()
+        return
     args.func(args)
 
 
