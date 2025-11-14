@@ -386,11 +386,45 @@ def install_openlitespeed_and_php(lsphp_version: str = "83"):
 
     # Paketler
     run("DEBIAN_FRONTEND=noninteractive apt-get -y install openlitespeed", check=True)
+    
     # Sadece gerekli PHP sürümlerini kur (8.2 ve 8.3)
+    # Önemli extensionları açıkça belirt
+    php_extensions = [
+        # Temel
+        "common", "cli", "fpm",
+        # Veritabanı
+        "mysql", "mysqli", "pgsql", "sqlite3", "pdo",
+        # Web ve API
+        "curl", "json", "xml", "soap", "xmlrpc",
+        # Güvenlik ve Şifreleme
+        "bcmath", "gmp", "mcrypt",
+        # Görsel ve Medya
+        "gd", "imagick",
+        # String ve Karakter
+        "mbstring", "iconv", "intl",
+        # Dosya ve Arşiv
+        "zip", "bz2",
+        # Mail
+        "imap",
+        # Cache
+        "redis", "memcached", "opcache", "apcu",
+        # Diğer Önemli
+        "ldap", "ssh2", "tidy", "xsl"
+    ]
+    
+    php82_packages = ["lsphp82"] + [f"lsphp82-{ext}" for ext in php_extensions]
+    php83_packages = ["lsphp83"] + [f"lsphp83-{ext}" for ext in php_extensions]
+    
+    all_packages = " ".join(php82_packages + php83_packages)
     run(
-        "DEBIAN_FRONTEND=noninteractive apt-get -y install lsphp82 lsphp82-* lsphp83 lsphp83-*",
+        f"DEBIAN_FRONTEND=noninteractive apt-get -y install {all_packages}",
         check=True,
     )
+    
+    # curl CLI aracı da kurulu olmalı
+    run("DEBIAN_FRONTEND=noninteractive apt-get -y install curl", check=True)
+    
+    print("✅ PHP extensionları kuruldu: " + ", ".join(php_extensions))
 
     # Varsayılan PHP sürümünü ayarla
     global DEFAULT_LSPHP_VERSION
@@ -706,6 +740,13 @@ def cmd_install(args: argparse.Namespace):
     (ISPANEL_BACKUP_DIR / "domains").mkdir(parents=True, exist_ok=True)
     (ISPANEL_BACKUP_DIR / "databases").mkdir(parents=True, exist_ok=True)
     
+    # .htaccess watcher kur
+    print("\n=== .htaccess İzleme Sistemi ===")
+    try:
+        install_htaccess_watcher()
+    except Exception as e:
+        print(f"⚠️  .htaccess watcher kurulamadı: {e}")
+    
     # Symlink oluştur
     install_symlink()
     
@@ -718,6 +759,7 @@ def cmd_install(args: argparse.Namespace):
     print("✅ MariaDB güvenlik ayarları yapıldı")
     print("✅ OpenLiteSpeed performans optimizasyonu yapıldı")
     print("✅ Yedek sistemi hazır")
+    print("✅ .htaccess otomatik restart sistemi aktif")
 
     # Root şifresini göster
     if MYSQL_ROOT_PASSWORD:
@@ -1528,6 +1570,80 @@ def ensure_docroot(domain: str) -> Path:
     return docroot
 
 
+def create_ssh_user(domain: str, password: str) -> dict:
+    """
+    Domain için SSH kullanıcısı oluştur
+    Returns: dict with username, password, and home directory
+    """
+    # Kullanıcı adı: domain'den türet (nokta ve tire kaldır)
+    username = re.sub(r'[^a-z0-9]', '', domain.lower())[:30]  # Max 30 karakter
+    
+    # Kullanıcı zaten var mı kontrol et
+    result = subprocess.run(['id', username], capture_output=True, text=True)
+    if result.returncode == 0:
+        print(f"ℹ️  SSH kullanıcısı zaten mevcut: {username}")
+        return {
+            "username": username,
+            "password": password,
+            "home": f"/home/{domain}"
+        }
+    
+    try:
+        # Kullanıcı oluştur
+        home_dir = DOCROOT_BASE / domain
+        run(f"useradd -m -d {home_dir} -s /bin/bash -c 'Domain: {domain}' {username}", check=True)
+        
+        # Şifre ayarla (chpasswd kullanarak)
+        proc = subprocess.Popen(['chpasswd'], stdin=subprocess.PIPE, text=True)
+        proc.communicate(f"{username}:{password}\n")
+        if proc.returncode != 0:
+            raise Exception("Şifre ayarlanamadı")
+        
+        # Home dizini izinlerini ayarla
+        run(f"chown -R {username}:{username} {home_dir}", check=False)
+        
+        print(f"✅ SSH kullanıcısı oluşturuldu: {username}")
+        return {
+            "username": username,
+            "password": password,
+            "home": str(home_dir)
+        }
+    except Exception as e:
+        print(f"⚠️  SSH kullanıcısı oluşturulamadı: {e}")
+        return None
+
+
+def create_mysql_cli_config(username: str, db_user: str, db_password: str):
+    """
+    SSH kullanıcısı için MySQL CLI erişim yapılandırması oluştur
+    """
+    try:
+        # Kullanıcının home dizinini bul
+        result = subprocess.run(['getent', 'passwd', username], capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"⚠️  Kullanıcı bulunamadı: {username}")
+            return
+        
+        home_dir = result.stdout.split(':')[5]
+        my_cnf_path = Path(home_dir) / ".my.cnf"
+        
+        # .my.cnf dosyası oluştur
+        my_cnf_content = f"""[client]
+user={db_user}
+password={db_password}
+host=localhost
+"""
+        my_cnf_path.write_text(my_cnf_content, encoding="utf-8")
+        my_cnf_path.chmod(0o600)
+        
+        # Dosya sahibini ayarla
+        run(f"chown {username}:{username} {my_cnf_path}", check=False)
+        
+        print(f"✅ MySQL CLI erişimi yapılandırıldı: {username}")
+    except Exception as e:
+        print(f"⚠️  MySQL CLI yapılandırması oluşturulamadı: {e}")
+
+
 def domain_add(domain: str):
     if not re.match(r"^[A-Za-z0-9.-]+$", domain):
         print("Geçersiz domain.", file=sys.stderr)
@@ -1581,11 +1697,70 @@ phpinfo();
     test_file.write_text(test_content, encoding="utf-8")
     run(f"chmod 644 {test_file}", check=False)
     
+    # SSH kullanıcısı ve MySQL CLI erişimi oluştur
+    print("\n=== SSH ve MySQL CLI Erişimi Yapılandırılıyor ===")
+    
+    # Rastgele şifreler oluştur
+    ssh_password = generate_random_password(16)
+    db_password = generate_random_password(20)
+    
+    # SSH kullanıcısı oluştur
+    ssh_user = create_ssh_user(domain, ssh_password)
+    
+    # MySQL database ve kullanıcı oluştur
+    db_name = re.sub(r'[^a-zA-Z0-9_]', '', domain.replace('.', '_').replace('-', '_'))[:64]
+    db_user = db_name[:16]  # MySQL username max 16/32 karakter (MariaDB 32)
+    
+    try:
+        # Database oluştur
+        mysql_exec(f"CREATE DATABASE IF NOT EXISTS `{db_name}`;")
+        # Kullanıcı oluştur
+        mysql_exec(f"CREATE USER IF NOT EXISTS '{db_user}'@'localhost' IDENTIFIED BY '{db_password}';")
+        # Yetkiler ver
+        mysql_exec(f"GRANT ALL PRIVILEGES ON `{db_name}`.* TO '{db_user}'@'localhost';")
+        mysql_exec("FLUSH PRIVILEGES;")
+        print(f"✅ MySQL database oluşturuldu: {db_name}")
+        print(f"✅ MySQL kullanıcısı oluşturuldu: {db_user}")
+        
+        # SSH kullanıcısı için MySQL CLI yapılandırması oluştur
+        if ssh_user:
+            create_mysql_cli_config(ssh_user["username"], db_user, db_password)
+    except Exception as e:
+        print(f"⚠️  MySQL yapılandırması oluşturulamadı: {e}")
+        db_user = None
+        db_password = None
+    
     reload_lsws()
-    print(f"✅ Domain eklendi: {domain}")
+    
+    # Özet bilgileri göster
+    print("\n" + "="*60)
+    print(f"✅ Domain Başarıyla Eklendi: {domain}")
+    print("="*60)
+    print(f"\n📁 WEB ERİŞİMİ:")
     print(f"   Document root: {docroot}")
-    print(f"   PHP Test: http://{domain}/test.php")
+    print(f"   HTTP: http://{domain}")
     print(f"   HTTPS: https://{domain} (SSL varsa)")
+    print(f"   PHP Test: http://{domain}/test.php")
+    
+    if ssh_user:
+        print(f"\n🔐 SSH ERİŞİMİ:")
+        print(f"   Kullanıcı: {ssh_user['username']}")
+        print(f"   Şifre: {ssh_password}")
+        print(f"   Komut: ssh {ssh_user['username']}@SUNUCU_IP")
+        print(f"   Home: {ssh_user['home']}")
+    
+    if db_user and db_password:
+        print(f"\n💾 MYSQL ERİŞİMİ:")
+        print(f"   Database: {db_name}")
+        print(f"   Kullanıcı: {db_user}")
+        print(f"   Şifre: {db_password}")
+        print(f"   Host: localhost")
+        print(f"\n   SSH üzerinden MySQL CLI:")
+        print(f"   - SSH ile bağlandıktan sonra: mysql")
+        print(f"   - Otomatik olarak {db_name} veritabanına bağlanır")
+    
+    print("\n⚠️  Bu bilgileri güvenli bir yerde saklayın!")
+    print("="*60)
 
 
 def set_domain_php_version(domain: str, version: str):
@@ -3442,6 +3617,110 @@ def list_backups():
     summarize("Veritabanı Yedekleri", "*.sql", ISPANEL_BACKUP_DIR / "databases")
 
 
+def install_htaccess_watcher():
+    """
+    .htaccess dosyalarındaki değişiklikleri izle ve OpenLiteSpeed'i restart et
+    inotify-tools kullanarak real-time monitoring
+    """
+    print("=== .htaccess Watcher Kuruluyor ===")
+    
+    # inotify-tools kur
+    run("DEBIAN_FRONTEND=noninteractive apt-get update -y", check=False)
+    run("DEBIAN_FRONTEND=noninteractive apt-get install -y inotify-tools", check=True)
+    
+    # Watcher script oluştur
+    watcher_script = Path("/usr/local/ispanel/htaccess-watcher.sh")
+    watcher_script.parent.mkdir(parents=True, exist_ok=True)
+    
+    script_content = """#!/bin/bash
+# isPanel .htaccess Watcher
+# .htaccess dosyalarındaki değişiklikleri izler ve OpenLiteSpeed'i restart eder
+
+LOG_FILE="/var/log/ispanel-htaccess-watcher.log"
+WATCH_DIR="/home"
+
+echo "$(date): .htaccess watcher başlatıldı" >> "$LOG_FILE"
+
+# inotifywait ile .htaccess dosyalarını izle
+inotifywait -m -r -e modify,create,delete,move --include '\.htaccess$' "$WATCH_DIR" | while read -r directory events filename; do
+    echo "$(date): .htaccess değişikliği tespit edildi: $directory$filename" >> "$LOG_FILE"
+    
+    # 2 saniye bekle (birden fazla değişiklik varsa toplu restart için)
+    sleep 2
+    
+    # OpenLiteSpeed'i graceful restart et
+    echo "$(date): OpenLiteSpeed restart ediliyor..." >> "$LOG_FILE"
+    /usr/local/lsws/bin/lswsctrl restart >> "$LOG_FILE" 2>&1
+    
+    if [ $? -eq 0 ]; then
+        echo "$(date): OpenLiteSpeed başarıyla restart edildi" >> "$LOG_FILE"
+    else
+        echo "$(date): OpenLiteSpeed restart hatası!" >> "$LOG_FILE"
+    fi
+done
+"""
+    
+    watcher_script.write_text(script_content, encoding="utf-8")
+    watcher_script.chmod(0o755)
+    
+    # Systemd service oluştur
+    service_content = """[Unit]
+Description=isPanel .htaccess File Watcher
+After=network.target lsws.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/ispanel/htaccess-watcher.sh
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/ispanel-htaccess-watcher.log
+StandardError=append:/var/log/ispanel-htaccess-watcher.log
+
+[Install]
+WantedBy=multi-user.target
+"""
+    
+    service_file = Path("/etc/systemd/system/ispanel-htaccess-watcher.service")
+    service_file.write_text(service_content, encoding="utf-8")
+    
+    # Service'i etkinleştir ve başlat
+    run("systemctl daemon-reload", check=True)
+    run("systemctl enable ispanel-htaccess-watcher.service", check=True)
+    run("systemctl start ispanel-htaccess-watcher.service", check=True)
+    
+    # Log dosyası oluştur
+    Path("/var/log/ispanel-htaccess-watcher.log").touch()
+    
+    print("✅ .htaccess watcher kuruldu ve başlatıldı")
+    print("   Log: /var/log/ispanel-htaccess-watcher.log")
+    print("   Service: ispanel-htaccess-watcher.service")
+    print("   Durum: systemctl status ispanel-htaccess-watcher")
+
+
+def check_htaccess_watcher_status():
+    """htaccess watcher durumunu kontrol et"""
+    result = subprocess.run(
+        ["systemctl", "is-active", "ispanel-htaccess-watcher.service"],
+        capture_output=True,
+        text=True
+    )
+    
+    if result.returncode == 0 and result.stdout.strip() == "active":
+        print("✅ .htaccess watcher çalışıyor")
+        # Son 10 satırı göster
+        try:
+            log_content = Path("/var/log/ispanel-htaccess-watcher.log").read_text(encoding="utf-8")
+            lines = log_content.strip().split("\n")[-10:]
+            print("\n📋 Son loglar:")
+            for line in lines:
+                print(f"   {line}")
+        except Exception:
+            pass
+    else:
+        print("❌ .htaccess watcher çalışmıyor")
+        print("   Başlatmak için: systemctl start ispanel-htaccess-watcher")
+
+
 def install_cron():
     ensure_cmd("crontab", "cron")
 
@@ -3605,6 +3884,7 @@ def interactive_menu():
             print(f"{PURPLE}8){RESET} {menu_options[7]}")
             print(f"{PURPLE}9){RESET} {menu_options[8]}")
             print(f"{PURPLE}10){RESET} {menu_options[9]}")
+            print(f"{PURPLE}33){RESET} 🌐 MySQL Uzaktan Erişim Yönetimi")
             
             # 🔧 SYSTEM
             print(f"\n{BOLD}{RED}🔧 {get_text('section_system')}{RESET}")
@@ -3720,6 +4000,8 @@ def interactive_menu():
                 auto_backup_system()
             elif choice == "32":
                 update_ispanel()
+            elif choice == "33":
+                mysql_remote_access_menu()
             elif choice == "0":
                 break
             else:
@@ -4459,6 +4741,408 @@ def change_mariadb_remote_ip(old_ip: str, new_ip: str, db: str, user: str):
         add_mariadb_remote_grant(new_ip, db, user, "")
     except Exception as e:
         print(f"❌ IP değiştirilemedi: {e}")
+
+
+def enable_mysql_remote_access():
+    """MySQL uzaktan erişimi etkinleştir (bind-address 0.0.0.0)"""
+    print("=== MySQL Uzaktan Erişim Etkinleştiriliyor ===")
+    
+    mariadb_conf = Path("/etc/mysql/mariadb.conf.d/50-server.cnf")
+    if not mariadb_conf.exists():
+        # Alternatif yollar
+        mariadb_conf = Path("/etc/mysql/my.cnf")
+        if not mariadb_conf.exists():
+            mariadb_conf = Path("/etc/my.cnf")
+    
+    if not mariadb_conf.exists():
+        print("❌ MariaDB konfigürasyon dosyası bulunamadı")
+        return False
+    
+    try:
+        content = mariadb_conf.read_text(encoding="utf-8")
+        
+        # bind-address satırını bul ve değiştir
+        if "bind-address" in content:
+            # Mevcut bind-address'i değiştir
+            content = re.sub(
+                r'bind-address\s*=\s*127\.0\.0\.1',
+                'bind-address = 0.0.0.0',
+                content
+            )
+            # Yorum satırındaysa aktif et
+            content = re.sub(
+                r'#\s*bind-address\s*=\s*.*',
+                'bind-address = 0.0.0.0',
+                content
+            )
+        else:
+            # [mysqld] bölümüne ekle
+            if "[mysqld]" in content:
+                content = content.replace("[mysqld]", "[mysqld]\nbind-address = 0.0.0.0")
+            else:
+                content = "[mysqld]\nbind-address = 0.0.0.0\n\n" + content
+        
+        mariadb_conf.write_text(content, encoding="utf-8")
+        
+        # MariaDB'yi restart et
+        run("systemctl restart mariadb", check=True)
+        
+        print("✅ MySQL uzaktan erişim etkinleştirildi (bind-address: 0.0.0.0)")
+        print("⚠️  Güvenlik için firewall kuralları ayarlamayı unutmayın!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Uzaktan erişim etkinleştirilemedi: {e}")
+        return False
+
+
+def disable_mysql_remote_access():
+    """MySQL uzaktan erişimi devre dışı bırak (bind-address 127.0.0.1)"""
+    print("=== MySQL Uzaktan Erişim Kapatılıyor ===")
+    
+    mariadb_conf = Path("/etc/mysql/mariadb.conf.d/50-server.cnf")
+    if not mariadb_conf.exists():
+        mariadb_conf = Path("/etc/mysql/my.cnf")
+        if not mariadb_conf.exists():
+            mariadb_conf = Path("/etc/my.cnf")
+    
+    if not mariadb_conf.exists():
+        print("❌ MariaDB konfigürasyon dosyası bulunamadı")
+        return False
+    
+    try:
+        content = mariadb_conf.read_text(encoding="utf-8")
+        
+        # bind-address'i localhost'a çevir
+        content = re.sub(
+            r'bind-address\s*=\s*0\.0\.0\.0',
+            'bind-address = 127.0.0.1',
+            content
+        )
+        
+        mariadb_conf.write_text(content, encoding="utf-8")
+        
+        # MariaDB'yi restart et
+        run("systemctl restart mariadb", check=True)
+        
+        print("✅ MySQL uzaktan erişim kapatıldı (bind-address: 127.0.0.1)")
+        print("✅ Sadece localhost erişimi aktif")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Uzaktan erişim kapatılamadı: {e}")
+        return False
+
+
+def add_mysql_remote_ip(ip: str, user: str = "root", password: str = "", database: str = "*"):
+    """
+    Belirli bir IP'ye MySQL erişim izni ver
+    
+    Args:
+        ip: İzin verilecek IP adresi (örn: 192.168.1.100)
+        user: MySQL kullanıcı adı (varsayılan: root)
+        password: Kullanıcı şifresi (root için mevcut şifre kullanılır)
+        database: Erişim verilecek database (* = tüm veritabanları)
+    """
+    print(f"=== MySQL Uzaktan Erişim İzni Veriliyor ===")
+    print(f"IP: {ip}")
+    print(f"Kullanıcı: {user}")
+    print(f"Database: {database}")
+    
+    try:
+        # IP formatını kontrol et
+        if not re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip):
+            print("❌ Geçersiz IP adresi formatı")
+            return False
+        
+        # Kullanıcı için uzaktan erişim ver
+        if user == "root":
+            # Root için mevcut şifreyi kullan
+            if MYSQL_ROOT_PASSWORD:
+                password = MYSQL_ROOT_PASSWORD
+            else:
+                print("⚠️  Root şifresi bilinmiyor, manuel şifre girmeniz gerekebilir")
+        
+        # Kullanıcı oluştur veya güncelle
+        if password:
+            mysql_exec(f"CREATE USER IF NOT EXISTS '{user}'@'{ip}' IDENTIFIED BY '{password}';")
+        
+        # Yetki ver
+        if database == "*":
+            mysql_exec(f"GRANT ALL PRIVILEGES ON *.* TO '{user}'@'{ip}' WITH GRANT OPTION;")
+        else:
+            mysql_exec(f"GRANT ALL PRIVILEGES ON `{database}`.* TO '{user}'@'{ip}';")
+        
+        mysql_exec("FLUSH PRIVILEGES;")
+        
+        print(f"✅ MySQL erişim izni verildi: {user}@{ip} -> {database}")
+        print(f"\n📝 Bağlantı Bilgileri:")
+        print(f"   Host: SUNUCU_IP")
+        print(f"   Port: 3306")
+        print(f"   User: {user}")
+        print(f"   Database: {database}")
+        
+        # Firewall kuralı öner
+        print(f"\n🔥 Firewall kuralı eklemek için:")
+        print(f"   sudo ufw allow from {ip} to any port 3306")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Erişim izni verilemedi: {e}")
+        return False
+
+
+def remove_mysql_remote_ip(ip: str, user: str = "root"):
+    """Belirli bir IP'nin MySQL erişimini kaldır"""
+    print(f"=== MySQL Uzaktan Erişim İzni Kaldırılıyor ===")
+    print(f"IP: {ip}")
+    print(f"Kullanıcı: {user}")
+    
+    try:
+        # Yetkileri kaldır
+        mysql_exec(f"REVOKE ALL PRIVILEGES, GRANT OPTION FROM '{user}'@'{ip}';")
+        # Kullanıcıyı sil
+        mysql_exec(f"DROP USER IF EXISTS '{user}'@'{ip}';")
+        mysql_exec("FLUSH PRIVILEGES;")
+        
+        print(f"✅ MySQL erişim izni kaldırıldı: {user}@{ip}")
+        
+        # Firewall kuralını kaldırmayı öner
+        print(f"\n🔥 Firewall kuralını kaldırmak için:")
+        print(f"   sudo ufw delete allow from {ip} to any port 3306")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Erişim izni kaldırılamadı: {e}")
+        return False
+
+
+def list_mysql_remote_users():
+    """MySQL uzaktan erişim izni olan kullanıcıları listele"""
+    print("\n=== MySQL Uzaktan Erişim İzinleri ===\n")
+    
+    try:
+        # Localhost dışındaki tüm kullanıcıları listele
+        result = run(
+            "mysql -u root -e \"SELECT User, Host FROM mysql.user WHERE Host NOT IN ('localhost', '127.0.0.1', '::1') ORDER BY User, Host;\"",
+            check=True
+        )
+        
+        if result.stdout:
+            print(result.stdout)
+        else:
+            print("ℹ️  Uzaktan erişim izni olan kullanıcı bulunamadı")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Kullanıcılar listelenemedi: {e}")
+        return False
+
+
+def check_mysql_remote_status():
+    """MySQL uzaktan erişim durumunu kontrol et"""
+    print("\n=== MySQL Uzaktan Erişim Durumu ===\n")
+    
+    try:
+        # bind-address kontrolü
+        mariadb_conf = Path("/etc/mysql/mariadb.conf.d/50-server.cnf")
+        if not mariadb_conf.exists():
+            mariadb_conf = Path("/etc/mysql/my.cnf")
+            if not mariadb_conf.exists():
+                mariadb_conf = Path("/etc/my.cnf")
+        
+        if mariadb_conf.exists():
+            content = mariadb_conf.read_text(encoding="utf-8")
+            bind_match = re.search(r'bind-address\s*=\s*(\S+)', content)
+            
+            if bind_match:
+                bind_addr = bind_match.group(1)
+                if bind_addr == "0.0.0.0":
+                    print("✅ Uzaktan erişim: ETKİN (bind-address: 0.0.0.0)")
+                elif bind_addr == "127.0.0.1":
+                    print("❌ Uzaktan erişim: KAPALI (bind-address: 127.0.0.1)")
+                else:
+                    print(f"ℹ️  bind-address: {bind_addr}")
+            else:
+                print("⚠️  bind-address ayarı bulunamadı")
+        
+        # Port dinleme durumu
+        result = run("netstat -tlnp | grep :3306 || ss -tlnp | grep :3306", check=False)
+        if result.stdout:
+            print(f"\n📡 Port 3306 Dinleme Durumu:")
+            print(result.stdout)
+        
+        # Firewall durumu
+        result = run("ufw status | grep 3306 || iptables -L | grep 3306", check=False)
+        if result.stdout:
+            print(f"\n🔥 Firewall Kuralları (Port 3306):")
+            print(result.stdout)
+        else:
+            print("\n⚠️  Port 3306 için firewall kuralı bulunamadı")
+        
+        # Uzaktan erişim izni olan kullanıcılar
+        print("\n👥 Uzaktan Erişim İzni Olan Kullanıcılar:")
+        list_mysql_remote_users()
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Durum kontrol edilemedi: {e}")
+        return False
+
+
+def mysql_firewall_allow_ip(ip: str):
+    """Firewall'da belirli IP için 3306 portunu aç"""
+    print(f"=== Firewall: MySQL Erişimi (Port 3306) ===")
+    print(f"IP: {ip}")
+    
+    try:
+        # UFW varsa kullan
+        if shutil.which("ufw"):
+            run(f"ufw allow from {ip} to any port 3306 proto tcp", check=True)
+            print(f"✅ UFW kuralı eklendi: {ip} -> 3306")
+        else:
+            # iptables kullan
+            run(f"iptables -A INPUT -p tcp -s {ip} --dport 3306 -j ACCEPT", check=True)
+            run("iptables-save > /etc/iptables/rules.v4", check=False)
+            print(f"✅ iptables kuralı eklendi: {ip} -> 3306")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Firewall kuralı eklenemedi: {e}")
+        return False
+
+
+def mysql_firewall_remove_ip(ip: str):
+    """Firewall'dan belirli IP için 3306 portunu kaldır"""
+    print(f"=== Firewall: MySQL Erişimi Kaldırılıyor (Port 3306) ===")
+    print(f"IP: {ip}")
+    
+    try:
+        # UFW varsa kullan
+        if shutil.which("ufw"):
+            run(f"ufw delete allow from {ip} to any port 3306 proto tcp", check=True)
+            print(f"✅ UFW kuralı kaldırıldı: {ip} -> 3306")
+        else:
+            # iptables kullan
+            run(f"iptables -D INPUT -p tcp -s {ip} --dport 3306 -j ACCEPT", check=True)
+            run("iptables-save > /etc/iptables/rules.v4", check=False)
+            print(f"✅ iptables kuralı kaldırıldı: {ip} -> 3306")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Firewall kuralı kaldırılamadı: {e}")
+        return False
+def mysql_remote_access_menu():
+    """MySQL Uzaktan Erişim Yönetimi - Basit ve Kullanıcı Dostu Menü"""
+    while True:
+        print("\n" + "="*60)
+        print("MySQL UZAKTAN ERİŞİM YÖNETİMİ")
+        print("="*60)
+        print("1) 📊 Uzaktan Erişim Durumunu Kontrol Et")
+        print("2) ✅ Uzaktan Erişimi Aç (bind-address 0.0.0.0)")
+        print("3) ❌ Uzaktan Erişimi Kapat (bind-address 127.0.0.1)")
+        print("4) ➕ Belirli IP'ye İzin Ver")
+        print("5) ➖ IP İznini Kaldır")
+        print("6) 📋 İzin Verilen IP'leri Listele")
+        print("7) 🔥 Firewall: IP'ye Port 3306 İzni Ver")
+        print("8) 🚫 Firewall: IP'nin Port 3306 İznini Kaldır")
+        print("0) 🔙 Ana Menüye Dön")
+        print("="*60)
+        
+        choice = input("\nSeçiminiz: ").strip()
+        
+        if choice == "1":
+            check_mysql_remote_status()
+            
+        elif choice == "2":
+            confirm = input("\n⚠️  Uzaktan erişimi açmak istediğinizden emin misiniz? (e/h): ").strip().lower()
+            if confirm == "e":
+                enable_mysql_remote_access()
+            else:
+                print("❌ İşlem iptal edildi")
+                
+        elif choice == "3":
+            confirm = input("\n⚠️  Uzaktan erişimi kapatmak istediğinizden emin misiniz? (e/h): ").strip().lower()
+            if confirm == "e":
+                disable_mysql_remote_access()
+            else:
+                print("❌ İşlem iptal edildi")
+                
+        elif choice == "4":
+            print("\n--- IP'ye MySQL Erişim İzni Ver ---")
+            ip = input("IP Adresi (örn: 192.168.1.100): ").strip()
+            if not ip:
+                print("❌ IP adresi gerekli")
+                continue
+            
+            user = input("MySQL Kullanıcı (varsayılan: root): ").strip() or "root"
+            
+            if user != "root":
+                password = input("Kullanıcı Şifresi: ").strip()
+                if not password:
+                    print("❌ Şifre gerekli")
+                    continue
+            else:
+                password = ""
+            
+            database = input("Database (* = tümü, varsayılan: *): ").strip() or "*"
+            
+            if add_mysql_remote_ip(ip, user, password, database):
+                # Firewall kuralı eklemek ister mi?
+                fw = input("\n🔥 Firewall kuralı da eklensin mi? (e/h): ").strip().lower()
+                if fw == "e":
+                    mysql_firewall_allow_ip(ip)
+                    
+        elif choice == "5":
+            print("\n--- IP'nin MySQL Erişimini Kaldır ---")
+            ip = input("IP Adresi: ").strip()
+            if not ip:
+                print("❌ IP adresi gerekli")
+                continue
+            
+            user = input("MySQL Kullanıcı (varsayılan: root): ").strip() or "root"
+            
+            if remove_mysql_remote_ip(ip, user):
+                # Firewall kuralı kaldırmak ister mi?
+                fw = input("\n🔥 Firewall kuralı da kaldırılsın mı? (e/h): ").strip().lower()
+                if fw == "e":
+                    mysql_firewall_remove_ip(ip)
+                    
+        elif choice == "6":
+            list_mysql_remote_users()
+            
+        elif choice == "7":
+            print("\n--- Firewall: IP'ye Port 3306 İzni Ver ---")
+            ip = input("IP Adresi: ").strip()
+            if ip:
+                mysql_firewall_allow_ip(ip)
+            else:
+                print("❌ IP adresi gerekli")
+                
+        elif choice == "8":
+            print("\n--- Firewall: IP'nin Port 3306 İznini Kaldır ---")
+            ip = input("IP Adresi: ").strip()
+            if ip:
+                mysql_firewall_remove_ip(ip)
+            else:
+                print("❌ IP adresi gerekli")
+                
+        elif choice == "0":
+            break
+            
+        else:
+            print("❌ Geçersiz seçim")
+        
+        if choice != "0":
+            input("\nDevam etmek için Enter'a basın...")
+
+
 def secure_mariadb_menu():
     """MariaDB güvenlik ve uzaktan erişim menüsü"""
     global MYSQL_ROOT_PASSWORD
@@ -5578,6 +6262,7 @@ def system_management_menu():
         print("6) Log dosyaları")
         print("7) Sistem temizliği")
         print("8) Otomatik yedekleme kurulumu")
+        print("9) .htaccess Watcher Durumu")
         print("0) Ana menüye dön")
         
         choice = input("\nSeçiminizi girin: ").strip()
@@ -5598,6 +6283,8 @@ def system_management_menu():
             system_cleanup()
         elif choice == "8":
             auto_backup_system()
+        elif choice == "9":
+            check_htaccess_watcher_status()
         elif choice == "0":
             break
         else:
