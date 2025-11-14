@@ -473,25 +473,40 @@ def stop_nginx_if_running():
 
 def install_openlitespeed_and_php(lsphp_version: str = "83"):
     logger.info("OpenLiteSpeed ve PHP %s.%s kuruluyor...", lsphp_version[0], lsphp_version[1])
+    print("\n📦 OpenLiteSpeed ve PHP Kurulumu Başlıyor...\n")
+    
     wait_for_apt()
+    print("🔄 APT paket listesi güncelleniyor...")
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
+    print("✅ APT paket listesi güncellendi\n")
+    
+    print("📥 Gerekli araçlar kuruluyor...")
     ensure_cmd("curl", "curl")
+    print("  ✅ curl kuruldu")
     ensure_cmd("wget", "wget")
-    # Reset admin için gerekli bağımlılık
+    print("  ✅ wget kuruldu")
     ensure_cmd("expect", "expect")
+    print("  ✅ expect kuruldu\n")
 
     # Nginx'i durdur (port çakışmasını önlemek için)
+    print("🔍 Port çakışmaları kontrol ediliyor...")
     stop_nginx_if_running()
+    print("✅ Port kontrolü tamamlandı\n")
 
     # Litespeed repo
+    print("📥 LiteSpeed repository ekleniyor...")
     run("wget -O - https://repo.litespeed.sh | bash", check=True)
+    print("✅ LiteSpeed repository eklendi\n")
 
     # Paketler
+    print("📦 OpenLiteSpeed kuruluyor...")
     run("DEBIAN_FRONTEND=noninteractive apt-get -y install openlitespeed", check=True)
+    print("✅ OpenLiteSpeed kuruldu\n")
     
     # Sadece gerekli PHP sürümlerini kur (8.2 ve 8.3)
     # Önemli extensionları açıkça belirt
-    php_extensions = [
+    # Not: Bazı extension'lar mevcut olmayabilir (mcrypt, ssh2 gibi), bunları opsiyonel yapıyoruz
+    php_extensions_required = [
         # Temel
         "common", "cli", "fpm",
         # Veritabanı
@@ -499,7 +514,7 @@ def install_openlitespeed_and_php(lsphp_version: str = "83"):
         # Web ve API
         "curl", "json", "xml", "soap", "xmlrpc",
         # Güvenlik ve Şifreleme
-        "bcmath", "gmp", "mcrypt",
+        "bcmath", "gmp",
         # Görsel ve Medya
         "gd", "imagick",
         # String ve Karakter
@@ -511,22 +526,55 @@ def install_openlitespeed_and_php(lsphp_version: str = "83"):
         # Cache
         "redis", "memcached", "opcache", "apcu",
         # Diğer Önemli
-        "ldap", "ssh2", "tidy", "xsl"
+        "ldap", "tidy", "xsl"
     ]
     
-    php82_packages = ["lsphp82"] + [f"lsphp82-{ext}" for ext in php_extensions]
-    php83_packages = ["lsphp83"] + [f"lsphp83-{ext}" for ext in php_extensions]
+    # Opsiyonel extension'lar (mevcut olmayabilir)
+    php_extensions_optional = [
+        "mcrypt",  # PHP 8+ için genellikle mevcut değil
+        "ssh2"     # Genellikle ayrı paket gerektirir
+    ]
+    
+    print("📦 PHP 8.2 ve 8.3 extension'ları kuruluyor...")
+    print("   (Bu işlem birkaç dakika sürebilir...)\n")
+    
+    # Önce zorunlu paketleri kur
+    php82_packages = ["lsphp82"] + [f"lsphp82-{ext}" for ext in php_extensions_required]
+    php83_packages = ["lsphp83"] + [f"lsphp83-{ext}" for ext in php_extensions_required]
     
     all_packages = " ".join(php82_packages + php83_packages)
-    run(
+    
+    # Paketleri kur, hata olsa bile devam et
+    result = run(
         f"DEBIAN_FRONTEND=noninteractive apt-get -y install {all_packages}",
-        check=True,
+        check=False,
     )
     
-    # curl CLI aracı da kurulu olmalı
-    run("DEBIAN_FRONTEND=noninteractive apt-get -y install curl", check=True)
+    if result.returncode == 0:
+        print(f"✅ PHP extension'ları kuruldu: {len(php_extensions_required)} extension\n")
+    else:
+        print("⚠️  Bazı PHP extension'lar kurulamadı, devam ediliyor...\n")
+        # Eksik paketleri tek tek dene
+        print("🔍 Eksik paketler kontrol ediliyor...")
+        for ext in php_extensions_required:
+            for version in ["82", "83"]:
+                pkg = f"lsphp{version}-{ext}"
+                test_result = run(f"dpkg -l | grep -q {pkg}", check=False)
+                if test_result.returncode != 0:
+                    # Paket yoksa kurmayı dene
+                    run(f"DEBIAN_FRONTEND=noninteractive apt-get -y install {pkg}", check=False)
     
-    print("✅ PHP extensionları kuruldu: " + ", ".join(php_extensions))
+    # Opsiyonel paketleri dene
+    print("📦 Opsiyonel PHP extension'ları kontrol ediliyor...")
+    for ext in php_extensions_optional:
+        for version in ["82", "83"]:
+            pkg = f"lsphp{version}-{ext}"
+            result = run(f"DEBIAN_FRONTEND=noninteractive apt-get -y install {pkg}", check=False)
+            if result.returncode == 0:
+                print(f"  ✅ {pkg} kuruldu")
+            # Hata olsa bile devam et
+    
+    print("\n✅ PHP kurulumu tamamlandı")
 
     # Varsayılan PHP sürümünü ayarla
     global DEFAULT_LSPHP_VERSION
@@ -551,13 +599,20 @@ def generate_random_password(length: int = 16) -> str:
 
 def install_mariadb():
     logger.info("MariaDB kuruluyor...")
+    print("\n📦 MariaDB Kurulumu Başlıyor...\n")
+    
     wait_for_apt()
+    print("🔄 APT paket listesi güncelleniyor...")
     run("DEBIAN_FRONTEND=noninteractive apt-get update -y")
+    print("✅ APT paket listesi güncellendi\n")
 
     # MariaDB kurulumu - debconf ile otomatik kurulum
+    print("📥 debconf-utils kuruluyor...")
     run("DEBIAN_FRONTEND=noninteractive apt-get install -y debconf-utils", check=True)
+    print("✅ debconf-utils kuruldu\n")
 
     # MariaDB için debconf ayarları
+    print("⚙️  MariaDB kurulum ayarları yapılıyor...")
     run(
         "echo 'mariadb-server mysql-server/root_password password' | debconf-set-selections",
         check=False,
@@ -566,13 +621,19 @@ def install_mariadb():
         "echo 'mariadb-server mysql-server/root_password_again password' | debconf-set-selections",
         check=False,
     )
+    print("✅ Kurulum ayarları tamamlandı\n")
 
     # MariaDB kurulumu
+    print("📦 MariaDB Server kuruluyor...")
+    print("   (Bu işlem birkaç dakika sürebilir...)\n")
     run("DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server", check=True)
+    print("✅ MariaDB Server kuruldu\n")
 
     # MariaDB servisini başlat
+    print("🚀 MariaDB servisi başlatılıyor...")
     run("systemctl enable mariadb", check=False)
     run("systemctl start mariadb", check=True)
+    print("✅ MariaDB servisi başlatıldı\n")
 
     # Root şifresi oluştur
     root_password = generate_random_password(20)
@@ -619,7 +680,7 @@ FLUSH PRIVILEGES;
         save_config()
 
         print(f"✅ MariaDB kuruldu ve yapılandırıldı")
-        print(f"🔑 MySQL Root Şifresi: {root_password}")
+        print(f"🔑 MySQL Root Şifresi: {root_password}\n")
 
         # Root şifresini dosyaya kaydet
         mysql_conf = Path("/root/.my.cnf")
@@ -820,37 +881,64 @@ def cmd_install(args: argparse.Namespace):
 
     # Port çakışmalarını kontrol et
     check_port_conflicts()
+    print("✅ Port kontrolü tamamlandı\n")
     
     # Temel kurulum
+    print("="*70)
+    print("📦 TEMEL KURULUM")
+    print("="*70)
     install_openlitespeed_and_php(php_version)
     install_mariadb()
     # MariaDB kurulduktan sonra /root/.my.cnf'i yaz (artık şifre belli)
+    print("⚙️  MySQL konfigürasyonu yapılıyor...")
     ensure_root_my_cnf()
+    print("✅ MySQL konfigürasyonu tamamlandı\n")
     
     # Güvenlik ve performans ayarları
-    print("\n=== Güvenlik ve Performans Ayarları ===")
+    print("="*70)
+    print("🔒 GÜVENLİK VE PERFORMANS AYARLARI")
+    print("="*70)
+    print("🔥 Firewall ayarları yapılıyor...")
     manage_firewall()
+    print("✅ Firewall ayarları tamamlandı\n")
+    
+    print("🔐 SSL/HTTPS desteği kuruluyor...")
     install_ssl_support()
+    print("✅ SSL/HTTPS desteği eklendi\n")
+    
+    print("🛡️  MariaDB güvenlik ayarları yapılıyor...")
     secure_mariadb()
+    print("✅ MariaDB güvenlik ayarları tamamlandı\n")
+    
+    print("⚡ OpenLiteSpeed performans optimizasyonu yapılıyor...")
     optimize_openlitespeed()
     cleanup_default_listeners()  # Varsayılan 8088 listener'ını temizle
+    print("✅ OpenLiteSpeed optimizasyonu tamamlandı\n")
     
     # PHP OPcache konfigürasyonu
+    print("⚙️  PHP OPcache konfigürasyonu yapılıyor...")
     configure_php_opcache()
+    print("✅ PHP OPcache konfigürasyonu tamamlandı\n")
     
     # Yedek dizinleri oluştur
+    print("📁 Yedek dizinleri oluşturuluyor...")
     (ISPANEL_BACKUP_DIR / "domains").mkdir(parents=True, exist_ok=True)
     (ISPANEL_BACKUP_DIR / "databases").mkdir(parents=True, exist_ok=True)
+    print("✅ Yedek dizinleri oluşturuldu\n")
     
     # .htaccess watcher kur
-    print("\n=== .htaccess İzleme Sistemi ===")
+    print("="*70)
+    print("📝 .HTACCESS İZLEME SİSTEMİ")
+    print("="*70)
     try:
         install_htaccess_watcher()
     except Exception as e:
-        print(f"⚠️  .htaccess watcher kurulamadı: {e}")
+        print(f"⚠️  .htaccess watcher kurulamadı: {e}\n")
     
     # Symlink oluştur
+    print("🔗 isPanel symlink oluşturuluyor...")
     install_symlink()
+    print("✅ isPanel symlink oluşturuldu\n")
     
     print("\n=== Kurulum Tamamlandı ===")
     print(
@@ -995,8 +1083,6 @@ def cleanup_default_listeners():
 def check_port_conflicts():
     """Port çakışmalarını kontrol et ve çöz"""
     print("Port çakışmaları kontrol Ediliyor...")
-    print("Kurulum Başladı. İşlem bittiginde tarafınıza bilgi verilecektir.")
-
     # Port 80 kontrolü
     try:
         result = run("netstat -tuln | grep ':80 '", check=False)
